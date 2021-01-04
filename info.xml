@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<extension key="grassrootspetition" type="module">
+  <file>grassrootspetition</file>
+  <name>Grassroots Petition</name>
+  <description>Allows public to create public petitions; people to sign them.</description>
+  <license>AGPL-3.0</license>
+  <maintainer>
+    <author>Rich Lott / Artful Robot</author>
+    <email>forums@artfulrobot.uk</email>
+  </maintainer>
+  <urls>
+    <url desc="Main Extension Page">https://github.com/artfulrobot/grassrootspetition</url>
+    <url desc="Documentation">https://github.com/artfulrobot/grassrootspetition</url>
+    <url desc="Support">https://github.com/artfulrobot/grassrootspetition</url>
+    <url desc="Licensing">http://www.gnu.org/licenses/agpl-3.0.html</url>
+  </urls>
+  <releaseDate>2021-01-04</releaseDate>
+  <version>1.0</version>
+  <develStage>alpha</develStage>
+  <compatibility>
+    <ver>5.0</ver>
+  </compatibility>
+  <comments>This is possibly bespoke, but you may find it useful.</comments>
+  <classloader>
+    <psr4 prefix="Civi\" path="Civi"/>
+  </classloader>
+  <civix>
+    <namespace>CRM/Grassrootspetition</namespace>
+  </civix>
+</extension>
