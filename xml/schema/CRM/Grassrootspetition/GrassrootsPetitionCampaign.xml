@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+
+<table>
+  <base>CRM/Grassrootspetition</base>
+  <class>GrassrootsPetitionCampaign</class>
+  <name>civicrm_grpet_campaign</name>
+  <comment>Each is campaign, used to group signatures from various local campaigns into a total</comment>
+  <log>true</log>
+
+  <field>
+    <name>id</name>
+    <type>int unsigned</type>
+    <required>true</required>
+    <comment>Unique GrassrootsPetitionCampaign ID</comment>
+  </field>
+  <primaryKey>
+    <name>id</name>
+    <autoincrement>true</autoincrement>
+  </primaryKey>
+
+  <field>
+    <name>name</name>
+    <type>varchar</type>
+    <length>255</length>
+    <comment>Administrative name</comment>
+  </field>
+
+  <field>
+    <name>label</name>
+    <type>varchar</type>
+    <length>255</length>
+    <comment>Public name</comment>
+  </field>
+
+  <field>
+    <name>description</name>
+    <type>longtext</type>
+    <comment>Describes the campaign</comment>
+  </field>
+
+  <field>
+    <name>is_active</name>
+    <type>boolean</type>
+    <default>1</default>
+    <comment>Whether to allow these petitions</comment>
+  </field>
+
+  <field>
+    <name>template</name>
+    <type>longtext</type>
+    <comment>HTML template for new petitions</comment>
+  </field>
+
+</table>

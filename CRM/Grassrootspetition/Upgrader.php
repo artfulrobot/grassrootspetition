@@ -260,8 +260,20 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
-
-    // @todo which campaign it belongs to.
+    // which campaign it belongs to. (FK to a GrassrootsPetitionCampaign entity.
+    $baseParams = [
+      'custom_group_id' => $customGroupIDPetition,
+      'name'            => "grpet_campaign",
+    ];
+    $allParams = [
+      'column_name'     => "campaign_id",
+      'label'           => "Campaign",
+      'data_type'       => "Integer",
+      'html_type'       => 'Text',
+      'is_searchable'   => 1,
+      'is_required'     => 1,
+    ];
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
     // Create custom field group for the petition signed activity.
     $baseParams = [

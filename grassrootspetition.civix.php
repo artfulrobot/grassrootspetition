@@ -473,5 +473,11 @@ function _grassrootspetition_civix_civicrm_alterSettingsFolders(&$metaDataFolder
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_entityTypes
  */
 function _grassrootspetition_civix_civicrm_entityTypes(&$entityTypes) {
-  $entityTypes = array_merge($entityTypes, []);
+  $entityTypes = array_merge($entityTypes, [
+    'CRM_Grassrootspetition_DAO_GrassrootsPetitionCampaign' => [
+      'name' => 'GrassrootsPetitionCampaign',
+      'class' => 'CRM_Grassrootspetition_DAO_GrassrootsPetitionCampaign',
+      'table' => 'civicrm_grpet_campaign',
+    ],
+  ]);
 }
