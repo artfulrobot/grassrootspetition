@@ -52,6 +52,14 @@ $caseStatuses = Civi\Api4\OptionValue::delete()
   ->execute();
 fwrite(STDOUT, "Deleted case statuses "  . json_encode($caseStatuses) . "\n");
 
+// Delete Activity Statuses
+$caseStatuses = Civi\Api4\OptionValue::delete()
+  ->setCheckPermissions(FALSE)
+  ->addWhere('option_group_id:name', '=', 'activity_status')
+  ->addWhere('name', 'LIKE', 'grpet_%')
+  ->execute();
+fwrite(STDOUT, "Deleted activity_status statuses "  . json_encode($caseStatuses) . "\n");
+
 // Delete Case Type
 civicrm_api3('CaseType', 'delete', ['id' => $caseTypeID]);
 fwrite(STDOUT, "Deleted case type $caseTypeID\n");
@@ -70,15 +78,16 @@ $caseStatuses = Civi\Api4\OptionValue::delete()
 fwrite(STDOUT, "Deleted activity types "  . json_encode($caseStatuses) . "\n");
 
 $customGroupID = civicrm_api3('CustomGroup', 'get', ['name' => 'grpet_petition'])['id'] ?? NULL;
-if ($customGroupID) {
+$groups = civicrm_api3('CustomGroup', 'get', ['name' => ['IN' => ['grpet_petition', 'grpet_signature']]])['values'] ?? [];
+foreach ($groups as $customGroupID => $details) {
   // delete all fields.
   $fields = civicrm_api3('CustomField', 'get', ['custom_group_id' => $customGroupID])['values'] ?? [];
   foreach ($fields as $field) {
     civicrm_api3('CustomField', 'delete', ['id' => $field['id']]);
-    fwrite(STDOUT, "Deleted custom field $field[id] $field[name]\n");
+    fwrite(STDOUT, "Deleted custom field $field[id] $field[name] on $details[name]\n");
   }
   civicrm_api3('CustomGroup', 'delete', ['id' => $customGroupID]);
-  fwrite(STDOUT, "Deleted custom field group\n");
+  fwrite(STDOUT, "Deleted custom field group $details[name]\n");
 }
 
 

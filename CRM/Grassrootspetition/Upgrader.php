@@ -34,6 +34,7 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     //
     // Create activity types.
     //
+    $activityTypeNamesToValues = [];
     foreach ([
       [
         'name' => 'Grassroots Petition created',
@@ -56,16 +57,15 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
         'icon' => 'fa-pencil-square-o',
       ],
     ] as $activityType) {
-      if (Civi\Api4\OptionValue::get()
+      $activityTypeNamesToValues[$activityType['name']] = Civi\Api4\OptionValue::get()
         ->setCheckPermissions(FALSE)
-        ->selectRowCount()
         ->addWhere('option_group_id:name', '=', 'activity_type')
         ->addWhere('name', '=', $activityType['name'])
         ->execute()
-        ->count() == 0) {
-
+        ->first()['value'] ?? NULL;
+      if (empty($activityTypeNamesToValues[$activityType['name']])) {
         // Not found, create it now.
-        \Civi\Api4\OptionValue::create()
+        $activityTypeNamesToValues[$activityType['name']] = \Civi\Api4\OptionValue::create()
           ->setCheckPermissions(FALSE)
           ->addValue('option_group_id:name', 'activity_type')
           ->addValue('label', $activityType['name'])
@@ -74,6 +74,29 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
           ->addValue('is_active', 1)
           // ->addValue('color', $colour)
           // ->addValue('grouping', $tpl['grouping'])
+          ->execute()->first()['value'];
+      }
+    }
+
+    // Create activity status
+    foreach ([
+      'Pending Moderation'
+    ] as $name) {
+      // Check if it exists.
+      if (Civi\Api4\OptionValue::get()
+        ->setCheckPermissions(FALSE)
+        ->selectRowCount()
+        ->addWhere('option_group_id:name', '=', 'activity_status')
+        ->addWhere('name', '=', "grpet_$name")
+        ->execute()
+        ->count() == 0) {
+        // Does not exist, create it now.
+        \Civi\Api4\OptionValue::create()
+          ->setCheckPermissions(FALSE)
+          ->addValue('option_group_id:name', 'activity_status')
+          ->addValue('label', $name)
+          ->addValue('name', "grpet_$name")
+          ->addValue('is_active', 1)
           ->execute();
       }
     }
@@ -142,7 +165,6 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
         ->addValue('description', $description)
         ->addValue('color', $colour)
         ->addValue('is_active', 1)
-        ->addValue('grouping', $tpl['grouping'])
         ->addValue('weight', $weight * 2)
         ->execute();
     }
@@ -160,14 +182,14 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
       "collapse_display"            => "0",
       "is_active"                   => "1",
       "collapse_adv_display"        => "0",
-      "is_reserved"                 => "1",
+      "is_reserved"                 => "0",
       "is_public"                   => "0",
     ];
-    $custom_fieldset_id = $this->createOrUpdate('CustomGroup', $baseParams, $allParams);
+    $customGroupIDPetition = $this->createOrUpdate('CustomGroup', $baseParams, $allParams);
 
     // Create Target Name
     $baseParams = [
-      'custom_group_id' => $custom_fieldset_id,
+      'custom_group_id' => $customGroupIDPetition,
       'name'            => "grpet_target_name",
     ];
     $allParams = [
@@ -176,13 +198,14 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
       'data_type'       => "String",
       'text_length'     => 255,
       'html_type'       => "Text",
+      'is_searchable'   => 1,
       'is_required'     => 1,
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
     // Create Target Count
     $baseParams = [
-      'custom_group_id' => $custom_fieldset_id,
+      'custom_group_id' => $customGroupIDPetition,
       'name'            => "grpet_target_count",
     ];
     $allParams = [
@@ -196,11 +219,17 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
 
     // Description can be saved with the Open Case activity.
 
-    // @todo image
+    // @todo Image
+    // There's the Attachment API https://docs.civicrm.org/dev/en/latest/api/v3/changes/#460-attachment-api
+    // But it outputs URLs that assume you are logged in.
+    // We might need a special public location for files.
+    // We must take care though not to allow anon file uploads, e.g. if someone
+    // were to start a petition, upload a horrible image, and be able to access
+    // that image before/after moderation.
 
     // Tweet text.
     $baseParams = [
-      'custom_group_id' => $custom_fieldset_id,
+      'custom_group_id' => $customGroupIDPetition,
       'name'            => "grpet_tweet_text",
     ];
     $allParams = [
@@ -217,7 +246,7 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
 
     // Location (typically uni name)
     $baseParams = [
-      'custom_group_id' => $custom_fieldset_id,
+      'custom_group_id' => $customGroupIDPetition,
       'name'            => "grpet_location",
     ];
     $allParams = [
@@ -226,56 +255,65 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
       'data_type'       => "String",
       'text_length'     => 255,
       'html_type'       => "Text",
+      'is_searchable'   => 1,
       'is_required'     => 1,
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
 
     // @todo which campaign it belongs to.
-    return;
-    // below here just boilerplate
-    // We need our allocation option group.
-    $baseParams = [
-      'name' => "pelf_project",
-    ];
-    $allParams = [
-      'title'     => "Project",
-      'data_type' => "Integer",
-      'is_active' => 1,
-    ];
-    $this->createOrUpdate('OptionGroup', $baseParams, $allParams);
 
-    // We need custom fieldset.
+    // Create custom field group for the petition signed activity.
     $baseParams = [
-      'name'       => 'pelf_venture_details',
-      'table_name' => 'civicrm_pelf_venture_details',
+      'name'       => 'grpet_signature',
+      'table_name' => 'civicrm_grpet_signature',
     ];
     $allParams = [
-      "title"                       => "Venture details",
-      "extends"                     => "Case",
-      "extends_entity_column_value" => [ $case_id ],
+      "title"                       => "Petition Signer Details",
+      "extends"                     => "Activity",
+      "extends_entity_column_value" => [ $activityTypeNamesToValues['Grassroots Petition signed'] ],
       "style"                       => "Inline",
       "collapse_display"            => "0",
       "is_active"                   => "1",
-      "collapse_adv_display"        => "0",
-      "is_reserved"                 => "1",
+      "collapse_adv_display"        => "1",
+     // "is_reserved"                 => "1",
       "is_public"                   => "0",
     ];
-    $custom_fieldset_id = $this->createOrUpdate('CustomGroup', $baseParams, $allParams);
+    $customGroupIDSig = $this->createOrUpdate('CustomGroup', $baseParams, $allParams);
 
-    // Now add liklihood adjustment percentage.
+    // Create 'Show public'
     $baseParams = [
-      'custom_group_id' => "pelf_venture_details",
-      'name'            => "pelf_worth_percent",
+      'custom_group_id' => $customGroupIDSig,
+      'name'            => "grpet_sig_public",
     ];
     $allParams = [
-      'column_name'     => "worth_percent",
-      'label'           => "Percentage scale",
-      'data_type'       => "Float",
-      'html_type'       => "Text",
-      'is_required'     => 1,
+      'column_name'     => "sig_public",
+      'label'           => "Show publicly",
+      'data_type'       => "Boolean",
+      'html_type'       => "Radio",
+      'default_value'   => 0,
+      'is_searchable'   => 1,
+      'is_required'     => 0,
     ];
-    $worth_percent_field_id = $this->createOrUpdate('CustomField', $baseParams, $allParams);
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
+
+    // Create 'Shared'
+    $baseParams = [
+      'custom_group_id' => $customGroupIDSig,
+      'name'            => "grpet_sig_shared",
+    ];
+    $allParams = [
+      'column_name'     => "sig_shared",
+      'label'           => "Shared?",
+      'data_type'       => "String",
+      'text_length'     => 128, // e.g. "facebook, twitter"
+      'html_type'       => "Text",
+      'is_required'     => 0,
+      'is_searchable'   => 1,
+    ];
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
+
+    return;
 
     // We need our allocation option group.
     $baseParams = [
