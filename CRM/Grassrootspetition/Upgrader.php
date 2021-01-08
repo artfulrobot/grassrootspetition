@@ -78,7 +78,9 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
       }
     }
 
-    // Create activity status
+    //
+    // Create new activity statuses
+    //
     foreach ([
       'Pending Moderation'
     ] as $name) {
@@ -101,7 +103,46 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
       }
     }
 
+    //
+    // Create our case statuses.
+    //
+    $case_stage_option_group_id = (int) civicrm_api3('OptionGroup', 'getvalue', ['return' => 'id', 'name'=>'case_status']);
+    foreach ([
+      ['Pending', 'Submitted, waiting for staff to approve before it is live.', '#f7e6a2', 'Opened'],
+      // Assume we have Ongoing
+      ['Won', 'Petition has succeeded and is no longer open.', '#a3e2b0', 'Closed'],
+      ['Dead', 'Petition is no longer relevant. Might have failed, been abandonded or become surplus to requirements.', '#cccccc', 'Closed'],
+    ] as $weight => $details) {
+      list($name, $description, $colour, $grouping) = $details;
+      // Check if it exists.
+      if (Civi\Api4\OptionValue::get()
+        ->setCheckPermissions(FALSE)
+        ->selectRowCount()
+        ->addWhere('option_group_id', '=', $case_stage_option_group_id)
+        ->addWhere('name', '=', "grpet_$name")
+        ->execute()
+        ->count() > 0) {
+
+        continue;
+      }
+      // Create it.
+      \Civi\Api4\OptionValue::create()
+        ->setCheckPermissions(FALSE)
+        ->addValue('option_group_id', $case_stage_option_group_id)
+        ->addValue('label', $name)
+        ->addValue('name', "grpet_$name")
+        ->addValue('description', $description)
+        ->addValue('grouping', $grouping)
+        ->addValue('color', $colour)
+        ->addValue('is_active', 1)
+        ->addValue('weight', $weight * 2)
+        ->execute();
+    }
+
+
+    //
     // Create case type.
+    //
     $baseParams = ['name' => 'grassrootspetition'];
     $timelineActivityTypes = [
       [
@@ -122,6 +163,12 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
           [ "name" => "Grassroots Petition mailing"],
           [ "name" => "Grassroots Petition signed"],
         ],
+        "statuses" => [
+          "grpet_Pending",
+          "Open",
+          "grpet_Won",
+          "grpet_Dead"
+        ],
         "activitySets" => $timelineActivityTypes,
         "timelineActivityTypes" => $timelineActivityTypes,
         "caseRoles" => [
@@ -134,40 +181,6 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
       ]
     ];
     $case_id = $this->createOrUpdate('CaseType', $baseParams, $allParams);
-
-    // Create our case statuses.
-    $case_stage_option_group_id = (int) civicrm_api3('OptionGroup', 'getvalue', ['return' => 'id', 'name'=>'case_status']);
-
-    foreach ([
-      ['Pending', 'Submitted, waiting for staff to approve before it is live.', '#ffcc00'],
-      // Assume we have Ongoing
-      ['Won', 'Petition has succeeded and is no longer open.', '#ccff00'],
-      ['Dead', 'Petition is no longer relevant. Might have failed, been abandonded or become surplus to requirements.', '#888888'],
-    ] as $weight => $details) {
-      list($name, $description, $colour) = $details;
-      // Check if it exists.
-      if (Civi\Api4\OptionValue::get()
-        ->setCheckPermissions(FALSE)
-        ->selectRowCount()
-        ->addWhere('option_group_id', '=', $case_stage_option_group_id)
-        ->addWhere('name', '=', "grpet_$name")
-        ->execute()
-        ->count() > 0) {
-
-        continue;
-      }
-      // Create it.
-      \Civi\Api4\OptionValue::create()
-        ->setCheckPermissions(FALSE)
-        ->addValue('option_group_id', $case_stage_option_group_id)
-        ->addValue('label', $name)
-        ->addValue('name', "grpet_$name")
-        ->addValue('description', $description)
-        ->addValue('color', $colour)
-        ->addValue('is_active', 1)
-        ->addValue('weight', $weight * 2)
-        ->execute();
-    }
 
     // Create custom field group for the case.
     $baseParams = [

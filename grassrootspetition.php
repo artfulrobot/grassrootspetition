@@ -6,6 +6,17 @@ use CRM_Grassrootspetition_ExtensionUtil as E;
 // phpcs:enable
 
 /**
+ * Implements hook_civicrm_container().
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_container/
+ */
+function grassrootspetition_civicrm_container($container) {
+  // https://docs.civicrm.org/dev/en/latest/hooks/usage/symfony/
+  //Civi::dispatcher()
+  $container->findDefinition('dispatcher')
+    ->addMethodCall('addListener', ['hook_inlay_registerType', [Civi\Inlay\GrassrootsPetition::class, 'register']]);
+}
+/**
  * Implements hook_civicrm_config().
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_config/

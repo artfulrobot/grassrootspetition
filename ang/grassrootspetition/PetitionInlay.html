@@ -1,0 +1,21 @@
+<div class="crm-container">
+  <h1 crm-page-title>{{ ts('Edit %1', {1: inlayType.name })}}</h1>
+
+  <form name="inlayForm" crm-ui-id-scope>
+
+    <div crm-ui-field="{name: 'inlayForm.name', title: ts('Name'), help: hs('full_name')}">
+      <input
+        crm-ui-id="inlayForm.name"
+        name="name"
+        ng-model="inlay.name"
+        class="crm-form-text"
+        placeholder="{{ts('Our lovely contact form')}}"
+        />
+    </div>
+
+    <div>
+      <button ng-click="save()">{{ts('Save')}}</button>
+    </div>
+
+  </form>
+</div>
