@@ -4,6 +4,7 @@ namespace Civi\Inlay;
 
 use Civi\Inlay\Type as InlayType;
 use Civi\Inlay\ApiRequest;
+use Civi\Inlay\ApiException;
 use Civi;
 use Civi\Api4\Inlay;
 use CRM_Grassrootspetition_ExtensionUtil as E;
@@ -11,6 +12,7 @@ use CRM_Grassrootspetition_ExtensionUtil as E;
 class GrassrootsPetition extends InlayType {
 
   public static $typeName = 'Grassroots Petition';
+  public static $customFieldsMap;
 
   public static $defaultConfig = [
   ];
@@ -63,6 +65,43 @@ class GrassrootsPetition extends InlayType {
    * @throws \Civi\Inlay\ApiException;
    */
   public function processRequest(ApiRequest $request) {
+
+    $routes = [
+      'get' => [
+        'publicData' => 'processGetPublicDataRequest',
+      ],
+    ];
+    $method = $routes[$request->getMethod()][$request->getBody()['need'] ?? ''] ?? NULL;
+    if (empty($method)) {
+      throw new ApiException(400, ['publicError' => 'Invalid request. (Routing error)'],
+        "GrassrootsPetition API called with invalid 'need'");
+    }
+
+    return $this->$method($request);
+  }
+  /**
+   * Finds the petition and returns its definition, counts etc.
+   *
+   * @return array
+   */
+  public function processGetPublicDataRequest(ApiRequest $request) {
+    $rawInput = $request->getBody();
+    $slug = $rawInput['petitionSlug'] ?? '';
+
+    // We assume nginx has done some caching so if we're called here we need to do all the work again.
+
+    // The slug is stored as custom data on the case.
+    $case = CaseWrapper::fromSlug($slug);
+    if (!$case) {
+      throw new ApiException(400, ['publicError' => 'Petition not found.']);
+    }
+
+    // @todo Check is public - but not if privileged call?
+
+    // @todo extract what we need from the case.
+    return $case->getPublicData();
+  }
+  public function jic() {
 
     $data = $this->cleanupInput($request->getBody());
 
@@ -165,4 +204,43 @@ class GrassrootsPetition extends InlayType {
     return file_get_contents(E::path('dist/inlaygrpet.js'));
   }
 
+  /**
+   * Maps field custom field names to API3 names like custom_N
+   *
+   * If $field given, return that field's API3 name, otherwise return them all as an array.
+   *
+   * - grpet_target_name
+   * - grpet_target_count
+   * - grpet_tweet_text
+   * - grpet_location
+   * - grpet_campaign
+   * - grpet_slug
+   * - grpet_sig_public
+   * - grpet_sig_shared
+   *
+   * @param NULL|string
+   * @return array|string
+   */
+  public function getCustomFields($field = NULL) {
+    if (!isset(static::$customFieldsMap)) {
+      // Look up the custom field IDs we need.
+      $customFields = \Civi\Api4\CustomField::get()
+        ->addSelect('id', 'name')
+        ->addWhere('custom_group_id:name', 'IN', ['grpet_signature', 'grpet_petition'])
+        ->execute()
+        ->indexBy('name')->column('id');
+      static::$customFieldsMap = [];
+      foreach ($customFields as $name => $id) {
+        static::$customFieldsMap[$name] = "custom_$id";
+      }
+    }
+
+    if ($field === NULL) {
+      return static::$customFieldsMap;
+    }
+    if (isset(static::$customFieldsMap[$field])) {
+      return static::$customFieldsMap[$field];
+    }
+    throw new \RuntimeException("GrassrootsPetition::getCustomFields called for unknown field '$field'");
+  }
 }

@@ -29,7 +29,7 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
    }
    /**
    */
-  public function ensureDataStructuresExist($tx) {
+  public function ensureDataStructuresExist() {
 
     //
     // Create activity types.
@@ -208,6 +208,22 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     $allParams = [
       'column_name'     => "target_name",
       'label'           => "Target (who)",
+      'data_type'       => "String",
+      'text_length'     => 255,
+      'html_type'       => "Text",
+      'is_searchable'   => 1,
+      'is_required'     => 1,
+    ];
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
+
+    // Create petition slug (url path element)
+    $baseParams = [
+      'custom_group_id' => $customGroupIDPetition,
+      'name'            => "grpet_slug",
+    ];
+    $allParams = [
+      'column_name'     => "slug",
+      'label'           => "URL part",
       'data_type'       => "String",
       'text_length'     => 255,
       'html_type'       => "Text",
