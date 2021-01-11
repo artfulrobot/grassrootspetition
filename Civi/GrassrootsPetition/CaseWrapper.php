@@ -3,6 +3,8 @@ namespace Civi\GrassrootsPetition;
 
 use Civi\Inlay\GrassrootsPetition;
 use CRM_Core_DAO;
+use Civi\Api4\OptionValue;
+use Civi\Api4\GrassrootsPetitionCampaign;
 
 /**
  * Various sugar and convenience functions wrapping a Case of type GrassrootsPetition
@@ -18,6 +20,10 @@ class CaseWrapper {
   /** @var Array */
   public static $activityTypeIDs;
 
+  /** @var array Status name to option value */
+  public static $activityStatuses;
+  /** @var array Status name to option value */
+  public static $caseStatuses;
   /**
    * Instantiate an object from the slug
    *
@@ -37,7 +43,7 @@ class CaseWrapper {
   public function __construct() {
     if (!isset(static::$activityTypeIDs)) {
       // Look these up once now.
-      static::$activityTypeIDs = Civi\Api4\OptionValue::get(FALSE)
+      static::$activityTypeIDs = OptionValue::get(FALSE)
           ->setCheckPermissions(FALSE)
           ->addWhere('option_group_id:name', '=', 'activity_type')
           ->addWhere('name', 'IN', [
@@ -48,6 +54,42 @@ class CaseWrapper {
             ])
           ->execute()
           ->indexBy('name')->getArrayCopy();
+    }
+
+    if (!isset(static::$activityStatuses)) {
+      // Create map activity status name => option value (status_id)
+      static::$activityStatuses = [];
+      $r = OptionValue::get(FALSE)
+          ->setCheckPermissions(FALSE)
+          ->addWhere('option_group_id:name', '=', 'activity_status')
+          ->addWhere('is_active', '=', 1)
+          ->execute()->indexBy('name');
+      // Check ones we require.
+      foreach (['Completed', 'grpet_pending_moderation', 'Cancelled', 'Scheduled'] as $requiredStatus) {
+        $_ = $r[$requiredStatus] ?? NULL;
+        if (!$_) {
+          throw new \RuntimeException("Missing required '$requiredStatus' activity status.");
+        }
+        static::$activityStatuses[$_['name']] = $_['value'];
+      }
+    }
+
+    if (!isset(static::$caseStatuses)) {
+      // Create map activity status name => option value (status_id)
+      static::$caseStatuses = [];
+      $r = OptionValue::get(FALSE)
+          ->setCheckPermissions(FALSE)
+          ->addWhere('option_group_id:name', '=', 'case_status')
+          ->addWhere('is_active', '=', 1)
+          ->execute()->indexBy('name');
+      // Check ones we require.
+      foreach (['grpet_Pending', 'Open', 'grpet_Dead', 'grpet_Won'] as $requiredStatus) {
+        $_ = $r[$requiredStatus] ?? NULL;
+        if (!$_) {
+          throw new \RuntimeException("Missing required '$requiredStatus' case status.");
+        }
+        static::$caseStatuses[$_['name']] = $_['value'];
+      }
     }
   }
   /**
@@ -68,15 +110,17 @@ class CaseWrapper {
    */
   public function getPublicData() {
     $public = [
+      'status'         => $this->getCaseStatus(),
       'location'       => $this->getCustomData('grpet_location'),
       'slug'           => $this->getCustomData('grpet_slug'),
       'targetCount'    => $this->getCustomData('grpet_target_count'),
       'targetName'     => $this->getCustomData('grpet_target_name'),
       'tweet'          => $this->getCustomData('grpet_tweet_text'),
+      'petitionTitle'  => $this->case['subject'] ?? '',
       'petitionHTML'   => $this->case['details'] ?? '',
       'campaign'       => $this->getCampaignPublicName(),
       'image'          => $this->getPetitionImageURL(), /* @todo */
-      'updates'        => $this->getPetitionUpdates(), /* @todo */
+      'updates'        => $this->getPetitionUpdates(),
       'signatureCount' => $this->getPetitionSigsCount(),
     ];
 
@@ -109,7 +153,7 @@ class CaseWrapper {
    * Get the public Campaign Name
    */
   public function getCampaignPublicName() {
-    $this->getCampaign()['label'];
+    return $this->getCampaign()['label'];
   }
   /**
    * Get the Campaign data (getter for $this->campaign)
@@ -126,7 +170,7 @@ class CaseWrapper {
       }
 
       // Look up campaign.
-      $this->campaign = \Civi\Api4\GrassrootsPetitionCampaign::get(FALSE)
+      $this->campaign = GrassrootsPetitionCampaign::get(FALSE)
         ->setCheckPermissions(FALSE)
         ->addWhere('id', '=', $campaignID)
         ->execute()->first();
@@ -140,10 +184,35 @@ class CaseWrapper {
 
   }
   /**
-   * @todo
+   * Updates are activities of the 'Grassroots Petition progress' type
    */
   public function getPetitionUpdates() {
+    $this->mustBeLoaded();
+    $caseID = (int) $this->case['id'];
 
+    $updateActivityTypeID = (int) $this->activityTypes['Grassroots Petition update']['id'];
+    $validStatuses = [static::$activityStatuses['Completed']];
+    // @todo allow drafts?
+    $validStatuses = implode(', ', $validStatuses);
+
+    // Load these with SQL, as Activities and Api4 are difficult.
+    $sql = "
+      SELECT a.id, a.activity_date_time, a.subject, a.details
+        FROM civicrm_activity a
+        INNER JOIN civicrm_case_activity ca ON a.id = ca.activity_id AND ca.case_id = $caseID
+      WHERE a.activity_type_id = $updateActivityTypeID
+        AND a.status_id IN ($validStatuses)
+      ORDER BY a.activity_date_time
+    ";
+
+    $updates = [];
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    while ($dao->fetch()) {
+      $updates[] = $dao->toArray();
+    }
+    // @todo images (attachments)
+
+    return $updates;
   }
   /**
    * Returns a count of the signatures on a particular case.
@@ -172,9 +241,16 @@ class CaseWrapper {
     return $count;
   }
   /**
+   * Return the name of the case status from its value.
+   */
+  public function getCaseStatus() :string {
+    $this->mustBeLoaded();
+    return array_flip(static::$caseStatuses)[$this->case['status_id']];
+  }
+  /**
    */
   protected function mustBeLoaded() {
-    if (empty(static::$case)) {
+    if (empty($this->case)) {
       throw new \RuntimeException("CaseWrapper: no case loaded.");
     }
   }

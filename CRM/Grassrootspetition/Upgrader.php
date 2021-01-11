@@ -82,22 +82,23 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     // Create new activity statuses
     //
     foreach ([
-      'Pending Moderation'
-    ] as $name) {
+      'grpet_pending_moderation' => ['Pending Moderation', 'This update is LIVE but has not been checked by staff yet.']
+    ] as $name => $details) {
       // Check if it exists.
       if (Civi\Api4\OptionValue::get()
         ->setCheckPermissions(FALSE)
         ->selectRowCount()
         ->addWhere('option_group_id:name', '=', 'activity_status')
-        ->addWhere('name', '=', "grpet_$name")
+        ->addWhere('name', '=', "$name")
         ->execute()
         ->count() == 0) {
         // Does not exist, create it now.
         \Civi\Api4\OptionValue::create()
           ->setCheckPermissions(FALSE)
           ->addValue('option_group_id:name', 'activity_status')
-          ->addValue('label', $name)
-          ->addValue('name', "grpet_$name")
+          ->addValue('label', $details[0])
+          ->addValue('description', $details[1])
+          ->addValue('name', $name)
           ->addValue('is_active', 1)
           ->execute();
       }

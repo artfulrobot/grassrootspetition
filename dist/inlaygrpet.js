@@ -125,6 +125,71 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
@@ -132,14 +197,30 @@ __webpack_require__.r(__webpack_exports__);
     InlayProgress: _InlayProgress_vue__WEBPACK_IMPORTED_MODULE_0__["default"]
   },
   data: function data() {
-    return {
+    var d = {
       stage: 'loading',
-      loadingError: 'There was an error loading this petition, please get in touch.'
+      myId: this.$root.getNextId(),
+      loadingError: 'There was an error loading this petition, please get in touch.',
+      publicData: {},
+      // Form data
+      first_name: '',
+      last_name: '',
+      email: '',
+      email2: ''
     };
+    console.log("zzzzzzzzzzzzz", d);
+    return d;
   },
   computed: {
     submissionRunning: function submissionRunning() {
       return this.$root.submissionRunning;
+    },
+    acceptingSignatures: function acceptingSignatures() {
+      if (this.publicData.status === 'Open') {
+        return true;
+      }
+
+      return false;
     }
   },
   mounted: function mounted() {
@@ -168,7 +249,8 @@ __webpack_require__.r(__webpack_exports__);
       console.log(r);
 
       if (r.publicData) {
-        _this.stage = 'form'; // @todo boot form.
+        _this.stage = 'form';
+        _this.publicData = r.publicData;
       } else {
         throw r;
       }
@@ -182,6 +264,13 @@ __webpack_require__.r(__webpack_exports__);
     });
   },
   methods: {
+    checkEmailsMatch: function checkEmailsMatch() {
+      if (this.email === this.email2) {
+        this.$refs.email2.setCustomValidity('');
+      } else {
+        this.$refs.email2.setCustomValidity('Emails do not match');
+      }
+    },
     wantsToSubmit: function wantsToSubmit() {// validate all fields.
     },
     submitForm: function submitForm() {
@@ -1561,27 +1650,200 @@ var render = function() {
               }
             },
             [
-              _vm.inlay.initData.publicTitle
-                ? _c("h2", [_vm._v(_vm._s(_vm.inlay.initData.publicTitle))])
-                : _vm._e(),
+              _c("h1", [_vm._v(_vm._s(_vm.publicData.title))]),
               _vm._v(" "),
-              _c("div", { staticClass: "ifg-submit" }, [
-                _c(
-                  "button",
-                  {
-                    attrs: { disabled: _vm.submissionRunning },
-                    on: { click: _vm.wantsToSubmit }
-                  },
-                  [
-                    _vm._v(
-                      _vm._s(
-                        _vm.submissionRunning
-                          ? "Please wait.."
-                          : _vm.inlay.initData.submitButtonText
-                      )
-                    )
-                  ]
-                )
+              _c("h2", [
+                _vm._v("To: " + _vm._s(_vm.publicData.targetName) + " "),
+                _c("br"),
+                _vm._v("\n      " + _vm._s(_vm.publicData.location))
+              ]),
+              _vm._v(" "),
+              _c("div", {
+                staticClass: "petition-text",
+                domProps: { innerHTML: _vm._s(_vm.publicData.petitionHTML) }
+              }),
+              _vm._v(" "),
+              _c("div", { staticClass: "petition-form" }, [
+                _c("div", [
+                  _vm._v(
+                    _vm._s(_vm.publicData.signatureCount) +
+                      " / " +
+                      _vm._s(_vm.publicData.targetCount)
+                  )
+                ]),
+                _vm._v(" "),
+                _vm.acceptingSignatures
+                  ? _c("div", [
+                      _c("div", [
+                        _c("label", { attrs: { for: _vm.myId + "fname" } }, [
+                          _vm._v("First name")
+                        ]),
+                        _vm._v(" "),
+                        _c("input", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: _vm.first_name,
+                              expression: "first_name"
+                            }
+                          ],
+                          ref: "first_name",
+                          attrs: {
+                            required: "",
+                            type: "text",
+                            id: _vm.myId + "fname",
+                            name: "first_name",
+                            disabled: _vm.$root.submissionRunning
+                          },
+                          domProps: { value: _vm.first_name },
+                          on: {
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.first_name = $event.target.value
+                            }
+                          }
+                        })
+                      ]),
+                      _vm._v(" "),
+                      _c("div", [
+                        _c("label", { attrs: { for: _vm.myId + "lname" } }, [
+                          _vm._v("Last name")
+                        ]),
+                        _vm._v(" "),
+                        _c("input", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: _vm.last_name,
+                              expression: "last_name"
+                            }
+                          ],
+                          ref: "last_name",
+                          attrs: {
+                            required: "",
+                            type: "text",
+                            id: _vm.myId + "lname",
+                            name: "last_name",
+                            disabled: _vm.$root.submissionRunning
+                          },
+                          domProps: { value: _vm.last_name },
+                          on: {
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.last_name = $event.target.value
+                            }
+                          }
+                        })
+                      ]),
+                      _vm._v(" "),
+                      _c("div", [
+                        _c("label", { attrs: { for: _vm.myId + "email" } }, [
+                          _vm._v("Email")
+                        ]),
+                        _vm._v(" "),
+                        _c("input", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: _vm.email,
+                              expression: "email"
+                            }
+                          ],
+                          ref: "email",
+                          attrs: {
+                            required: "",
+                            type: "email",
+                            id: _vm.myId + "email",
+                            name: "email",
+                            disabled: _vm.$root.submissionRunning
+                          },
+                          domProps: { value: _vm.email },
+                          on: {
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.email = $event.target.value
+                            }
+                          }
+                        })
+                      ]),
+                      _vm._v(" "),
+                      _c(
+                        "div",
+                        {
+                          directives: [
+                            {
+                              name: "show",
+                              rawName: "v-show",
+                              value: _vm.email,
+                              expression: "email"
+                            }
+                          ]
+                        },
+                        [
+                          _c("label", { attrs: { for: _vm.myId + "email2" } }, [
+                            _vm._v("Re-enter Email")
+                          ]),
+                          _vm._v(" "),
+                          _c("input", {
+                            directives: [
+                              {
+                                name: "model",
+                                rawName: "v-model",
+                                value: _vm.email2,
+                                expression: "email2"
+                              }
+                            ],
+                            ref: "email2",
+                            attrs: {
+                              required: "",
+                              type: "email",
+                              id: _vm.myId + "email2",
+                              name: "email2",
+                              disabled: _vm.$root.submissionRunning
+                            },
+                            domProps: { value: _vm.email2 },
+                            on: {
+                              input: [
+                                function($event) {
+                                  if ($event.target.composing) {
+                                    return
+                                  }
+                                  _vm.email2 = $event.target.value
+                                },
+                                _vm.checkEmailsMatch
+                              ]
+                            }
+                          })
+                        ]
+                      ),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "ifg-submit" }, [
+                        _c(
+                          "button",
+                          {
+                            attrs: { disabled: _vm.submissionRunning },
+                            on: { click: _vm.wantsToSubmit }
+                          },
+                          [
+                            _vm._v(
+                              _vm._s(
+                                _vm.submissionRunning ? "Please wait.." : "Sign"
+                              )
+                            )
+                          ]
+                        )
+                      ])
+                    ])
+                  : _vm._e()
               ])
             ]
           )

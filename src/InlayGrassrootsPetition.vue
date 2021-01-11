@@ -4,15 +4,80 @@
     <div v-show="stage === 'loadingError'" class="grpet-error" >{{loadingError}}</div>
 
     <form action='#' @submit.prevent="submitForm" v-if="stage === 'form'">
-      <h2 v-if="inlay.initData.publicTitle">{{inlay.initData.publicTitle}}</h2>
+      <h1>{{publicData.title}}</h1>
 
-      <div class="ifg-submit">
-        <button
-         @click="wantsToSubmit"
-         :disabled="submissionRunning"
-          >{{ submissionRunning ? "Please wait.." : inlay.initData.submitButtonText }}</button>
-      </div>
+      <!-- todo image -->
+      <h2>To: {{publicData.targetName}} <br />
+        {{publicData.location}}</h2>
 
+      <div class="petition-text" v-html="publicData.petitionHTML"></div>
+      <div class="petition-form">
+        <!-- ometer @todo -->
+        <div>{{publicData.signatureCount}} / {{publicData.targetCount}}</div>
+
+        <div v-if="acceptingSignatures">
+          <div>
+            <label :for="myId + 'fname'" >First name</label>
+            <input
+              required
+              type="text"
+              :id="myId + 'fname'"
+              name="first_name"
+              ref="first_name"
+              :disabled="$root.submissionRunning"
+              v-model="first_name"
+              />
+          </div>
+
+          <div>
+            <label :for="myId + 'lname'" >Last name</label>
+            <input
+              required
+              type="text"
+              :id="myId + 'lname'"
+              name="last_name"
+              ref="last_name"
+              :disabled="$root.submissionRunning"
+              v-model="last_name"
+              />
+          </div>
+
+          <div>
+            <label :for="myId + 'email'" >Email</label>
+            <input
+              required
+              type="email"
+              :id="myId + 'email'"
+              name="email"
+              ref="email"
+              :disabled="$root.submissionRunning"
+              v-model="email"
+              />
+          </div>
+
+          <div v-show="email">
+            <label :for="myId + 'email2'" >Re-enter Email</label>
+            <input
+              required
+              type="email"
+              :id="myId + 'email2'"
+              name="email2"
+              ref="email2"
+              :disabled="$root.submissionRunning"
+              v-model="email2"
+              @input="checkEmailsMatch"
+
+              />
+          </div>
+
+          <div class="ifg-submit">
+            <button
+              @click="wantsToSubmit"
+              :disabled="submissionRunning"
+              >{{ submissionRunning ? "Please wait.." : 'Sign' }}</button>
+          </div>
+        </div><!-- end if acceptingSignatures -->
+      </div><!-- end .petition-form -->
     </form>
 
     <inlay-progress ref="progress"></inlay-progress>
@@ -33,14 +98,29 @@ export default {
   props: ['inlay'],
   components: {InlayProgress},
   data() {
-    return {
+    const d = {
       stage: 'loading',
+      myId: this.$root.getNextId(),
       loadingError: 'There was an error loading this petition, please get in touch.',
+      publicData: {},
+      // Form data
+      first_name: '',
+      last_name: '',
+      email: '',
+      email2: '',
     };
+    console.log("zzzzzzzzzzzzz", d);
+    return d;
   },
   computed: {
     submissionRunning() {
       return this.$root.submissionRunning;
+    },
+    acceptingSignatures() {
+      if (this.publicData.status === 'Open') {
+        return true;
+      }
+      return false;
     }
   },
   mounted() {
@@ -60,7 +140,7 @@ export default {
       console.log(r);
       if (r.publicData) {
         this.stage = 'form';
-        // @todo boot form.
+        this.publicData = r.publicData;
       }
       else {
         throw r;
@@ -75,6 +155,14 @@ export default {
     });
   },
   methods: {
+    checkEmailsMatch() {
+      if (this.email === this.email2) {
+        this.$refs.email2.setCustomValidity('');
+      }
+      else {
+        this.$refs.email2.setCustomValidity('Emails do not match');
+      }
+    },
     wantsToSubmit() {
       // validate all fields.
     },

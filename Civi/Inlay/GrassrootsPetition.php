@@ -5,6 +5,7 @@ namespace Civi\Inlay;
 use Civi\Inlay\Type as InlayType;
 use Civi\Inlay\ApiRequest;
 use Civi\Inlay\ApiException;
+use Civi\GrassrootsPetition\CaseWrapper;
 use Civi;
 use Civi\Api4\Inlay;
 use CRM_Grassrootspetition_ExtensionUtil as E;
@@ -67,7 +68,7 @@ class GrassrootsPetition extends InlayType {
   public function processRequest(ApiRequest $request) {
 
     $routes = [
-      'get' => [
+      'GET' => [
         'publicData' => 'processGetPublicDataRequest',
       ],
     ];
@@ -96,10 +97,17 @@ class GrassrootsPetition extends InlayType {
       throw new ApiException(400, ['publicError' => 'Petition not found.']);
     }
 
+    switch ($case->getCaseStatus()) {
+    case 'grpet_Pending':
+      throw new ApiException(400, ['publicError' => 'Petition not published yet.']);
+
+    }
+    // Allowing: gpet_Dead|gpet_Won|Open
+
     // @todo Check is public - but not if privileged call?
 
-    // @todo extract what we need from the case.
-    return $case->getPublicData();
+    // Extract what we need from the case.
+    return ['publicData' => $case->getPublicData()];
   }
   public function jic() {
 
@@ -224,7 +232,8 @@ class GrassrootsPetition extends InlayType {
   public function getCustomFields($field = NULL) {
     if (!isset(static::$customFieldsMap)) {
       // Look up the custom field IDs we need.
-      $customFields = \Civi\Api4\CustomField::get()
+      $customFields = \Civi\Api4\CustomField::get(FALSE)
+        ->setCheckPermissions(FALSE)
         ->addSelect('id', 'name')
         ->addWhere('custom_group_id:name', 'IN', ['grpet_signature', 'grpet_petition'])
         ->execute()
