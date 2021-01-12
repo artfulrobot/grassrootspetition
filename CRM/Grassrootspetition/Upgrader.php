@@ -150,7 +150,7 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
         "name" => "Grassroots Petition created",
         "status" => "Completed",
         "label" => "Grassroots Petition created",
-        "default_assignee_type" => "1" /* ? */
+        "default_assignee_type" => "1" /* None */
       ]
     ];
     $allParams = [
@@ -170,7 +170,14 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
           "grpet_Won",
           "grpet_Dead"
         ],
-        "activitySets" => $timelineActivityTypes,
+        "activitySets" => [ 
+          [
+            'name' => 'standard_timeline',
+            'label' => 'Standard Timeline',
+            'timeline' => 1,
+            'activityTypes' => $timelineActivityTypes,
+          ]
+        ],
         "timelineActivityTypes" => $timelineActivityTypes,
         "caseRoles" => [
           [

@@ -96,6 +96,39 @@
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _InlayProgress_vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./InlayProgress.vue */ "./src/InlayProgress.vue");
+/* harmony import */ var _Ometer_vue__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Ometer.vue */ "./src/Ometer.vue");
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 //
 //
 //
@@ -191,10 +224,12 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 
+
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
   components: {
-    InlayProgress: _InlayProgress_vue__WEBPACK_IMPORTED_MODULE_0__["default"]
+    InlayProgress: _InlayProgress_vue__WEBPACK_IMPORTED_MODULE_0__["default"],
+    Ometer: _Ometer_vue__WEBPACK_IMPORTED_MODULE_1__["default"]
   },
   data: function data() {
     var d = {
@@ -202,6 +237,7 @@ __webpack_require__.r(__webpack_exports__);
       myId: this.$root.getNextId(),
       loadingError: 'There was an error loading this petition, please get in touch.',
       publicData: {},
+      petitionSlug: (window.location.pathname.match(/^\/petitions\/([^/#?]+)/) || [null, null])[1],
       // Form data
       first_name: '',
       last_name: '',
@@ -228,22 +264,20 @@ __webpack_require__.r(__webpack_exports__);
 
     // We need to send a request to load our petition.
     // First, identify which petition.
-    var m = window.location.pathname.match(/^\/petitions\/([^/#?]+)/);
-
-    if (!m) {
+    if (!this.petitionSlug) {
       this.stage = 'loadingError';
       this.loadingError = 'There was an error loading this petition (invalid URL). Please check your link.';
       return;
     } // Submit a request for the petition.
 
 
-    var progress = this.$refs.progress;
+    var progress = this.$refs.loadingProgress;
     progress.startTimer(5, 100, true);
     this.inlay.request({
       method: 'get',
       body: {
         need: 'publicData',
-        petitionSlug: m[1]
+        petitionSlug: this.petitionSlug
       }
     }).then(function (r) {
       console.log(r);
@@ -277,14 +311,17 @@ __webpack_require__.r(__webpack_exports__);
       var _this2 = this;
 
       // Form is valid according to browser.
-      this.$root.submissionRunning = true;
-      var d = {};
-      Object.keys(this.$root.values).forEach(function (fieldName) {
-        if (_this2.$root.inlay.initData.fieldDefs[fieldName].include) {
-          d[fieldName] = _this2.$root.values[fieldName];
-        }
-      });
-      var progress = this.$refs.progress;
+      this.$root.submissionRunning = true; // Collect data to send.
+
+      var d = {
+        need: 'submitSignature',
+        petitionSlug: this.petitionSlug,
+        // User data
+        first_name: this.first_name,
+        last_name: this.last_name,
+        email: this.email
+      };
+      var progress = this.$refs.submitProgress;
       progress.startTimer(5, 20, 1);
       this.inlay.request({
         method: 'post',
@@ -313,7 +350,6 @@ __webpack_require__.r(__webpack_exports__);
         }
 
         _this2.stage = 'thanks';
-        progress.cancelTimer();
       })["catch"](function (e) {
         console.error(e);
 
@@ -322,9 +358,9 @@ __webpack_require__.r(__webpack_exports__);
         } else {
           alert("Unexpected error");
         }
-
-        _this2.$root.submissionRunning = false;
+      }).then(function () {
         progress.cancelTimer();
+        _this2.$root.submissionRunning = false;
       });
     }
   }
@@ -352,24 +388,31 @@ __webpack_require__.r(__webpack_exports__);
       doneBefore: 0,
       percentDoneAtEndOfJob: 100,
       expectedTime: null,
+      percent: 0,
       start: null,
       running: false,
-      percent: null
+      easing: true
     };
   },
   props: {
     color: {
       "default": '#46a'
+    },
+    backgroundColor: {
+      "default": '#eee'
     }
   },
-  mounted: function mounted() {
-    console.log('progress colour', this.color);
+  mounted: function mounted() {// console.log('progress colour' , this.color);
   },
   methods: {
-    startTimer: function startTimer(expectedTime, percentDoneAtEndOfJob, reset) {
+    startTimer: function startTimer(expectedTime, percentDoneAtEndOfJob, opts) {
       expectedTime = expectedTime * 1000;
+      opts = Object.assign({
+        reset: false,
+        easing: true
+      }, opts || {});
 
-      if (reset) {
+      if (opts.reset) {
         this.doneBefore = 0;
         this.percentDoneAtEndOfJob = percentDoneAtEndOfJob;
         this.expectedTime = expectedTime;
@@ -382,7 +425,10 @@ __webpack_require__.r(__webpack_exports__);
         this.start = null;
         this.expectedTime = expectedTime;
         this.percentDoneAtEndOfJob = percentDoneAtEndOfJob;
-      }
+      } // Always default to using easing.
+
+
+      this.easing = opts.easing;
 
       if (!this.running) {
         // Start animation.
@@ -400,8 +446,14 @@ __webpack_require__.r(__webpack_exports__);
       }
 
       var linear = Math.min(1, (t - this.start) / this.expectedTime);
-      var easeout = 1 - (1 - linear) * (1 - linear) * (1 - linear);
-      this.percent = this.doneBefore + easeout * (this.percentDoneAtEndOfJob - this.doneBefore);
+      var fraction = linear;
+
+      if (this.easing) {
+        // This is more performant than Math.pow((1-fraction), 3)
+        fraction = 1 - (1 - fraction) * (1 - fraction) * (1 - fraction);
+      }
+
+      this.percent = this.doneBefore + fraction * (this.percentDoneAtEndOfJob - this.doneBefore);
 
       if (this.running) {
         if (linear < 1) {
@@ -414,11 +466,93 @@ __webpack_require__.r(__webpack_exports__);
     }
   },
   computed: {
-    style: function style() {
+    barStyle: function barStyle() {
       return {
         backgroundColor: this.running ? this.color : 'transparent',
         width: this.percent + '%'
       };
+    },
+    containerStyle: function containerStyle() {
+      return {
+        backgroundColor: this.running ? this.backgroundColor : 'transparent'
+      };
+    }
+  }
+});
+
+/***/ }),
+
+/***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./src/Ometer.vue?vue&type=script&lang=js&":
+/*!*********************************************************************************************************************************************!*\
+  !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./src/Ometer.vue?vue&type=script&lang=js& ***!
+  \*********************************************************************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+/* harmony default export */ __webpack_exports__["default"] = ({
+  props: ['count', 'stmt', 'target'],
+  data: function data() {
+    return {
+      animStart: false,
+      step: 0,
+      containerSize: false,
+      debounce: false
+    };
+  },
+  computed: {
+    barStyle: function barStyle() {
+      var s = this.step;
+      s = s * s;
+      return {
+        width: s * this.count / this.target * 100 + '%'
+      };
+    }
+  },
+  mounted: function mounted() {
+    var observer = new IntersectionObserver(this.handleIntersectionChange.bind(this), {
+      // root: this.$refs.treesContainer,
+      // rootMargin: '0px',
+      threshold: 1.0
+    });
+    observer.observe(this.$refs.ometer);
+  },
+  methods: {
+    handleIntersectionChange: function handleIntersectionChange(entries, observer) {
+      var _this = this;
+
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          _this.startAnimation();
+        }
+      });
+    },
+    startAnimation: function startAnimation() {
+      this.animStart = false;
+      window.requestAnimationFrame(this.animate.bind(this));
+    },
+    animate: function animate(t) {
+      if (!this.animStart) {
+        this.animStart = t;
+      } // Allow 1 s for the animation.
+
+
+      this.step = Math.min(1, (t - this.animStart) / 1000);
+
+      if (this.step < 1) {
+        window.requestAnimationFrame(this.animate.bind(this));
+      }
     }
   }
 });
@@ -437,7 +571,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n", ""]);
+exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n", ""]);
 
 // exports
 
@@ -456,7 +590,26 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".ifg-progress {\n  height: 2px;\n}\n", ""]);
+exports.push([module.i, ".ifg-progress {\n  height: 2px;\n  transition: 0.3s background-color;\n}\n.ifg-progress-container {\n  height: 2px;\n  margin-top: 0.5rem;\n  margin-bottom: 0.5rem;\n  transition: 0.3s background-color;\n}\n", ""]);
+
+// exports
+
+
+/***/ }),
+
+/***/ "./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/Ometer.vue?vue&type=style&index=0&lang=scss&":
+/*!********************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/css-loader!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src??ref--6-2!./node_modules/sass-loader/dist/cjs.js??ref--6-3!./node_modules/vue-loader/lib??vue-loader-options!./src/Ometer.vue?vue&type=style&index=0&lang=scss& ***!
+  \********************************************************************************************************************************************************************************************************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/lib/css-base.js */ "./node_modules/css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, ".ipetometer {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  justify-content: space-between;\n  line-height: 1;\n  padding: 1rem;\n  margin-bottom: 1rem;\n  font-weight: bold;\n  background: #eee;\n}\n.ipetometer .ipetometer__domain {\n  margin-top: 1rem;\n  flex: 0 0 100%;\n  background: rgba(255, 255, 255, 0.2);\n}\n.ipetometer .ipetometer__bar {\n  background: #fc0;\n  height: 1rem;\n}\n.ipetometer .ipetometer__bignum {\n  flex: 0 0 auto;\n  padding-right: 1rem;\n  font-size: 3rem;\n}\n.ipetometer .ipetometer__words {\n  flex: 1 1 auto;\n  font-size: 1rem;\n}\n.ipetometer .ipetometer__target {\n  flex: 0 0 auto;\n  font-size: 1rem;\n}\n", ""]);
 
 // exports
 
@@ -982,6 +1135,36 @@ if(false) {}
 
 
 var content = __webpack_require__(/*! !../node_modules/css-loader!../node_modules/vue-loader/lib/loaders/stylePostLoader.js!../node_modules/postcss-loader/src??ref--6-2!../node_modules/sass-loader/dist/cjs.js??ref--6-3!../node_modules/vue-loader/lib??vue-loader-options!./InlayProgress.vue?vue&type=style&index=0&lang=scss& */ "./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayProgress.vue?vue&type=style&index=0&lang=scss&");
+
+if(typeof content === 'string') content = [[module.i, content, '']];
+
+var transform;
+var insertInto;
+
+
+
+var options = {"hmr":true}
+
+options.transform = transform
+options.insertInto = undefined;
+
+var update = __webpack_require__(/*! ../node_modules/style-loader/lib/addStyles.js */ "./node_modules/style-loader/lib/addStyles.js")(content, options);
+
+if(content.locals) module.exports = content.locals;
+
+if(false) {}
+
+/***/ }),
+
+/***/ "./node_modules/style-loader/index.js!./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/Ometer.vue?vue&type=style&index=0&lang=scss&":
+/*!************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/style-loader!./node_modules/css-loader!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src??ref--6-2!./node_modules/sass-loader/dist/cjs.js??ref--6-3!./node_modules/vue-loader/lib??vue-loader-options!./src/Ometer.vue?vue&type=style&index=0&lang=scss& ***!
+  \************************************************************************************************************************************************************************************************************************************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+var content = __webpack_require__(/*! !../node_modules/css-loader!../node_modules/vue-loader/lib/loaders/stylePostLoader.js!../node_modules/postcss-loader/src??ref--6-2!../node_modules/sass-loader/dist/cjs.js??ref--6-3!../node_modules/vue-loader/lib??vue-loader-options!./Ometer.vue?vue&type=style&index=0&lang=scss& */ "./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/Ometer.vue?vue&type=style&index=0&lang=scss&");
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -1602,195 +1785,89 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c(
-    "div",
-    { staticClass: "grpet" },
-    [
-      _c(
-        "div",
-        {
-          directives: [
-            {
-              name: "show",
-              rawName: "v-show",
-              value: _vm.stage === "loading",
-              expression: "stage === 'loading'"
-            }
-          ]
-        },
-        [_vm._v("Petition Loading...")]
-      ),
-      _vm._v(" "),
-      _c(
-        "div",
-        {
-          directives: [
-            {
-              name: "show",
-              rawName: "v-show",
-              value: _vm.stage === "loadingError",
-              expression: "stage === 'loadingError'"
-            }
-          ],
-          staticClass: "grpet-error"
-        },
-        [_vm._v(_vm._s(_vm.loadingError))]
-      ),
-      _vm._v(" "),
-      _vm.stage === "form"
-        ? _c(
-            "form",
-            {
-              attrs: { action: "#" },
-              on: {
-                submit: function($event) {
-                  $event.preventDefault()
-                  return _vm.submitForm($event)
-                }
+  return _c("div", { staticClass: "grpet" }, [
+    _c(
+      "div",
+      {
+        directives: [
+          {
+            name: "show",
+            rawName: "v-show",
+            value: _vm.stage === "loading",
+            expression: "stage === 'loading'"
+          }
+        ]
+      },
+      [
+        _vm._v("Petition Loading...\n    "),
+        _c("inlay-progress", { ref: "loadingProgress" })
+      ],
+      1
+    ),
+    _vm._v(" "),
+    _c(
+      "div",
+      {
+        directives: [
+          {
+            name: "show",
+            rawName: "v-show",
+            value: _vm.stage === "loadingError",
+            expression: "stage === 'loadingError'"
+          }
+        ],
+        staticClass: "grpet-error"
+      },
+      [_vm._v(_vm._s(_vm.loadingError))]
+    ),
+    _vm._v(" "),
+    _vm.stage === "form"
+      ? _c(
+          "form",
+          {
+            attrs: { action: "#" },
+            on: {
+              submit: function($event) {
+                $event.preventDefault()
+                return _vm.submitForm($event)
               }
-            },
-            [
+            }
+          },
+          [
+            _c("div", { staticClass: "petition-info" }, [
               _c("h1", [_vm._v(_vm._s(_vm.publicData.title))]),
               _vm._v(" "),
               _c("h2", [
                 _vm._v("To: " + _vm._s(_vm.publicData.targetName) + " "),
                 _c("br"),
-                _vm._v("\n      " + _vm._s(_vm.publicData.location))
+                _vm._v("\n        " + _vm._s(_vm.publicData.location))
               ]),
               _vm._v(" "),
               _c("div", {
                 staticClass: "petition-text",
                 domProps: { innerHTML: _vm._s(_vm.publicData.petitionHTML) }
-              }),
-              _vm._v(" "),
-              _c("div", { staticClass: "petition-form" }, [
-                _c("div", [
-                  _vm._v(
-                    _vm._s(_vm.publicData.signatureCount) +
-                      " / " +
-                      _vm._s(_vm.publicData.targetCount)
-                  )
-                ]),
+              })
+            ]),
+            _vm._v(" "),
+            _c(
+              "div",
+              { staticClass: "petition-form" },
+              [
+                _c("ometer", {
+                  attrs: {
+                    count: _vm.publicData.signatureCount,
+                    target: _vm.publicData.targetCount,
+                    stmt: "Signatures"
+                  }
+                }),
                 _vm._v(" "),
                 _vm.acceptingSignatures
-                  ? _c("div", [
-                      _c("div", [
-                        _c("label", { attrs: { for: _vm.myId + "fname" } }, [
-                          _vm._v("First name")
-                        ]),
-                        _vm._v(" "),
-                        _c("input", {
-                          directives: [
-                            {
-                              name: "model",
-                              rawName: "v-model",
-                              value: _vm.first_name,
-                              expression: "first_name"
-                            }
-                          ],
-                          ref: "first_name",
-                          attrs: {
-                            required: "",
-                            type: "text",
-                            id: _vm.myId + "fname",
-                            name: "first_name",
-                            disabled: _vm.$root.submissionRunning
-                          },
-                          domProps: { value: _vm.first_name },
-                          on: {
-                            input: function($event) {
-                              if ($event.target.composing) {
-                                return
-                              }
-                              _vm.first_name = $event.target.value
-                            }
-                          }
-                        })
-                      ]),
-                      _vm._v(" "),
-                      _c("div", [
-                        _c("label", { attrs: { for: _vm.myId + "lname" } }, [
-                          _vm._v("Last name")
-                        ]),
-                        _vm._v(" "),
-                        _c("input", {
-                          directives: [
-                            {
-                              name: "model",
-                              rawName: "v-model",
-                              value: _vm.last_name,
-                              expression: "last_name"
-                            }
-                          ],
-                          ref: "last_name",
-                          attrs: {
-                            required: "",
-                            type: "text",
-                            id: _vm.myId + "lname",
-                            name: "last_name",
-                            disabled: _vm.$root.submissionRunning
-                          },
-                          domProps: { value: _vm.last_name },
-                          on: {
-                            input: function($event) {
-                              if ($event.target.composing) {
-                                return
-                              }
-                              _vm.last_name = $event.target.value
-                            }
-                          }
-                        })
-                      ]),
-                      _vm._v(" "),
-                      _c("div", [
-                        _c("label", { attrs: { for: _vm.myId + "email" } }, [
-                          _vm._v("Email")
-                        ]),
-                        _vm._v(" "),
-                        _c("input", {
-                          directives: [
-                            {
-                              name: "model",
-                              rawName: "v-model",
-                              value: _vm.email,
-                              expression: "email"
-                            }
-                          ],
-                          ref: "email",
-                          attrs: {
-                            required: "",
-                            type: "email",
-                            id: _vm.myId + "email",
-                            name: "email",
-                            disabled: _vm.$root.submissionRunning
-                          },
-                          domProps: { value: _vm.email },
-                          on: {
-                            input: function($event) {
-                              if ($event.target.composing) {
-                                return
-                              }
-                              _vm.email = $event.target.value
-                            }
-                          }
-                        })
-                      ]),
-                      _vm._v(" "),
-                      _c(
-                        "div",
-                        {
-                          directives: [
-                            {
-                              name: "show",
-                              rawName: "v-show",
-                              value: _vm.email,
-                              expression: "email"
-                            }
-                          ]
-                        },
-                        [
-                          _c("label", { attrs: { for: _vm.myId + "email2" } }, [
-                            _vm._v("Re-enter Email")
+                  ? _c(
+                      "div",
+                      [
+                        _c("div", [
+                          _c("label", { attrs: { for: _vm.myId + "fname" } }, [
+                            _vm._v("First name")
                           ]),
                           _vm._v(" "),
                           _c("input", {
@@ -1798,61 +1875,181 @@ var render = function() {
                               {
                                 name: "model",
                                 rawName: "v-model",
-                                value: _vm.email2,
-                                expression: "email2"
+                                value: _vm.first_name,
+                                expression: "first_name"
                               }
                             ],
-                            ref: "email2",
+                            ref: "first_name",
+                            attrs: {
+                              required: "",
+                              type: "text",
+                              id: _vm.myId + "fname",
+                              name: "first_name",
+                              disabled: _vm.$root.submissionRunning
+                            },
+                            domProps: { value: _vm.first_name },
+                            on: {
+                              input: function($event) {
+                                if ($event.target.composing) {
+                                  return
+                                }
+                                _vm.first_name = $event.target.value
+                              }
+                            }
+                          })
+                        ]),
+                        _vm._v(" "),
+                        _c("div", [
+                          _c("label", { attrs: { for: _vm.myId + "lname" } }, [
+                            _vm._v("Last name")
+                          ]),
+                          _vm._v(" "),
+                          _c("input", {
+                            directives: [
+                              {
+                                name: "model",
+                                rawName: "v-model",
+                                value: _vm.last_name,
+                                expression: "last_name"
+                              }
+                            ],
+                            ref: "last_name",
+                            attrs: {
+                              required: "",
+                              type: "text",
+                              id: _vm.myId + "lname",
+                              name: "last_name",
+                              disabled: _vm.$root.submissionRunning
+                            },
+                            domProps: { value: _vm.last_name },
+                            on: {
+                              input: function($event) {
+                                if ($event.target.composing) {
+                                  return
+                                }
+                                _vm.last_name = $event.target.value
+                              }
+                            }
+                          })
+                        ]),
+                        _vm._v(" "),
+                        _c("div", [
+                          _c("label", { attrs: { for: _vm.myId + "email" } }, [
+                            _vm._v("Email")
+                          ]),
+                          _vm._v(" "),
+                          _c("input", {
+                            directives: [
+                              {
+                                name: "model",
+                                rawName: "v-model",
+                                value: _vm.email,
+                                expression: "email"
+                              }
+                            ],
+                            ref: "email",
                             attrs: {
                               required: "",
                               type: "email",
-                              id: _vm.myId + "email2",
-                              name: "email2",
+                              id: _vm.myId + "email",
+                              name: "email",
                               disabled: _vm.$root.submissionRunning
                             },
-                            domProps: { value: _vm.email2 },
+                            domProps: { value: _vm.email },
                             on: {
-                              input: [
-                                function($event) {
-                                  if ($event.target.composing) {
-                                    return
-                                  }
-                                  _vm.email2 = $event.target.value
-                                },
-                                _vm.checkEmailsMatch
-                              ]
+                              input: function($event) {
+                                if ($event.target.composing) {
+                                  return
+                                }
+                                _vm.email = $event.target.value
+                              }
                             }
                           })
-                        ]
-                      ),
-                      _vm._v(" "),
-                      _c("div", { staticClass: "ifg-submit" }, [
+                        ]),
+                        _vm._v(" "),
                         _c(
-                          "button",
+                          "div",
                           {
-                            attrs: { disabled: _vm.submissionRunning },
-                            on: { click: _vm.wantsToSubmit }
+                            directives: [
+                              {
+                                name: "show",
+                                rawName: "v-show",
+                                value: _vm.email,
+                                expression: "email"
+                              }
+                            ]
                           },
                           [
-                            _vm._v(
-                              _vm._s(
-                                _vm.submissionRunning ? "Please wait.." : "Sign"
-                              )
-                            )
+                            _c(
+                              "label",
+                              { attrs: { for: _vm.myId + "email2" } },
+                              [_vm._v("Re-enter Email")]
+                            ),
+                            _vm._v(" "),
+                            _c("input", {
+                              directives: [
+                                {
+                                  name: "model",
+                                  rawName: "v-model",
+                                  value: _vm.email2,
+                                  expression: "email2"
+                                }
+                              ],
+                              ref: "email2",
+                              attrs: {
+                                required: "",
+                                type: "email",
+                                id: _vm.myId + "email2",
+                                name: "email2",
+                                disabled: _vm.$root.submissionRunning
+                              },
+                              domProps: { value: _vm.email2 },
+                              on: {
+                                input: [
+                                  function($event) {
+                                    if ($event.target.composing) {
+                                      return
+                                    }
+                                    _vm.email2 = $event.target.value
+                                  },
+                                  _vm.checkEmailsMatch
+                                ]
+                              }
+                            })
                           ]
-                        )
-                      ])
-                    ])
+                        ),
+                        _vm._v(" "),
+                        _c("div", { staticClass: "ifg-submit" }, [
+                          _c(
+                            "button",
+                            {
+                              attrs: { disabled: _vm.submissionRunning },
+                              on: { click: _vm.wantsToSubmit }
+                            },
+                            [
+                              _vm._v(
+                                _vm._s(
+                                  _vm.submissionRunning
+                                    ? "Please wait.."
+                                    : "Sign"
+                                )
+                              )
+                            ]
+                          )
+                        ]),
+                        _vm._v(" "),
+                        _c("inlay-progress", { ref: "submitProgress" })
+                      ],
+                      1
+                    )
                   : _vm._e()
-              ])
-            ]
-          )
-        : _vm._e(),
-      _vm._v(" "),
-      _c("inlay-progress", { ref: "progress" })
-    ],
-    1
-  )
+              ],
+              1
+            )
+          ]
+        )
+      : _vm._e()
+  ])
 }
 var staticRenderFns = []
 render._withStripped = true
@@ -1876,7 +2073,51 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c("div", { staticClass: "ifg-progress", style: _vm.style })
+  return _c(
+    "div",
+    { staticClass: "ifg-progress-container", style: _vm.containerStyle },
+    [_c("div", { staticClass: "ifg-progress", style: _vm.barStyle })]
+  )
+}
+var staticRenderFns = []
+render._withStripped = true
+
+
+
+/***/ }),
+
+/***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./src/Ometer.vue?vue&type=template&id=0406fcb3&":
+/*!*************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./src/Ometer.vue?vue&type=template&id=0406fcb3& ***!
+  \*************************************************************************************************************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "render", function() { return render; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return staticRenderFns; });
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c("div", { ref: "ometer", staticClass: "ipetometer" }, [
+    _c("div", { staticClass: "ipetometer__domain" }, [
+      _c("div", { staticClass: "ipetometer__bar", style: _vm.barStyle })
+    ]),
+    _vm._v(" "),
+    _c("span", { staticClass: "ipetometer__bignum" }, [
+      _vm._v(_vm._s(_vm.count.toLocaleString()))
+    ]),
+    _vm._v(" "),
+    _c("span", { staticClass: "ipetometer__words" }, [
+      _vm._v(_vm._s(_vm.stmt))
+    ]),
+    _vm._v(" "),
+    _c("span", { staticClass: "ipetometer__target" }, [
+      _vm._v("Target " + _vm._s(_vm.target))
+    ])
+  ])
 }
 var staticRenderFns = []
 render._withStripped = true
@@ -14183,6 +14424,93 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayProgress_vue_vue_type_template_id_5aecd6fa___WEBPACK_IMPORTED_MODULE_0__["render"]; });
 
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayProgress_vue_vue_type_template_id_5aecd6fa___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
+
+
+
+/***/ }),
+
+/***/ "./src/Ometer.vue":
+/*!************************!*\
+  !*** ./src/Ometer.vue ***!
+  \************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _Ometer_vue_vue_type_template_id_0406fcb3___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Ometer.vue?vue&type=template&id=0406fcb3& */ "./src/Ometer.vue?vue&type=template&id=0406fcb3&");
+/* harmony import */ var _Ometer_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Ometer.vue?vue&type=script&lang=js& */ "./src/Ometer.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport *//* harmony import */ var _Ometer_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Ometer.vue?vue&type=style&index=0&lang=scss& */ "./src/Ometer.vue?vue&type=style&index=0&lang=scss&");
+/* harmony import */ var _node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../node_modules/vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/vue-loader/lib/runtime/componentNormalizer.js");
+
+
+
+
+
+
+/* normalize component */
+
+var component = Object(_node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_3__["default"])(
+  _Ometer_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
+  _Ometer_vue_vue_type_template_id_0406fcb3___WEBPACK_IMPORTED_MODULE_0__["render"],
+  _Ometer_vue_vue_type_template_id_0406fcb3___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
+  false,
+  null,
+  null,
+  null
+  
+)
+
+/* hot reload */
+if (false) { var api; }
+component.options.__file = "src/Ometer.vue"
+/* harmony default export */ __webpack_exports__["default"] = (component.exports);
+
+/***/ }),
+
+/***/ "./src/Ometer.vue?vue&type=script&lang=js&":
+/*!*************************************************!*\
+  !*** ./src/Ometer.vue?vue&type=script&lang=js& ***!
+  \*************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Ometer_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../node_modules/babel-loader/lib??ref--4-0!../node_modules/vue-loader/lib??vue-loader-options!./Ometer.vue?vue&type=script&lang=js& */ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./src/Ometer.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Ometer_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
+/***/ "./src/Ometer.vue?vue&type=style&index=0&lang=scss&":
+/*!**********************************************************!*\
+  !*** ./src/Ometer.vue?vue&type=style&index=0&lang=scss& ***!
+  \**********************************************************/
+/*! no static exports found */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_Ometer_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../node_modules/style-loader!../node_modules/css-loader!../node_modules/vue-loader/lib/loaders/stylePostLoader.js!../node_modules/postcss-loader/src??ref--6-2!../node_modules/sass-loader/dist/cjs.js??ref--6-3!../node_modules/vue-loader/lib??vue-loader-options!./Ometer.vue?vue&type=style&index=0&lang=scss& */ "./node_modules/style-loader/index.js!./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/Ometer.vue?vue&type=style&index=0&lang=scss&");
+/* harmony import */ var _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_Ometer_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_Ometer_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__);
+/* harmony reexport (unknown) */ for(var __WEBPACK_IMPORT_KEY__ in _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_Ometer_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__) if(["default"].indexOf(__WEBPACK_IMPORT_KEY__) < 0) (function(key) { __webpack_require__.d(__webpack_exports__, key, function() { return _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_Ometer_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__[key]; }) }(__WEBPACK_IMPORT_KEY__));
+
+
+/***/ }),
+
+/***/ "./src/Ometer.vue?vue&type=template&id=0406fcb3&":
+/*!*******************************************************!*\
+  !*** ./src/Ometer.vue?vue&type=template&id=0406fcb3& ***!
+  \*******************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_Ometer_vue_vue_type_template_id_0406fcb3___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../node_modules/vue-loader/lib??vue-loader-options!./Ometer.vue?vue&type=template&id=0406fcb3& */ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./src/Ometer.vue?vue&type=template&id=0406fcb3&");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_Ometer_vue_vue_type_template_id_0406fcb3___WEBPACK_IMPORTED_MODULE_0__["render"]; });
+
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_Ometer_vue_vue_type_template_id_0406fcb3___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
 
 
 

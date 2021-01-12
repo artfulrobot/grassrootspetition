@@ -14,6 +14,16 @@ class GrassrootsPetition extends InlayType {
 
   public static $typeName = 'Grassroots Petition';
   public static $customFieldsMap;
+  /**
+   * Cache so that when processing a set of queued signups we don't have to
+   * load the Inlay instance for each time.
+   *
+   * Keyed by instance ID.
+   *
+   * Nb. it is expected/normal for there to be only one instance of this Inlay
+   * on a site, since each instance can handle all petitions.
+   */
+  public static $instanceCache = [];
 
   public static $defaultConfig = [
   ];
@@ -25,6 +35,60 @@ class GrassrootsPetition extends InlayType {
    */
   public static $editURLTemplate = 'civicrm/a?#/inlays/grassrootspetition/{id}';
 
+  /**
+   * @return CRM_Queue_Service
+   */
+  public static function getQueueService() {
+    return CRM_Queue_Service::singleton()->create([
+      'type'  => 'Sql',
+      'name'  => 'inlay-grassrootspetition',
+      'reset' => FALSE, // We do NOT want to delete an existing queue!
+    ]);
+  }
+  /**
+   * Process a queued submission.
+   *
+   * This is the callback for the queue runner.
+   *
+   * Nb. the data has already been validated.
+   *
+   * @param mixed?
+   * @param array
+   *
+   * @return bool TRUE if it went ok, FALSE will prevent further processing of the queue.
+   */
+  public static function processQueueItem($queueTaskContext, $data) {
+
+    // Get instance ID.
+    $id = (int) $data['inlayID'];
+
+    // Get the Inlay Object from database if we don't have it cached.
+    if (($id > 0) && !isset(static::$instanceCache[$id])) {
+      $inlayData = \Civi\Api4\Inlay::get(FALSE)
+        ->setCheckPermissions(FALSE)
+        ->addWhere('id', '=', (int) $data['inlayID'])
+        ->execute()->first();
+      $inlay = new static();
+      $inlay->loadFromArray($inlayData);
+      // Store on cache.
+      static::$instanceCache[$id] = $inlay;
+    }
+
+    // Error if we couldn't find it.
+    if (empty(static::$instanceCache[$id])) {
+      throw new \RuntimeException("Invalid Inlay/GrassrootsPetition queue item, failed to load instance.");
+    }
+
+    // Finally, use it to process the data.
+    $error = static::$instanceCache[$id]->processSubmission($data);
+    if ($error) {
+      // ?? How to handle errors.
+      // @todo
+    }
+
+    // Move on to next item in queue.
+    return TRUE;
+  }
   /**
    * Sets the config ensuring it's valid.
    *
@@ -71,6 +135,9 @@ class GrassrootsPetition extends InlayType {
       'GET' => [
         'publicData' => 'processGetPublicDataRequest',
       ],
+      'POST' => [
+        'submitSignature' => 'processSubmitSignatureRequest',
+      ]
     ];
     $method = $routes[$request->getMethod()][$request->getBody()['need'] ?? ''] ?? NULL;
     if (empty($method)) {
@@ -86,31 +153,20 @@ class GrassrootsPetition extends InlayType {
    * @return array
    */
   public function processGetPublicDataRequest(ApiRequest $request) {
-    $rawInput = $request->getBody();
-    $slug = $rawInput['petitionSlug'] ?? '';
-
-    // We assume nginx has done some caching so if we're called here we need to do all the work again.
-
-    // The slug is stored as custom data on the case.
-    $case = CaseWrapper::fromSlug($slug);
-    if (!$case) {
-      throw new ApiException(400, ['publicError' => 'Petition not found.']);
-    }
-
-    switch ($case->getCaseStatus()) {
-    case 'grpet_Pending':
-      throw new ApiException(400, ['publicError' => 'Petition not published yet.']);
-
-    }
-    // Allowing: gpet_Dead|gpet_Won|Open
-
-    // @todo Check is public - but not if privileged call?
-
+    $case = $this->getCaseWrapperFromRequest($request);
     // Extract what we need from the case.
     return ['publicData' => $case->getPublicData()];
   }
-  public function jic() {
+  /**
+   * Handle signature submission.
+   *
+   * @return array
+   */
+  public function processSubmitSignatureRequest(ApiRequest $request) {
+    // This will throw exception if the case is not found.
+    $case = $this->getCaseWrapperFromRequest($request);
 
+    // Extract valid data
     $data = $this->cleanupInput($request->getBody());
 
     if (empty($data['token'])) {
@@ -118,12 +174,33 @@ class GrassrootsPetition extends InlayType {
       return ['token' => $this->getCSRFToken(['data' => $data, 'validFrom' => 5, 'validTo' => 120])];
     }
 
-    // Hand over to the form processor.
-    // @todo process submission
+    // Store the Case ID on the data, now we know it's valid.
+    // This will speed up the processing (from queue).
+    $data['case_id'] = $case->getID();
 
-    return [ 'success' => 1 ];
+    //if ($this->config['useQueue'])
+    if (FALSE) { // todo
+      // Defer processing the data to a queue. This speeds things up for the user
+      // and avoids database deadlocks.
+      $queue = static::getQueueService();
+
+      // We have context that is not stored in $data, namely which Inlay Instance we are.
+      // Store that now.
+      $data['inlayID'] = $this->getID();
+
+      $queue->createItem(new CRM_Queue_Task(
+        ['Civi\\Inlay\\GrassrootsPetition', 'processQueueItem'], // callback
+        [$data], // arguments
+        "Grassroots Petition signature" // title
+      ));
+
+      return ['success' => 1];
+    }
+
+    // Immediate processing.
+    $errorString = $this->processSubmission($data);
+    return $errorString ? ['error' => $errorString] : ['success' => 1];
   }
-
   /**
    * Validate and clean up input data.
    *
@@ -134,39 +211,40 @@ class GrassrootsPetition extends InlayType {
    * @return array
    */
   public function cleanupInput($data) {
+    /** @var Array errors in this array, it will later be converted to a string. */
     $errors = [];
+    /** @var Array Collect validated data in this array */
     $valid = [];
 
-    // Here I would like to call the form processor, but only as far as
-    // validating the inputs, not actually executing it.
-    // However, the validation is all coded together with the
-    // invokeFormProcessor() execute code, so that can't happen right now.
-    //
-    // Instead we'll just ensure that the only data we pass on is that which
-    // correlates to the inputs of the form processor.
-    $fp = civicrm_api3('FormProcessorInstance', 'get', ['sequential' => 1, 'name' => $this->config['formProcessor']])['values'][0] ?? NULL;
-    if (!$fp) {
-      Civi::log()->error("Inlay error FP1: failed to load form processor for the Inlay called " . $this->getName());
-      throw new \Civi\Inlay\ApiException(500, "Sorry, this form has not been configured correctly. Error: FP1");
-    }
-
-    foreach ($fp['inputs'] as $_) {
-      $inputName = $_['name'];
-      if (isset($data[$inputName])) {
-        $valid[$inputName] = $data[$inputName];
+    // Check we have what we need.
+    foreach (['first_name', 'last_name', 'email'] as $field) {
+      $val = trim($data[$field] ?? '');
+      if (empty($val)) {
+        $errors[] = str_replace('_', ' ', $field) . " required.";
       }
-      elseif ($_['is_required'] == 1) {
-        // A required input is not present in the request. This is not going to work.
-        // It's probably a configuration error - e.g. didn't add the field to the form.
-        Civi::log()->error("Inlay error FP2: Form Processor in put $inputName is required but has not been sent with a request. Has the input been added to the form correctly? Inlay Name: " . $this->getName());
-        throw new \Civi\Inlay\ApiException(500, "Sorry, this form has not been configured correctly. Error: FP2");
+      else {
+        if ($field === 'email' && !filter_var($val, FILTER_VALIDATE_EMAIL)) {
+          $errors[] = "invalid email address";
+        }
+        else {
+          $valid[$field] = $val;
+        }
       }
     }
 
-    // Ok, we don't know if the data is valid, but we do know that $valid now
-    // only contains the inputs, and that none of the required inputs are
-    // missing.
+    // Check we've not been fed a web address as a name
+    // (used by spammers who rely on "Dear {firstname}")
+    // We check the concat in case they rely on first-last or last-first to form a url.
+    // v1
+    if (preg_match('#(www|http|[%@:/?$])#i', "$valid[first_name]$valid[last_name]$valid[first_name]")) {
+      $errors[] = "Invalid name";
+    }
 
+    if ($errors) {
+      throw new \Civi\Inlay\ApiException(400, ['error' => implode(', ', $errors)]);
+    }
+
+    // Data is valid.
     if (!empty($data['token'])) {
       // There is a token, check that now.
       try {
@@ -177,11 +255,23 @@ class GrassrootsPetition extends InlayType {
         // Token failed. Issue a public friendly message, though this should
         // never be seen by anyone legit.
         Civi::log()->notice("Token error: " . $e->getMessage . "\n" . $e->getTraceAsString());
-        watchdog('inlay', $e->getMessage() . "\n" . $e->getTraceAsString, array(), WATCHDOG_ERROR);
         throw new \Civi\Inlay\ApiException(400,
-          "Mysterious problem, sorry! Code " . substr($e->getMessage(), 0, 3));
+          ['error' => "Mysterious problem, sorry! Code " . substr($e->getMessage(), 0, 3)]);
       }
+
+      // Validation that is more expensive, and for fields where invalid data
+      // would likely represent misuse of the form is done now - after the
+      // token check, to avoid wasting server resources on spammers trying to
+      // randomly post to the endpoint.
+
+      /*
+      if ($this->config['phoneAsk'] && !empty($data['phone'])) {
+        // Check the phone.
+        $valid['phone'] = preg_replace('/[^0-9+]/', '', $data['phone']);
+      }
+       */
     }
+
 
     return $valid;
   }
@@ -251,5 +341,135 @@ class GrassrootsPetition extends InlayType {
       return static::$customFieldsMap[$field];
     }
     throw new \RuntimeException("GrassrootsPetition::getCustomFields called for unknown field '$field'");
+  }
+  /**
+   * Process a submission.
+   *
+   * This is where the bulk of the work is done.
+   *
+   * @var array $data
+   */
+  public function processSubmission($data) {
+
+    $case = CaseWrapper::fromID($data['case_id']);
+    if (!$case) {
+      throw new \Civi\Inlay\ApiException(400, ['error' => 'Petition not found'],
+        "Failed to load case with ID " . json_encode($data['case_id']));
+    }
+
+    // Find Contact with XCM.
+    // @todo source?
+    $params = array_intersect_key($data, array_flip(
+      ['first_name', 'last_name', 'email']
+    )) + ['contact_type' => 'Individual'];
+
+    $contactID = (int) civicrm_api3('Contact', 'getorcreate', $params)['id'] ?? 0;
+    if (!$contactID) {
+      Civi::log()->error('Failed to getorcreate contact with params: ' . json_encode($params));
+      throw new \Civi\Inlay\ApiException(500, ['error' => 'Server error: XCM1']);
+    }
+
+    // Create a signature activity, if not already signed.
+    if ($case->getPetitionSigsCount($contactID) === 0) {
+      $activityID = $case->addSignedPetitionActivity($contactID, $data);
+    }
+
+    // xxx
+    // Handle optin.
+    /*
+    if (!empty($this->config['mailingGroup'])) {
+      $optinMode = $this->config['optinMode'];
+
+      // If there was no optin (e.g. signup form)
+      // or if the user actively checked/selected yes, then sign up.
+      if ($optinMode === 'none'
+        || ($data['optin'] ?? 'no') === 'yes') {
+        // Add contact to the group.
+        $this->addContactToGroup($contactID);
+      }
+    }
+     */
+
+    // Thank you.
+    $case->sendThankYouEmail($contactID, $data);
+
+    // No error
+    return '';
+  }
+
+
+  /**
+   * Has the given contact signed this petition already?
+   *
+   * @var int $contactID
+   *
+   * @return bool
+   */
+  public function contactAlreadySigned($contactID) {
+
+    $subject = $this->getName();
+    $activityTypeID = $this->getActivityTypeID();
+
+    $found = (bool) \CRM_Core_DAO::singleValueQuery("
+        SELECT a.id
+        FROM civicrm_activity a
+        INNER JOIN civicrm_activity_contact ac
+        ON a.id = ac.activity_id
+            AND ac.record_type_id = 3 /*target*/
+            AND ac.contact_id = %1
+        WHERE a.activity_type_id = %2 AND a.subject = %3
+        LIMIT 1
+      ", [
+        1 => [$contactID, 'Integer'],
+        2 => [$activityTypeID, 'Integer'],
+        3 => [$subject, 'String'],
+      ]);
+
+    return $found;
+  }
+  /**
+   */
+  public function addSignedPetitionActivity(int $contactID, array $data) {
+
+    $activityCreateParams = [
+      'activity_type_id'     => $this->getActivityTypeID(),
+      'target_id'            => $contactID,
+      'subject'              => $this->getName(),
+      'status_id'            => 'Completed',
+      'source_contact_id'    => $contactID,
+      // 'source_contact_id' => \CRM_Core_BAO_Domain::getDomain()->contact_id,
+      // 'details'           => $details,
+    ];
+    $result = civicrm_api3('Activity', 'create', $activityCreateParams);
+
+    return $result;
+  }
+  /**
+   * DRY method.
+   */
+  protected function getCaseWrapperFromRequest(ApiRequest $request) :CaseWrapper {
+    $rawInput = $request->getBody();
+    $slug = $rawInput['petitionSlug'] ?? '';
+
+    // We assume nginx has done some caching so if we're called here we need to do all the work again.
+
+    // The slug is stored as custom data on the case.
+    $case = CaseWrapper::fromSlug($slug);
+    if (!$case) {
+      throw new ApiException(400, ['publicError' => 'Petition not found.']);
+    }
+
+    switch ($case->getCaseStatus()) {
+    case 'grpet_Pending':
+      throw new ApiException(400, ['publicError' => 'Petition not published yet.']);
+
+    }
+    // Allowing: gpet_Dead|gpet_Won|Open
+
+    // @todo Check is public - but not if privileged call?
+
+    // Extract what we need from the case.
+
+    return $case;
   }
 }

@@ -1,19 +1,24 @@
 <template>
   <div class="grpet">
-    <div v-show="stage === 'loading'" >Petition Loading...</div>
+    <div v-show="stage === 'loading'" >Petition Loading...
+      <inlay-progress ref="loadingProgress"></inlay-progress>
+    </div>
     <div v-show="stage === 'loadingError'" class="grpet-error" >{{loadingError}}</div>
 
     <form action='#' @submit.prevent="submitForm" v-if="stage === 'form'">
-      <h1>{{publicData.title}}</h1>
+      <div class="petition-info">
+        <h1>{{publicData.title}}</h1>
 
-      <!-- todo image -->
-      <h2>To: {{publicData.targetName}} <br />
-        {{publicData.location}}</h2>
+        <!-- todo image -->
+        <h2>To: {{publicData.targetName}} <br />
+          {{publicData.location}}</h2>
 
-      <div class="petition-text" v-html="publicData.petitionHTML"></div>
+        <div class="petition-text" v-html="publicData.petitionHTML"></div>
+      </div>
       <div class="petition-form">
-        <!-- ometer @todo -->
-        <div>{{publicData.signatureCount}} / {{publicData.targetCount}}</div>
+        <ometer :count="publicData.signatureCount"
+           :target="publicData.targetCount"
+           stmt="Signatures"></ometer>
 
         <div v-if="acceptingSignatures">
           <div>
@@ -76,11 +81,10 @@
               :disabled="submissionRunning"
               >{{ submissionRunning ? "Please wait.." : 'Sign' }}</button>
           </div>
+          <inlay-progress ref="submitProgress"></inlay-progress>
         </div><!-- end if acceptingSignatures -->
       </div><!-- end .petition-form -->
     </form>
-
-    <inlay-progress ref="progress"></inlay-progress>
   </div>
 </template>
 <style lang="scss">
@@ -90,19 +94,49 @@
     text-align: center;
     padding: 1rem;
   }
+  $colgap: 2rem;
+  $flexgap: ($colgap/2);
+  form {
+    display: flex;
+    flex-wrap: wrap;
+    padding:0;
+    margin: 0 (-$flexgap) 2rem;
+  }
+  .petition-info {
+    padding: 0 $flexgap;
+    flex: 2 0 20rem;
+  }
+  .petition-form {
+    padding: 0 $flexgap;
+    flex: 1 0 20rem;
+  }
+
+  label {
+    display: block;
+  }
+  input[type="text"],
+  input[type="email"] {
+    width: 100%;
+  }
+  button {
+    width: 100%;
+  }
+
 }
 </style>
 <script>
 import InlayProgress from './InlayProgress.vue';
+import Ometer from './Ometer.vue';
 export default {
   props: ['inlay'],
-  components: {InlayProgress},
+  components: {InlayProgress,Ometer},
   data() {
     const d = {
       stage: 'loading',
       myId: this.$root.getNextId(),
       loadingError: 'There was an error loading this petition, please get in touch.',
       publicData: {},
+      petitionSlug: (window.location.pathname.match(/^\/petitions\/([^/#?]+)/) || [null, null])[1],
       // Form data
       first_name: '',
       last_name: '',
@@ -126,16 +160,15 @@ export default {
   mounted() {
     // We need to send a request to load our petition.
     // First, identify which petition.
-    var m = window.location.pathname.match(/^\/petitions\/([^/#?]+)/);
-    if (!m) {
+    if (!this.petitionSlug) {
       this.stage = 'loadingError';
       this.loadingError = 'There was an error loading this petition (invalid URL). Please check your link.';
       return;
     }
     // Submit a request for the petition.
-    const progress = this.$refs.progress;
+    const progress = this.$refs.loadingProgress;
     progress.startTimer(5, 100, true);
-    this.inlay.request({method: 'get', body: { need: 'publicData', petitionSlug: m[1] }})
+    this.inlay.request({method: 'get', body: { need: 'publicData', petitionSlug: this.petitionSlug }})
     .then(r => {
       console.log(r);
       if (r.publicData) {
@@ -169,13 +202,16 @@ export default {
     submitForm() {
       // Form is valid according to browser.
       this.$root.submissionRunning = true;
-      const d = {};
-      Object.keys(this.$root.values).forEach(fieldName => {
-        if (this.$root.inlay.initData.fieldDefs[fieldName].include) {
-          d[fieldName] = this.$root.values[fieldName];
-        }
-      });
-      const progress = this.$refs.progress;
+      // Collect data to send.
+      const d = {
+        need: 'submitSignature',
+        petitionSlug: this.petitionSlug,
+        // User data
+        first_name: this.first_name,
+        last_name: this.last_name,
+        email: this.email,
+      };
+      const progress = this.$refs.submitProgress;
       progress.startTimer(5, 20, 1);
       this.inlay.request({method: 'post', body: d})
         .then(r => {
@@ -201,7 +237,6 @@ export default {
             throw (r.error);
           }
           this.stage = 'thanks';
-          progress.cancelTimer();
         })
         .catch(e => {
           console.error(e);
@@ -211,8 +246,10 @@ export default {
           else {
             alert("Unexpected error");
           }
-          this.$root.submissionRunning = false;
+        })
+        .then( () => {
           progress.cancelTimer();
+          this.$root.submissionRunning = false;
         });
     }
   }

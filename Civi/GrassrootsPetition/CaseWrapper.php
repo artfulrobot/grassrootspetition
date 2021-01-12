@@ -18,18 +18,24 @@ class CaseWrapper {
   public $campaign;
 
   /** @var Array */
-  public static $activityTypeIDs;
+  public static $activityTypesByName;
 
   /** @var array Status name to option value */
   public static $activityStatuses;
   /** @var array Status name to option value */
   public static $caseStatuses;
   /**
+   * @var array of CaseWrapper objects keyed by Case ID. This will speed up
+   * processing the same case over and over, e.g. when batch processing
+   * submissions from a queue.
+   */
+  public static $instanceCache = [];
+  /**
    * Instantiate an object from the slug
    *
    * @return CaseWrapper
    */
-  public static function fromSlug(string $slug) {
+  public static function fromSlug(string $slug) :?CaseWrapper {
     $inlay = new GrassrootsPetition();
     $params = [ $inlay->getCustomFields('grpet_slug') => $slug, 'sequential' => 1 ];
     $cases = civicrm_api3('Case', 'get', $params);
@@ -40,10 +46,34 @@ class CaseWrapper {
     return NULL;
   }
 
+  /**
+   * Load a (cached) instance.
+   *
+   * If reset is given, cache is not used.
+   *
+   * @return NULL|CaseWrapper
+   */
+  public static function fromID(int $id, bool $reset=FALSE) :?CaseWrapper {
+    if (!$reset && isset(static::$instanceCache[$id])) {
+      return static::$instanceCache[$id];
+    }
+    // This gets looked up later, if needed.
+    $cases = civicrm_api3('Case', 'get', ['id' => $id]);
+    if ($cases['count'] == 1) {
+      $case = new static();
+      $case->loadFromArray($cases['values'][$id]);
+      // Cache it.
+      static::$instanceCache[$id] = $case;
+      return $case;
+    }
+    // Not found.
+    return NULL;
+  }
+
   public function __construct() {
-    if (!isset(static::$activityTypeIDs)) {
+    if (!isset(static::$activityTypesByName)) {
       // Look these up once now.
-      static::$activityTypeIDs = OptionValue::get(FALSE)
+      static::$activityTypesByName = OptionValue::get(FALSE)
           ->setCheckPermissions(FALSE)
           ->addWhere('option_group_id:name', '=', 'activity_type')
           ->addWhere('name', 'IN', [
@@ -216,16 +246,19 @@ class CaseWrapper {
   }
   /**
    * Returns a count of the signatures on a particular case.
+   *
+   * Optionally, check for a particular contact.
    */
-  public function getPetitionSigsCount() :int {
+  public function getPetitionSigsCount(?int $contactID=NULL) :int {
     $this->mustBeLoaded();
     // Count the 'Grassroots Petition signed' petitions.
-    $signedActivityTypeID = (int) static::$activityTypeIDs['Grassroots Petition signed']['value'];
+    $signedActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition signed']['value'];
     if (!$signedActivityTypeID) {
       throw new \RuntimeException("Failed to identify Grassroots Petition signed activity type. Check installation.");
     }
 
     $caseID = (int) $this->case['id'];
+    $andIsSelectedContact = $contactID ? "AND c.id = $contactID" : '';
 
     // Count signed activities on this case from live contacts (i.e. exclude deleted contacts).
     $sql = "
@@ -235,9 +268,11 @@ class CaseWrapper {
       INNER JOIN civicrm_activity_contact ac ON ac.activity_id = a.id AND ac.record_type_id = 3 /* target */
       INNER JOIN civicrm_contact c ON ac.contact_id = c.id AND c.is_deleted = 0
       WHERE a.activity_type_id = $signedActivityTypeID
+            $andIsSelectedContact
     ";
     $count = (int) CRM_Core_DAO::singleValueQuery($sql);
 
+    // $count+= rand(23,76); // xxx todo
     return $count;
   }
   /**
@@ -248,6 +283,42 @@ class CaseWrapper {
     return array_flip(static::$caseStatuses)[$this->case['status_id']];
   }
   /**
+   * Get Case ID.
+   */
+  public function getID() :int {
+    $this->mustBeLoaded();
+    return (int) $this->case['id'];
+  }
+  /**
+   * Add a signed petition activity to the case for the given contact.
+   *
+   * @todo location/source
+   *
+   * @return int Activity ID created.
+   */
+  public function addSignedPetitionActivity(int $contactID, array $data) :int {
+
+    $activityCreateParams = [
+      'activity_type_id'     => static::$activityTypesByName['Grassroots Petition signed']['value'],
+      'target_id'            => $contactID,
+      'source_contact_id'    => $contactID,
+      'subject'              => $this->case['subject'], /* Copy case subject (petition title)  */
+      'status_id'            => 'Completed',
+      'case_id'              => $this->case['id'],
+      // 'details'           => $details,
+      // 'location' todo
+    ];
+    $result = civicrm_api3('Activity', 'create', $activityCreateParams);
+
+    return (int) $result['id'];
+  }
+  /**
+   */
+  public function sendThankYouEmail(int $contactID, array $data) {
+    // todo
+  }
+  /**
+   * Assert that the case is loaded; used by public getters.
    */
   protected function mustBeLoaded() {
     if (empty($this->case)) {
