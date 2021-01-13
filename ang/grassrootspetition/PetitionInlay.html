@@ -13,6 +13,66 @@
         />
     </div>
 
+    <!-- Socials v1.2 {{{ -->
+    <h3>Social Media</h3>
+
+    <div crm-ui-field="{name: 'inlayForm.socialStyle', title: ts('Social media button colours')}">
+      <select
+        crm-ui-select="{allowClear:true, dropdownAutoWidth: true}"
+        ng-model="inlay.config.socialStyle"
+        name="socialStyle"
+        style="width: 100%"
+        >
+        <option value="">(no style)</option>
+        <option value="col-buttons">{{ts('Coloured button background, white icon')}}</option>
+        <option value="col-icon">{{ts('Coloured icon')}}</option>
+      </select>
+    </div>
+
+    <ul>
+      <li ng-repeat="(i, sm) in smShares"
+        >
+        <input
+          type="checkbox"
+          name="{{sm.name}}"
+          id="{{'share-' + sm.name}}"
+          ng-model="smShares[i].active"
+          />
+        <label for="{{'share-' + sm.name}}">{{ts('Share on %1', {'1': sm.label})}}</label>
+        <a href ng-click="smShares.splice(i-1,0, smShares.splice(i,1)[0])"
+                ng-show="i>0"
+          >↑</a>
+        <a href
+          ng-show="i<smShares.length -1"
+          ng-click="smShares.splice(i+1, 0, smShares.splice(i,1)[0])" >↓</a>
+      </li>
+    </ul>
+
+    <div crm-ui-field="{name: 'inlayForm.tweet', title: ts('Suggested tweet')}"
+         ng-show="smActive('twitter')"
+      >
+      <textarea
+        crm-ui-id="inlayForm.tweet"
+        name="tweet"
+        ng-model="inlay.config.tweet"
+        class="crm-form-text"
+        placeholder="{{ts('e.g. Hey everybody, do what I did.')}}"
+        ></textarea>
+    </div>
+
+    <div crm-ui-field="{name: 'inlayForm.whatsappText', title: ts('Suggested WhatsApp text')}"
+         ng-show="smActive('whatsapp')"
+       >
+      <textarea
+        crm-ui-id="inlayForm.whatsappText"
+        name="whatsappText"
+        ng-model="inlay.config.whatsappText"
+        class="crm-form-text"
+        placeholder="{{ts('e.g. Hey everybody, do what I did.')}}"
+        ></textarea>
+    </div>
+    <!-- }}} -->
+
     <div>
       <button ng-click="save()">{{ts('Save')}}</button>
     </div>

@@ -131,7 +131,9 @@
         <div v-show="stage === 'thanksShareAsk'" >
           <div v-html="publicData.thanksShareAskHTML"></div>
 
-          <div>todo: share buttons</div>
+          <inlay-socials icons=1 :socials="inlay.initData.socials" :button-style="inlay.initData.socialStyle" ></inlay-socials>
+
+          <p><a href @click.prevent="stage='thanksDonateAsk'" >Skip sharing</a></p>
 
         </div>
         <div v-show="stage === 'thanksDonateAsk'" >
@@ -193,10 +195,11 @@
 </style>
 <script>
 import InlayProgress from './InlayProgress.vue';
+import InlaySocials from './InlaySocials.vue';
 import Ometer from './Ometer.vue';
 export default {
   props: ['inlay'],
-  components: {InlayProgress,Ometer},
+  components: {InlayProgress, Ometer, InlaySocials},
   data() {
     const d = {
       stage: 'loading',

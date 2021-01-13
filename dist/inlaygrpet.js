@@ -96,7 +96,8 @@
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _InlayProgress_vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./InlayProgress.vue */ "./src/InlayProgress.vue");
-/* harmony import */ var _Ometer_vue__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Ometer.vue */ "./src/Ometer.vue");
+/* harmony import */ var _InlaySocials_vue__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./InlaySocials.vue */ "./src/InlaySocials.vue");
+/* harmony import */ var _Ometer_vue__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Ometer.vue */ "./src/Ometer.vue");
 //
 //
 //
@@ -290,13 +291,17 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+
 
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
   components: {
     InlayProgress: _InlayProgress_vue__WEBPACK_IMPORTED_MODULE_0__["default"],
-    Ometer: _Ometer_vue__WEBPACK_IMPORTED_MODULE_1__["default"]
+    Ometer: _Ometer_vue__WEBPACK_IMPORTED_MODULE_2__["default"],
+    InlaySocials: _InlaySocials_vue__WEBPACK_IMPORTED_MODULE_1__["default"]
   },
   data: function data() {
     var d = {
@@ -566,6 +571,107 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
+/***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./src/InlaySocials.vue?vue&type=script&lang=js&":
+/*!***************************************************************************************************************************************************!*\
+  !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./src/InlaySocials.vue?vue&type=script&lang=js& ***!
+  \***************************************************************************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+/* harmony default export */ __webpack_exports__["default"] = ({
+  props: ['socials', 'icons', 'buttonStyle'],
+  data: function data() {
+    var _url = window.location.href;
+    var urlEncoded = encodeURIComponent(window.location.href);
+    var treatments = {
+      twitter: {
+        label: 'Twitter',
+        url: function url(sn) {
+          return "https://twitter.com/intent/tweet/?text=".concat(encodeURIComponent(sn.tweet), "&url=").concat(urlEncoded);
+        }
+      },
+      facebook: {
+        label: 'Facebook',
+        url: function url(sn) {
+          return "https://facebook.com/sharer/sharer.php?u=".concat(urlEncoded);
+        }
+      },
+      whatsapp: {
+        label: 'WhatsApp',
+        url: function url(sn) {
+          return "whatsapp://send?text=".concat(encodeURIComponent(sn.whatsappText + ' ' + _url));
+        }
+      },
+      email: {
+        label: 'Email',
+        url: function url(sn) {
+          return "mailto:?subject=".concat(encodeURIComponent(sn.subject), "&body=").concat(urlEncoded);
+        }
+      },
+      linkedin: {
+        label: 'Linked In',
+        url: function url(sn) {
+          return "https://www.linkedin.com/shareArticle?mini=true&url=".concat(urlEncoded, "&title=").concat(encodeURIComponent(sn.linkedInText), "&summary=").concat(encodeURIComponent(sn.linkedInText), "&amp;source=").concat(urlEncoded);
+        }
+      }
+    };
+    var buttons = this.socials.map(function (sn) {
+      var s = {
+        name: sn.name
+      };
+
+      if (!(sn.name in treatments)) {
+        console.warn("".concat(sn.name, " not found in treatments:"), treatments);
+        return;
+      }
+
+      s.url = treatments[sn.name].url(sn);
+      s.label = treatments[sn.name].label;
+      return s;
+    });
+    console.log("data returning ", {
+      buttons: buttons
+    });
+    return {
+      buttons: buttons
+    };
+  }
+});
+
+/***/ }),
+
 /***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./src/Ometer.vue?vue&type=script&lang=js&":
 /*!*********************************************************************************************************************************************!*\
   !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./src/Ometer.vue?vue&type=script&lang=js& ***!
@@ -675,6 +781,25 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 // module
 exports.push([module.i, ".ifg-progress {\n  height: 2px;\n  transition: 0.3s background-color;\n}\n.ifg-progress-container {\n  height: 2px;\n  margin-top: 0.5rem;\n  margin-bottom: 0.5rem;\n  transition: 0.3s background-color;\n}\n", ""]);
+
+// exports
+
+
+/***/ }),
+
+/***/ "./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/InlaySocials.vue?vue&type=style&index=0&lang=scss&":
+/*!**************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/css-loader!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src??ref--6-2!./node_modules/sass-loader/dist/cjs.js??ref--6-3!./node_modules/vue-loader/lib??vue-loader-options!./src/InlaySocials.vue?vue&type=style&index=0&lang=scss& ***!
+  \**************************************************************************************************************************************************************************************************************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/lib/css-base.js */ "./node_modules/css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, "ul.inlay-socials {\n  list-style: none;\n  margin: 0 -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\nul.inlay-socials > li {\n  margin: 1rem 0;\n  padding: 0 1rem;\n  flex: 1 0 auto;\n  list-style: none;\n}\nul.inlay-socials > li > a, ul.inlay-socials > li > a:hover, ul.inlay-socials > li > a:visited, ul.inlay-socials > li > a:active {\n  text-decoration: none;\n  border-radius: 4px;\n  display: block;\n  padding: 0.5rem 1rem;\n  height: 100%;\n  color: black;\n  text-align: center;\n}\nul.inlay-socials > li svg {\n  vertical-align: baseline;\n}\nul.inlay-socials.col-buttons > li > a {\n  background-color: #e8e8e8;\n}\nul.inlay-socials.col-buttons > li > a.inlay-socials--twitter {\n  background-color: #55acee;\n  color: white;\n}\nul.inlay-socials.col-buttons > li > a.inlay-socials--facebook {\n  background-color: #3b5999;\n  color: white;\n}\nul.inlay-socials.col-buttons > li > a.inlay-socials--whatsapp {\n  background-color: #25D366;\n  color: white;\n}\nul.inlay-socials.col-buttons > li > a.inlay-socials--linkedin {\n  background-color: #0077B5;\n  color: white;\n}\nul.inlay-socials.col-icon > li > a {\n  background-color: #e8e8e8;\n}\nul.inlay-socials.col-icon > li > a.inlay-socials--twitter svg {\n  color: #55acee;\n}\nul.inlay-socials.col-icon > li > a.inlay-socials--facebook svg {\n  color: #3b5999;\n}\nul.inlay-socials.col-icon > li > a.inlay-socials--whatsapp svg {\n  color: #25D366;\n}\nul.inlay-socials.col-icon > li > a.inlay-socials--linkedin svg {\n  color: #0077B5;\n}\n", ""]);
 
 // exports
 
@@ -1219,6 +1344,36 @@ if(false) {}
 
 
 var content = __webpack_require__(/*! !../node_modules/css-loader!../node_modules/vue-loader/lib/loaders/stylePostLoader.js!../node_modules/postcss-loader/src??ref--6-2!../node_modules/sass-loader/dist/cjs.js??ref--6-3!../node_modules/vue-loader/lib??vue-loader-options!./InlayProgress.vue?vue&type=style&index=0&lang=scss& */ "./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayProgress.vue?vue&type=style&index=0&lang=scss&");
+
+if(typeof content === 'string') content = [[module.i, content, '']];
+
+var transform;
+var insertInto;
+
+
+
+var options = {"hmr":true}
+
+options.transform = transform
+options.insertInto = undefined;
+
+var update = __webpack_require__(/*! ../node_modules/style-loader/lib/addStyles.js */ "./node_modules/style-loader/lib/addStyles.js")(content, options);
+
+if(content.locals) module.exports = content.locals;
+
+if(false) {}
+
+/***/ }),
+
+/***/ "./node_modules/style-loader/index.js!./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/InlaySocials.vue?vue&type=style&index=0&lang=scss&":
+/*!******************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/style-loader!./node_modules/css-loader!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src??ref--6-2!./node_modules/sass-loader/dist/cjs.js??ref--6-3!./node_modules/vue-loader/lib??vue-loader-options!./src/InlaySocials.vue?vue&type=style&index=0&lang=scss& ***!
+  \******************************************************************************************************************************************************************************************************************************************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+var content = __webpack_require__(/*! !../node_modules/css-loader!../node_modules/vue-loader/lib/loaders/stylePostLoader.js!../node_modules/postcss-loader/src??ref--6-2!../node_modules/sass-loader/dist/cjs.js??ref--6-3!../node_modules/vue-loader/lib??vue-loader-options!./InlaySocials.vue?vue&type=style&index=0&lang=scss& */ "./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/InlaySocials.vue?vue&type=style&index=0&lang=scss&");
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -2291,8 +2446,31 @@ var render = function() {
                       }
                     }),
                     _vm._v(" "),
-                    _c("div", [_vm._v("todo: share buttons")])
-                  ]
+                    _c("inlay-socials", {
+                      attrs: {
+                        icons: "1",
+                        socials: _vm.inlay.initData.socials,
+                        "button-style": _vm.inlay.initData.socialStyle
+                      }
+                    }),
+                    _vm._v(" "),
+                    _c("p", [
+                      _c(
+                        "a",
+                        {
+                          attrs: { href: "" },
+                          on: {
+                            click: function($event) {
+                              $event.preventDefault()
+                              _vm.stage = "thanksDonateAsk"
+                            }
+                          }
+                        },
+                        [_vm._v("Skip sharing")]
+                      )
+                    ])
+                  ],
+                  1
                 ),
                 _vm._v(" "),
                 _c(
@@ -2349,6 +2527,185 @@ var render = function() {
     "div",
     { staticClass: "ifg-progress-container", style: _vm.containerStyle },
     [_c("div", { staticClass: "ifg-progress", style: _vm.barStyle })]
+  )
+}
+var staticRenderFns = []
+render._withStripped = true
+
+
+
+/***/ }),
+
+/***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./src/InlaySocials.vue?vue&type=template&id=34ed0840&":
+/*!*******************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./src/InlaySocials.vue?vue&type=template&id=34ed0840& ***!
+  \*******************************************************************************************************************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "render", function() { return render; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return staticRenderFns; });
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c(
+    "ul",
+    { staticClass: "inlay-socials", class: _vm.buttonStyle },
+    _vm._l(_vm.buttons, function(sn) {
+      return _c("li", [
+        _c(
+          "a",
+          {
+            class: "inlay-socials--" + sn.name,
+            attrs: { href: sn.url, target: "_blank" }
+          },
+          [
+            _vm.icons && sn.name === "twitter"
+              ? _c(
+                  "svg",
+                  {
+                    attrs: {
+                      viewBox: "0 0 15 15",
+                      fill: "none",
+                      xmlns: "http://www.w3.org/2000/svg",
+                      width: "18",
+                      height: "18"
+                    }
+                  },
+                  [
+                    _c("path", {
+                      attrs: {
+                        d:
+                          "M14.977 1.467a.5.5 0 00-.87-.301 2.559 2.559 0 01-1.226.763A3.441 3.441 0 0010.526 1a3.539 3.539 0 00-3.537 3.541v.44C3.998 4.75 2.4 2.477 1.967 1.325a.5.5 0 00-.916-.048C.004 3.373-.157 5.407.604 7.139 1.27 8.656 2.61 9.864 4.51 10.665 3.647 11.276 2.194 12 .5 12a.5.5 0 00-.278.916C1.847 14 3.55 14 5.132 14h.048c4.861 0 8.8-3.946 8.8-8.812v-.479c.363-.37.646-.747.82-1.236.193-.546.232-1.178.177-2.006z",
+                        fill: "currentColor"
+                      }
+                    })
+                  ]
+                )
+              : _vm._e(),
+            _vm._v(" "),
+            _vm.icons && sn.name === "facebook"
+              ? _c(
+                  "svg",
+                  {
+                    attrs: {
+                      viewBox: "0 0 15 15",
+                      fill: "none",
+                      xmlns: "http://www.w3.org/2000/svg",
+                      width: "18",
+                      height: "18"
+                    }
+                  },
+                  [
+                    _c("path", {
+                      attrs: {
+                        d:
+                          "M0 7.5a7.5 7.5 0 118 7.484V9h2V8H8V6.5A1.5 1.5 0 019.5 5h.5V4h-.5A2.5 2.5 0 007 6.5V8H5v1h2v5.984A7.5 7.5 0 010 7.5z",
+                        fill: "currentColor"
+                      }
+                    })
+                  ]
+                )
+              : _vm._e(),
+            _vm._v(" "),
+            _vm.icons && sn.name === "whatsapp"
+              ? _c(
+                  "svg",
+                  {
+                    attrs: {
+                      viewBox: "0 0 15 15",
+                      fill: "none",
+                      xmlns: "http://www.w3.org/2000/svg",
+                      width: "18",
+                      height: "18"
+                    }
+                  },
+                  [
+                    _c("path", {
+                      attrs: {
+                        d:
+                          "M5 4.768a.5.5 0 01.761.34l.14.836a.5.5 0 01-.216.499l-.501.334A4.501 4.501 0 015 5.5v-.732zM9.5 10a4.5 4.5 0 01-1.277-.184l.334-.5a.5.5 0 01.499-.217l.836.14a.5.5 0 01.34.761H9.5z",
+                        fill: "currentColor"
+                      }
+                    }),
+                    _c("path", {
+                      attrs: {
+                        "fill-rule": "evenodd",
+                        "clip-rule": "evenodd",
+                        d:
+                          "M0 7.5a7.5 7.5 0 113.253 6.182l-2.53 1.265a.5.5 0 01-.67-.67l1.265-2.53A7.467 7.467 0 010 7.5zm4.23-3.42l.206-.138a1.5 1.5 0 012.311 1.001l.14.837a1.5 1.5 0 01-.648 1.495l-.658.438A4.522 4.522 0 007.286 9.42l.44-.658a1.5 1.5 0 011.494-.648l.837.14a1.5 1.5 0 011.001 2.311l-.138.207a.5.5 0 01-.42.229h-1A5.5 5.5 0 014 5.5v-1a.5.5 0 01.23-.42z",
+                        fill: "currentColor"
+                      }
+                    })
+                  ]
+                )
+              : _vm._e(),
+            _vm._v(" "),
+            _vm.icons && sn.name === "linkedin"
+              ? _c(
+                  "svg",
+                  {
+                    attrs: {
+                      viewBox: "0 0 15 15",
+                      fill: "none",
+                      xmlns: "http://www.w3.org/2000/svg",
+                      width: "18",
+                      height: "18"
+                    }
+                  },
+                  [
+                    _c("path", {
+                      attrs: {
+                        "fill-rule": "evenodd",
+                        "clip-rule": "evenodd",
+                        d:
+                          "M0 1.5A1.5 1.5 0 011.5 0h12A1.5 1.5 0 0115 1.5v12a1.5 1.5 0 01-1.5 1.5h-12A1.5 1.5 0 010 13.5v-12zM5 5H4V4h1v1zm-1 6V6h1v5H4zm4.5-4A1.5 1.5 0 007 8.5V11H6V6h1v.5a2.5 2.5 0 014 2V11h-1V8.5A1.5 1.5 0 008.5 7z",
+                        fill: "currentColor"
+                      }
+                    })
+                  ]
+                )
+              : _vm._e(),
+            _vm._v(" "),
+            _vm.icons && sn.name === "email"
+              ? _c(
+                  "svg",
+                  {
+                    attrs: {
+                      viewBox: "0 0 16 15",
+                      fill: "none",
+                      xmlns: "http://www.w3.org/2000/svg",
+                      width: "18",
+                      height: "18"
+                    }
+                  },
+                  [
+                    _c("path", {
+                      attrs: {
+                        d:
+                          "M.5 2.5A1.5 1.5 0 012 1h12a1.5 1.5 0 011.5 1.5v1.208L8 7.926.5 3.708V2.5z",
+                        fill: "currentColor"
+                      }
+                    }),
+                    _c("path", {
+                      attrs: {
+                        d:
+                          "M.5 4.855V12.5A1.5 1.5 0 002 14h12a1.5 1.5 0 001.5-1.5V4.855L8 9.074.5 4.854z",
+                        fill: "currentColor"
+                      }
+                    })
+                  ]
+                )
+              : _vm._e(),
+            _vm._v("\n      " + _vm._s(sn.label))
+          ]
+        )
+      ])
+    }),
+    0
   )
 }
 var staticRenderFns = []
@@ -14701,6 +15058,93 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
+/***/ "./src/InlaySocials.vue":
+/*!******************************!*\
+  !*** ./src/InlaySocials.vue ***!
+  \******************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _InlaySocials_vue_vue_type_template_id_34ed0840___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./InlaySocials.vue?vue&type=template&id=34ed0840& */ "./src/InlaySocials.vue?vue&type=template&id=34ed0840&");
+/* harmony import */ var _InlaySocials_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./InlaySocials.vue?vue&type=script&lang=js& */ "./src/InlaySocials.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport *//* harmony import */ var _InlaySocials_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./InlaySocials.vue?vue&type=style&index=0&lang=scss& */ "./src/InlaySocials.vue?vue&type=style&index=0&lang=scss&");
+/* harmony import */ var _node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../node_modules/vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/vue-loader/lib/runtime/componentNormalizer.js");
+
+
+
+
+
+
+/* normalize component */
+
+var component = Object(_node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_3__["default"])(
+  _InlaySocials_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
+  _InlaySocials_vue_vue_type_template_id_34ed0840___WEBPACK_IMPORTED_MODULE_0__["render"],
+  _InlaySocials_vue_vue_type_template_id_34ed0840___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
+  false,
+  null,
+  null,
+  null
+  
+)
+
+/* hot reload */
+if (false) { var api; }
+component.options.__file = "src/InlaySocials.vue"
+/* harmony default export */ __webpack_exports__["default"] = (component.exports);
+
+/***/ }),
+
+/***/ "./src/InlaySocials.vue?vue&type=script&lang=js&":
+/*!*******************************************************!*\
+  !*** ./src/InlaySocials.vue?vue&type=script&lang=js& ***!
+  \*******************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_InlaySocials_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../node_modules/babel-loader/lib??ref--4-0!../node_modules/vue-loader/lib??vue-loader-options!./InlaySocials.vue?vue&type=script&lang=js& */ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./src/InlaySocials.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_InlaySocials_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
+/***/ "./src/InlaySocials.vue?vue&type=style&index=0&lang=scss&":
+/*!****************************************************************!*\
+  !*** ./src/InlaySocials.vue?vue&type=style&index=0&lang=scss& ***!
+  \****************************************************************/
+/*! no static exports found */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_InlaySocials_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../node_modules/style-loader!../node_modules/css-loader!../node_modules/vue-loader/lib/loaders/stylePostLoader.js!../node_modules/postcss-loader/src??ref--6-2!../node_modules/sass-loader/dist/cjs.js??ref--6-3!../node_modules/vue-loader/lib??vue-loader-options!./InlaySocials.vue?vue&type=style&index=0&lang=scss& */ "./node_modules/style-loader/index.js!./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/InlaySocials.vue?vue&type=style&index=0&lang=scss&");
+/* harmony import */ var _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_InlaySocials_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_InlaySocials_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__);
+/* harmony reexport (unknown) */ for(var __WEBPACK_IMPORT_KEY__ in _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_InlaySocials_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__) if(["default"].indexOf(__WEBPACK_IMPORT_KEY__) < 0) (function(key) { __webpack_require__.d(__webpack_exports__, key, function() { return _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_InlaySocials_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__[key]; }) }(__WEBPACK_IMPORT_KEY__));
+
+
+/***/ }),
+
+/***/ "./src/InlaySocials.vue?vue&type=template&id=34ed0840&":
+/*!*************************************************************!*\
+  !*** ./src/InlaySocials.vue?vue&type=template&id=34ed0840& ***!
+  \*************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_InlaySocials_vue_vue_type_template_id_34ed0840___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../node_modules/vue-loader/lib??vue-loader-options!./InlaySocials.vue?vue&type=template&id=34ed0840& */ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./src/InlaySocials.vue?vue&type=template&id=34ed0840&");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_InlaySocials_vue_vue_type_template_id_34ed0840___WEBPACK_IMPORTED_MODULE_0__["render"]; });
+
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_InlaySocials_vue_vue_type_template_id_34ed0840___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
+
+
+
+/***/ }),
+
 /***/ "./src/Ometer.vue":
 /*!************************!*\
   !*** ./src/Ometer.vue ***!
@@ -14809,6 +15253,7 @@ __webpack_require__.r(__webpack_exports__);
     // We need to define anything global here.
     // Create the boot function.
     window.inlayGrpetInit = function (inlay) {
+      console.log("boooooooooting", inlay);
       var inlayNode = document.createElement('div');
       inlay.script.insertAdjacentElement('afterend', inlayNode);
       /* eslint no-unused-vars: 0 */
@@ -14841,8 +15286,6 @@ __webpack_require__.r(__webpack_exports__);
     };
   }
 })();
-
-console.log("here I am");
 
 /***/ }),
 

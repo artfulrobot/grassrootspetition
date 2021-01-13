@@ -9,7 +9,7 @@
         // If you need to look up data when opening the page, list it out
         // under "resolve".
         resolve: {
-          various: function($route, crmApi4, $route) {
+          various: function($route, crmApi4) {
             const params = {
               inlayTypes: ['InlayType', 'get', {}, 'class'],
             };
@@ -52,8 +52,39 @@
     }
     const inlay = $scope.inlay;
 
+    // Socials v1.2 {{{
+    // Define all the networks we support here.
+    const knownSocials = {
+      twitter: 'Twitter',
+      facebook: 'Facebook',
+      whatsapp: 'WhatsApp',
+      email: 'Email',
+    };
+    $scope.smShares = [];
+    inlay.config.socials.forEach(sm => {
+      $scope.smShares.push({active: true, name: sm, label: knownSocials[sm]});
+      delete knownSocials[sm];
+    });
+    Object.keys(knownSocials).forEach(sm => {
+      $scope.smShares.push({active: false, name: sm, label: knownSocials[sm]});
+    });
+    $scope.smActive = function(sm) {
+      return $scope.smShares.find(x => x.name === sm).active;
+    };
+    function exportSocials(obj) {
+      obj.socials = [];
+      $scope.smShares.forEach(sm => {
+        if (sm.active) {
+          obj.socials.push(sm.name);
+        }
+      });
+    }
+    // Call this in the save function: exportSocials(inlay.config);
+    // }}}
+
     $scope.save = function() {
 
+      exportSocials(inlay.config);
       console.log("Saving " + JSON.stringify(inlay));
 
       return crmStatus(

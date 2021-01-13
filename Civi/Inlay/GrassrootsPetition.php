@@ -26,6 +26,12 @@ class GrassrootsPetition extends InlayType {
   public static $instanceCache = [];
 
   public static $defaultConfig = [
+    // Socials v1.2 {{{
+    'socials'          => ['twitter', 'facebook', 'email', 'whatsapp'],
+    'socialStyle'      => 'col-buttons', // col-buttons|col-icon|'',
+    'tweet'            => '',
+    'whatsappText'     => '',
+    // }}}
   ];
 
   /**
@@ -110,11 +116,27 @@ class GrassrootsPetition extends InlayType {
    * @return array
    */
   public function getInitData() {
-    $init = [
+    $data = [
       // Name of global Javascript function used to boot this app.
       'init'             => 'inlayGrpetInit',
     ];
-    return $init;
+
+    // Socials v1.2 {{{
+    $data['socialStyle'] = $this->config['socialStyle'] ?? '';
+    $data['socials'] = [];
+    foreach ($this->config['socials'] as $social) {
+      $_ = ['name' => $social];
+      if ($social === 'twitter') {
+        $_['tweet'] = $this->config['tweet'];
+      }
+      elseif ($social === 'whatsapp') {
+        $_['whatsappText'] = $this->config['whatsappText'];
+      }
+      $data['socials'][] = $_;
+    }
+    // }}}
+
+    return $data;
   }
 
   /**

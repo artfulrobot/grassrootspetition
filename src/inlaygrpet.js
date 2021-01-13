@@ -8,6 +8,7 @@ import InlayGrassrootsPetition from './InlayGrassrootsPetition.vue';
 
     // Create the boot function.
     window.inlayGrpetInit = inlay => {
+      console.log("boooooooooting", inlay);
       const inlayNode = document.createElement('div');
       inlay.script.insertAdjacentElement('afterend', inlayNode);
       /* eslint no-unused-vars: 0 */
@@ -33,4 +34,3 @@ import InlayGrassrootsPetition from './InlayGrassrootsPetition.vue';
     };
   }
 })();
-console.log("here I am");
