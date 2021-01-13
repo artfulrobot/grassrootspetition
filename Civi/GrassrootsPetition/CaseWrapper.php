@@ -152,6 +152,13 @@ class CaseWrapper {
       'image'          => $this->getPetitionImageURL(), /* @todo */
       'updates'        => $this->getPetitionUpdates(),
       'signatureCount' => $this->getPetitionSigsCount(),
+      // @todo expose these on the Inlay Config
+      'consentIntroHTML' => '<p>Get emails about this campaign and from People & Planet on our current and future projects, campaigns and appeals. There’s a link to unsubscribe at the bottom of each email update. <a href="https://peopleandplanet.org/privacy">Privacy Policy</a></p>',
+      'consentYesText'   => 'Yes please',
+      'consentNoText'    => 'No, don’t add me',
+      'consentNoWarning' => 'If you’re not already subscribed you won’t hear about the success (or otherwise!) of this campaign. Sure?',
+      'thanksShareAsk'   => '<h2>Thanks, please share this petition</h2><p>Thanks for signing. Can you share to help amplify your voice?</p>',
+      'thanksDonateAsk'  => '<h2>Thanks, can you donate?</h2><p>Can you chip in to help People &amp; Planet’s campaigns?</p><p><a class="button primary" href="/donate">Donate</a></p>',
     ];
 
     return $public;
@@ -268,7 +275,8 @@ class CaseWrapper {
       INNER JOIN civicrm_activity_contact ac ON ac.activity_id = a.id AND ac.record_type_id = 3 /* target */
       INNER JOIN civicrm_contact c ON ac.contact_id = c.id AND c.is_deleted = 0
       WHERE a.activity_type_id = $signedActivityTypeID
-            $andIsSelectedContact
+        AND a.is_deleted = 0
+        $andIsSelectedContact
     ";
     $count = (int) CRM_Core_DAO::singleValueQuery($sql);
 
@@ -290,9 +298,14 @@ class CaseWrapper {
     return (int) $this->case['id'];
   }
   /**
+   * Get Case Subject (petition title)
+   */
+  public function getPetitionTitle() :string {
+    $this->mustBeLoaded();
+    return (string) $this->case['subject'] ?? '';
+  }
+  /**
    * Add a signed petition activity to the case for the given contact.
-   *
-   * @todo location/source
    *
    * @return int Activity ID created.
    */
@@ -305,12 +318,68 @@ class CaseWrapper {
       'subject'              => $this->case['subject'], /* Copy case subject (petition title)  */
       'status_id'            => 'Completed',
       'case_id'              => $this->case['id'],
-      // 'details'           => $details,
-      // 'location' todo
+      'location'             => $data['location'],
+      // xxx move this to custom field.
+      'details'              => ($data['optin'] === 'yes') ? '<p>Opted in to updates</p>' : '<p>Did not opt in</p>',
     ];
     $result = civicrm_api3('Activity', 'create', $activityCreateParams);
 
     return (int) $result['id'];
+  }
+  /**
+   * Handle consent.
+   *
+   * This is only called if consent was actively opted in to.
+   *
+   * @return int Activity ID created.
+   */
+  public function recordConsent(int $contactID, array $data) :void {
+
+    if (class_exists('CRM_Gdpr_CommunicationsPreferences_Utils')) {
+      \CRM_Gdpr_CommunicationsPreferences_Utils::createCommsPrefActivity($contactID,
+        ['activity_source' => "<p>Opted-in via Grassroots Petition "
+        . htmlspecialchars($this->getPetitionTitle())
+        . ' on page '
+        . htmlspecialchars($data['location'])
+        . '</p>'
+        ]);
+    }
+
+
+    // todo extract this from the petition side of things; use a hook.
+    // Add them to the P&P newsletter
+    $groupID = 62; // xxx remove hard coded value!
+    list($total, $added, $notAdded) = \CRM_Contact_BAO_GroupContact::addContactsToGroup([$contactID], $groupID, 'Web', 'Added');
+
+    // Add them to the email consent group
+    $emailConsentGroup = \Civi\Api4\Group::get(FALSE)
+        ->addSelect('id')
+        ->addWhere('name', '=', 'consent_all_email')
+        ->execute()
+        ->first()['id'] ?? NULL;
+    if (!$emailConsentGroup) {
+      Civi::log()->error("Failed to find consent_all_email Group; was going to add contact $contactID into it as they signed up.");
+    }
+    else {
+      list($total, $added, $notAdded) = \CRM_Contact_BAO_GroupContact::addContactsToGroup([$contactID], $emailConsentGroup, 'Web', 'Added');
+    }
+
+    if (!empty($data['phone'])) {
+      // Add them to the phone consent group, if phone number given
+      $phoneConsentGroup = \Civi\Api4\Group::get(FALSE)
+          ->addSelect('id')
+          ->addWhere('name', '=', 'consent_all_phone')
+          ->execute()
+          ->first()['id'] ?? NULL;
+      if (!$phoneConsentGroup) {
+        Civi::log()->error("Failed to find consent_all_phone Group; was going to add contact $contactID into it as they signed up.");
+      }
+      else {
+        list($total, $added, $notAdded) = \CRM_Contact_BAO_GroupContact::addContactsToGroup([$contactID], $phoneConsentGroup, 'Web', 'Added');
+      }
+    }
+    // Add them to the group for this petition
+
   }
   /**
    */

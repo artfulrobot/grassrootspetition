@@ -240,6 +240,30 @@ class GrassrootsPetition extends InlayType {
       $errors[] = "Invalid name";
     }
 
+    // Optin.
+    if (preg_match('/^(yes|no)$/', $data['optin'] ?? '')) {
+      $valid['optin'] = $data['optin'];
+    }
+    else {
+      $errors[] = "Please confirm consent for future communications.";
+    }
+
+    // Location should be the URL of the page.
+    $valid['location'] = $data['location'] ?? '';
+
+    // Phone is optional
+    $valid['phone'] = '';
+    if (!empty($data['phone'])) {
+      // Require at least 11 numbers.
+      if (!preg_match('/[0-9]{11,}/', preg_replace('/[^0-9]+/', '', $data['phone']))) {
+        $errors[] = "Your phone number does not look valid. (Nb. providing a phone is optional.)";
+      }
+      else {
+        // Strip out everything that looks phoney. I mean non-phoney. I mean...
+        $valid['phone'] = preg_replace('/[^0-9]+/', '', $data['phone']);
+      }
+    }
+
     if ($errors) {
       throw new \Civi\Inlay\ApiException(400, ['error' => implode(', ', $errors)]);
     }
@@ -362,6 +386,10 @@ class GrassrootsPetition extends InlayType {
     $params = array_intersect_key($data, array_flip(
       ['first_name', 'last_name', 'email']
     )) + ['contact_type' => 'Individual'];
+    // Add phone in, if given.
+    if ($data['phone']) {
+      $params['phone'] = $data['phone'];
+    }
 
     $contactID = (int) civicrm_api3('Contact', 'getorcreate', $params)['id'] ?? 0;
     if (!$contactID) {
@@ -372,6 +400,15 @@ class GrassrootsPetition extends InlayType {
     // Create a signature activity, if not already signed.
     if ($case->getPetitionSigsCount($contactID) === 0) {
       $activityID = $case->addSignedPetitionActivity($contactID, $data);
+    }
+
+    // They must agree the GRPR stuff when submitting the form.
+    if (class_exists('CRM_Gdpr_SLA_Utils')) {
+      \CRM_Gdpr_SLA_Utils::recordSLAAcceptance($contactID);
+    }
+
+    if ($data['optin'] === 'yes') {
+      $case->recordConsent($contactID, $data);
     }
 
     // xxx

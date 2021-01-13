@@ -223,6 +223,73 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 /* harmony default export */ __webpack_exports__["default"] = ({
@@ -238,16 +305,21 @@ __webpack_require__.r(__webpack_exports__);
       loadingError: 'There was an error loading this petition, please get in touch.',
       publicData: {},
       petitionSlug: (window.location.pathname.match(/^\/petitions\/([^/#?]+)/) || [null, null])[1],
+      location: window.location.href,
       // Form data
       first_name: '',
       last_name: '',
       email: '',
-      email2: ''
+      email2: '',
+      phone: '',
+      optin: null
     };
-    console.log("zzzzzzzzzzzzz", d);
     return d;
   },
   computed: {
+    showTheForm: function showTheForm() {
+      return ['form', 'thanksShareAsk', 'thanksDonateAsk'].includes(this.stage);
+    },
     submissionRunning: function submissionRunning() {
       return this.$root.submissionRunning;
     },
@@ -298,6 +370,12 @@ __webpack_require__.r(__webpack_exports__);
     });
   },
   methods: {
+    leftEmailField: function leftEmailField() {
+      // Focus the email2 field after leaving email field, unless it's already OK.
+      if (this.email2 !== this.email) {
+        this.$refs.email2.focus();
+      }
+    },
     checkEmailsMatch: function checkEmailsMatch() {
       if (this.email === this.email2) {
         this.$refs.email2.setCustomValidity('');
@@ -316,11 +394,15 @@ __webpack_require__.r(__webpack_exports__);
       var d = {
         need: 'submitSignature',
         petitionSlug: this.petitionSlug,
+        location: this.location,
         // User data
         first_name: this.first_name,
         last_name: this.last_name,
-        email: this.email
+        phone: this.phone,
+        email: this.email,
+        optin: this.optin
       };
+      console.log("submitting ", d);
       var progress = this.$refs.submitProgress;
       progress.startTimer(5, 20, 1);
       this.inlay.request({
@@ -347,9 +429,11 @@ __webpack_require__.r(__webpack_exports__);
       }).then(function (r) {
         if (r.error) {
           throw r.error;
-        }
+        } // update signature count
 
-        _this2.stage = 'thanks';
+
+        _this2.publicData.signatureCount++;
+        _this2.stage = 'thanksShareAsk';
       })["catch"](function (e) {
         console.error(e);
 
@@ -571,7 +655,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n", ""]);
+exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n", ""]);
 
 // exports
 
@@ -1821,7 +1905,7 @@ var render = function() {
       [_vm._v(_vm._s(_vm.loadingError))]
     ),
     _vm._v(" "),
-    _vm.stage === "form"
+    _vm.showTheForm
       ? _c(
           "form",
           {
@@ -1861,7 +1945,7 @@ var render = function() {
                   }
                 }),
                 _vm._v(" "),
-                _vm.acceptingSignatures
+                _vm.acceptingSignatures && _vm.stage === "form"
                   ? _c(
                       "div",
                       [
@@ -1957,6 +2041,7 @@ var render = function() {
                             },
                             domProps: { value: _vm.email },
                             on: {
+                              blur: _vm.leftEmailField,
                               input: function($event) {
                                 if ($event.target.composing) {
                                   return
@@ -2019,10 +2104,153 @@ var render = function() {
                           ]
                         ),
                         _vm._v(" "),
+                        _c("div", [
+                          _c("label", { attrs: { for: _vm.myId + "phone" } }, [
+                            _vm._v("Phone (optional)")
+                          ]),
+                          _vm._v(" "),
+                          _c("input", {
+                            directives: [
+                              {
+                                name: "model",
+                                rawName: "v-model",
+                                value: _vm.phone,
+                                expression: "phone"
+                              }
+                            ],
+                            ref: "phone",
+                            attrs: {
+                              type: "text",
+                              id: _vm.myId + "phone",
+                              name: "phone",
+                              disabled: _vm.$root.submissionRunning
+                            },
+                            domProps: { value: _vm.phone },
+                            on: {
+                              input: function($event) {
+                                if ($event.target.composing) {
+                                  return
+                                }
+                                _vm.phone = $event.target.value
+                              }
+                            }
+                          }),
+                          _vm._v(" "),
+                          _c(
+                            "div",
+                            {
+                              directives: [
+                                {
+                                  name: "show",
+                                  rawName: "v-show",
+                                  value: _vm.phone.length > 0,
+                                  expression: "phone.length > 0"
+                                }
+                              ],
+                              staticClass: "grpet-smallprint"
+                            },
+                            [
+                              _vm._v(
+                                "\n            Provide your phone number if you’re happy for us to get in touch about this and other projects.\n          "
+                              )
+                            ]
+                          )
+                        ]),
+                        _vm._v(" "),
+                        _c("div", {
+                          staticClass: "grpet-consent-intro",
+                          domProps: {
+                            innerHTML: _vm._s(_vm.publicData.consentIntroHTML)
+                          }
+                        }),
+                        _vm._v(" "),
+                        _c("div", { staticClass: "grpet-consent-options" }, [
+                          _c("div", { staticClass: "grpet-radio-wrapper" }, [
+                            _c("input", {
+                              directives: [
+                                {
+                                  name: "model",
+                                  rawName: "v-model",
+                                  value: _vm.optin,
+                                  expression: "optin"
+                                }
+                              ],
+                              attrs: {
+                                name: "optin",
+                                type: "radio",
+                                required: "",
+                                value: "yes",
+                                id: _vm.myId + "optinYes",
+                                disabled: _vm.$root.submissionRunning
+                              },
+                              domProps: { checked: _vm._q(_vm.optin, "yes") },
+                              on: {
+                                change: function($event) {
+                                  _vm.optin = "yes"
+                                }
+                              }
+                            }),
+                            _c(
+                              "label",
+                              { attrs: { for: _vm.myId + "optinYes" } },
+                              [_vm._v(_vm._s(_vm.publicData.consentYesText))]
+                            )
+                          ]),
+                          _vm._v(" "),
+                          _c("div", { staticClass: "grpet-radio-wrapper" }, [
+                            _c("input", {
+                              directives: [
+                                {
+                                  name: "model",
+                                  rawName: "v-model",
+                                  value: _vm.optin,
+                                  expression: "optin"
+                                }
+                              ],
+                              attrs: {
+                                name: "optin",
+                                type: "radio",
+                                required: "",
+                                value: "no",
+                                id: _vm.myId + "optinNo",
+                                disabled: _vm.$root.submissionRunning
+                              },
+                              domProps: { checked: _vm._q(_vm.optin, "no") },
+                              on: {
+                                change: function($event) {
+                                  _vm.optin = "no"
+                                }
+                              }
+                            }),
+                            _c(
+                              "label",
+                              { attrs: { for: _vm.myId + "optinNo" } },
+                              [_vm._v(_vm._s(_vm.publicData.consentNoText))]
+                            )
+                          ]),
+                          _vm._v(" "),
+                          _c(
+                            "div",
+                            {
+                              directives: [
+                                {
+                                  name: "show",
+                                  rawName: "v-show",
+                                  value: _vm.optin === "no",
+                                  expression: "optin === 'no'"
+                                }
+                              ],
+                              staticClass: "grpet-consent-no-warning"
+                            },
+                            [_vm._v(_vm._s(_vm.publicData.consentNoWarning))]
+                          )
+                        ]),
+                        _vm._v(" "),
                         _c("div", { staticClass: "ifg-submit" }, [
                           _c(
                             "button",
                             {
+                              staticClass: "primary grpet-submit",
                               attrs: { disabled: _vm.submissionRunning },
                               on: { click: _vm.wantsToSubmit }
                             },
@@ -2042,7 +2270,51 @@ var render = function() {
                       ],
                       1
                     )
-                  : _vm._e()
+                  : _vm._e(),
+                _vm._v(" "),
+                _c(
+                  "div",
+                  {
+                    directives: [
+                      {
+                        name: "show",
+                        rawName: "v-show",
+                        value: _vm.stage === "thanksShareAsk",
+                        expression: "stage === 'thanksShareAsk'"
+                      }
+                    ]
+                  },
+                  [
+                    _c("div", {
+                      domProps: {
+                        innerHTML: _vm._s(_vm.publicData.thanksShareAskHTML)
+                      }
+                    }),
+                    _vm._v(" "),
+                    _c("div", [_vm._v("todo: share buttons")])
+                  ]
+                ),
+                _vm._v(" "),
+                _c(
+                  "div",
+                  {
+                    directives: [
+                      {
+                        name: "show",
+                        rawName: "v-show",
+                        value: _vm.stage === "thanksDonateAsk",
+                        expression: "stage === 'thanksDonateAsk'"
+                      }
+                    ]
+                  },
+                  [
+                    _c("div", {
+                      domProps: {
+                        innerHTML: _vm._s(_vm.publicData.thanksDonateAskHTML)
+                      }
+                    })
+                  ]
+                )
               ],
               1
             )

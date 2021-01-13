@@ -5,7 +5,7 @@
     </div>
     <div v-show="stage === 'loadingError'" class="grpet-error" >{{loadingError}}</div>
 
-    <form action='#' @submit.prevent="submitForm" v-if="stage === 'form'">
+    <form action='#' @submit.prevent="submitForm" v-if="showTheForm">
       <div class="petition-info">
         <h1>{{publicData.title}}</h1>
 
@@ -20,7 +20,7 @@
            :target="publicData.targetCount"
            stmt="Signatures"></ometer>
 
-        <div v-if="acceptingSignatures">
+        <div v-if="acceptingSignatures && stage === 'form'">
           <div>
             <label :for="myId + 'fname'" >First name</label>
             <input
@@ -57,6 +57,7 @@
               ref="email"
               :disabled="$root.submissionRunning"
               v-model="email"
+              @blur="leftEmailField"
               />
           </div>
 
@@ -71,18 +72,71 @@
               :disabled="$root.submissionRunning"
               v-model="email2"
               @input="checkEmailsMatch"
-
               />
+          </div>
+
+          <div>
+            <label :for="myId + 'phone'" >Phone (optional)</label>
+            <input
+              type="text"
+              :id="myId + 'phone'"
+              name="phone"
+              ref="phone"
+              :disabled="$root.submissionRunning"
+              v-model="phone"
+              />
+            <div class="grpet-smallprint" v-show="phone.length > 0">
+              Provide your phone number if you’re happy for us to get in touch about this and other projects.
+            </div>
+          </div>
+
+
+          <div class="grpet-consent-intro" v-html="publicData.consentIntroHTML"></div>
+          <div class="grpet-consent-options">
+            <div class="grpet-radio-wrapper">
+              <input
+                name="optin"
+                type="radio"
+                required
+                value="yes"
+                :id="myId + 'optinYes'"
+                :disabled="$root.submissionRunning"
+                v-model="optin"
+                /><label :for="myId + 'optinYes'">{{publicData.consentYesText}}</label>
+            </div>
+            <div class="grpet-radio-wrapper">
+              <input
+                name="optin"
+                type="radio"
+                required
+                value="no"
+                :id="myId + 'optinNo'"
+                :disabled="$root.submissionRunning"
+                v-model="optin"
+                /><label :for="myId + 'optinNo'">{{publicData.consentNoText}}</label>
+            </div>
+            <div class="grpet-consent-no-warning"
+                 v-show="optin === 'no'" >{{publicData.consentNoWarning}}</div>
           </div>
 
           <div class="ifg-submit">
             <button
+              class="primary grpet-submit"
               @click="wantsToSubmit"
               :disabled="submissionRunning"
               >{{ submissionRunning ? "Please wait.." : 'Sign' }}</button>
           </div>
           <inlay-progress ref="submitProgress"></inlay-progress>
         </div><!-- end if acceptingSignatures -->
+        <div v-show="stage === 'thanksShareAsk'" >
+          <div v-html="publicData.thanksShareAskHTML"></div>
+
+          <div>todo: share buttons</div>
+
+        </div>
+        <div v-show="stage === 'thanksDonateAsk'" >
+          <div v-html="publicData.thanksDonateAskHTML"></div>
+        </div>
       </div><!-- end .petition-form -->
     </form>
   </div>
@@ -122,6 +176,19 @@
     width: 100%;
   }
 
+  .grpet-consent-intro {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  .grpet-radio-wrapper {
+    margin-bottom: 0.5rem;
+  }
+  // @todo move this to local stylesheet
+  .grpet-consent-no-warning {
+    color: #933202;
+    font-style: italic;
+    padding-left: 36px;
+  }
 }
 </style>
 <script>
@@ -137,16 +204,21 @@ export default {
       loadingError: 'There was an error loading this petition, please get in touch.',
       publicData: {},
       petitionSlug: (window.location.pathname.match(/^\/petitions\/([^/#?]+)/) || [null, null])[1],
+      location: window.location.href,
       // Form data
       first_name: '',
       last_name: '',
       email: '',
       email2: '',
+      phone: '',
+      optin: null,
     };
-    console.log("zzzzzzzzzzzzz", d);
     return d;
   },
   computed: {
+    showTheForm() {
+      return ['form', 'thanksShareAsk', 'thanksDonateAsk'].includes(this.stage);
+    },
     submissionRunning() {
       return this.$root.submissionRunning;
     },
@@ -188,6 +260,12 @@ export default {
     });
   },
   methods: {
+    leftEmailField() {
+      // Focus the email2 field after leaving email field, unless it's already OK.
+      if (this.email2 !== this.email) {
+        this.$refs.email2.focus();
+      }
+    },
     checkEmailsMatch() {
       if (this.email === this.email2) {
         this.$refs.email2.setCustomValidity('');
@@ -206,11 +284,15 @@ export default {
       const d = {
         need: 'submitSignature',
         petitionSlug: this.petitionSlug,
+        location: this.location,
         // User data
         first_name: this.first_name,
         last_name: this.last_name,
+        phone: this.phone,
         email: this.email,
+        optin: this.optin,
       };
+      console.log("submitting ", d);
       const progress = this.$refs.submitProgress;
       progress.startTimer(5, 20, 1);
       this.inlay.request({method: 'post', body: d})
@@ -236,7 +318,9 @@ export default {
           if (r.error) {
             throw (r.error);
           }
-          this.stage = 'thanks';
+          // update signature count
+          this.publicData.signatureCount++;
+          this.stage = 'thanksShareAsk';
         })
         .catch(e => {
           console.error(e);
