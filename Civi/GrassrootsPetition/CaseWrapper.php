@@ -5,6 +5,7 @@ use Civi\Inlay\GrassrootsPetition;
 use CRM_Core_DAO;
 use Civi\Api4\OptionValue;
 use Civi\Api4\GrassrootsPetitionCampaign;
+use Civi;
 
 /**
  * Various sugar and convenience functions wrapping a Case of type GrassrootsPetition
@@ -382,9 +383,39 @@ class CaseWrapper {
 
   }
   /**
+   * Send the thank you email to the person who signed up.
+   *
+   * @param int $contactID
+   * @param array $data
+   *    The validated input data.
    */
-  public function sendThankYouEmail(int $contactID, array $data) {
-    // todo
+  public function sendThankYouEmail(int $contactID, array $data, int $thanksMsgTplID) {
+
+    $from = civicrm_api3('OptionValue', 'getvalue', [ 'return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
+
+    // We use the email send in the data, as that's what they'd expect.
+    $params = [
+      'id'             => $thanksMsgTplID,
+      'from'           => $from,
+      'to_email'       => $data['email'],
+      // 'bcc'            => "forums@artfulrobot.uk",
+      'contact_id'     => $contactID,
+      'disable_smarty' => 1,
+      /*
+      'template_params' =>
+      [ 'foo' => 'hello',
+      // {$foo} in templates 'bar' => '123',
+      // {$bar} in templates ],
+      */
+      ];
+
+    try {
+      civicrm_api3('MessageTemplate', 'send', $params);
+    }
+    catch (\Exception $e) {
+      // Log silently.
+      Civi::log()->error("Failed to send MessageTemplate with params: " . json_encode($params, JSON_PRETTY_PRINT) . " Caught " . get_class($e) . ": " . $e->getMessage());
+    }
   }
   /**
    * Assert that the case is loaded; used by public getters.

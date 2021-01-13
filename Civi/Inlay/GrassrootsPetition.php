@@ -26,6 +26,7 @@ class GrassrootsPetition extends InlayType {
   public static $instanceCache = [];
 
   public static $defaultConfig = [
+    'thanksMsgTplID'   => NULL,
     // Socials v1.2 {{{
     'socials'          => ['twitter', 'facebook', 'email', 'whatsapp'],
     'socialStyle'      => 'col-buttons', // col-buttons|col-icon|'',
@@ -450,7 +451,9 @@ class GrassrootsPetition extends InlayType {
      */
 
     // Thank you.
-    $case->sendThankYouEmail($contactID, $data);
+    if (!empty($this->config['thanksMsgTplID'])) {
+      $case->sendThankYouEmail($contactID, $data, $this->config['thanksMsgTplID']);
+    }
 
     // No error
     return '';

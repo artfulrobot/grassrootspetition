@@ -12,6 +12,14 @@
           various: function($route, crmApi4) {
             const params = {
               inlayTypes: ['InlayType', 'get', {}, 'class'],
+              messageTpls: [ 'MessageTemplate', 'get', {
+                select: ["id", "msg_title", "msg_subject"],
+                where: [
+                  ["is_active", "=", true], ["is_sms", "=", false],
+                  ["workflow_id", "IS NULL"]
+                ],
+                orderBy: {msg_title: 'ASC'}},
+                'id']
             };
             if ($route.current.params.id > 0) {
               params.inlay = ['Inlay', 'get', {where: [["id", "=", $route.current.params.id]]}, 0];

@@ -73,6 +73,20 @@
     </div>
     <!-- }}} -->
 
+
+    <div crm-ui-field="{name: 'inlayForm.thanksMsgTplID', title: ts('Thank you email')}">
+      <select
+        crm-ui-select="{allowClear:true, dropdownAutoWidth: true}"
+        ng-model="inlay.config.thanksMsgTplID"
+        name="thanksMsgTplID"
+        style="width: 100%"
+        >
+        <option value="">(do not send an email)</option>
+        <option ng-repeat="g in messageTpls"
+                value="{{g.id}}">{{g.msg_title}}</option>
+      </select>
+    </div>
+
     <div>
       <button ng-click="save()">{{ts('Save')}}</button>
     </div>
