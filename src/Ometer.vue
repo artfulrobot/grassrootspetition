@@ -77,9 +77,8 @@ export default {
   background: #eee; // todo
 
   .ipetometer__domain {
-    margin-top: 1rem;
     flex: 0 0 100%;
-    background: rgba(255,255,255, 0.2);
+    background: white;
   }
   .ipetometer__bar {
     background: #fc0;

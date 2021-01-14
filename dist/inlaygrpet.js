@@ -300,6 +300,15 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -768,7 +777,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-image img {\n  max-width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n", ""]);
+exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet .petition-titles {\n  display: flex;\n  flex-direction: column;\n}\n.grpet .petition-titles h2 {\n  order: 1;\n  margin: 0;\n  text-transform: none;\n  font-size: 2rem;\n}\n.grpet .petition-titles h1 {\n  order: 2;\n  text-transform: none;\n  margin-top: 0;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-image {\n  margin-bottom: 1rem;\n}\n.grpet .petition-image img {\n  max-width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n", ""]);
 
 // exports
 
@@ -825,7 +834,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".ipetometer {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  justify-content: space-between;\n  line-height: 1;\n  padding: 1rem;\n  margin-bottom: 1rem;\n  font-weight: bold;\n  background: #eee;\n}\n.ipetometer .ipetometer__domain {\n  margin-top: 1rem;\n  flex: 0 0 100%;\n  background: rgba(255, 255, 255, 0.2);\n}\n.ipetometer .ipetometer__bar {\n  background: #fc0;\n  height: 1rem;\n}\n.ipetometer .ipetometer__bignum {\n  flex: 0 0 auto;\n  padding-right: 1rem;\n  font-size: 3rem;\n}\n.ipetometer .ipetometer__words {\n  flex: 1 1 auto;\n  font-size: 1rem;\n}\n.ipetometer .ipetometer__target {\n  flex: 0 0 auto;\n  font-size: 1rem;\n}\n", ""]);
+exports.push([module.i, ".ipetometer {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  justify-content: space-between;\n  line-height: 1;\n  padding: 1rem;\n  margin-bottom: 1rem;\n  font-weight: bold;\n  background: #eee;\n}\n.ipetometer .ipetometer__domain {\n  flex: 0 0 100%;\n  background: white;\n}\n.ipetometer .ipetometer__bar {\n  background: #fc0;\n  height: 1rem;\n}\n.ipetometer .ipetometer__bignum {\n  flex: 0 0 auto;\n  padding-right: 1rem;\n  font-size: 3rem;\n}\n.ipetometer .ipetometer__words {\n  flex: 1 1 auto;\n  font-size: 1rem;\n}\n.ipetometer .ipetometer__target {\n  flex: 0 0 auto;\n  font-size: 1rem;\n}\n", ""]);
 
 // exports
 
@@ -2081,12 +2090,10 @@ var render = function() {
           },
           [
             _c("div", { staticClass: "petition-info" }, [
-              _c("h1", [_vm._v(_vm._s(_vm.publicData.title))]),
-              _vm._v(" "),
-              _c("h2", [
-                _vm._v("To: " + _vm._s(_vm.publicData.targetName) + " "),
-                _c("br"),
-                _vm._v("\n        " + _vm._s(_vm.publicData.location))
+              _c("div", { staticClass: "petition-titles" }, [
+                _c("h1", [_vm._v("xx" + _vm._s(_vm.publicData.title))]),
+                _vm._v(" "),
+                _c("h2", [_vm._v("To: " + _vm._s(_vm.publicData.targetName))])
               ]),
               _vm._v(" "),
               _vm.publicData.imageUrl

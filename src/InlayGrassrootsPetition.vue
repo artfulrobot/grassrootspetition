@@ -7,11 +7,11 @@
 
     <form action='#' @submit.prevent="submitForm" v-if="showTheForm">
       <div class="petition-info">
-        <h1>{{publicData.title}}</h1>
+        <div class="petition-titles">
+          <h1>xx{{publicData.title}}</h1>
 
-        <!-- todo image -->
-        <h2>To: {{publicData.targetName}} <br />
-          {{publicData.location}}</h2>
+          <h2>To: {{publicData.targetName}}</h2>
+        </div>
 
         <div class="petition-image" v-if="publicData.imageUrl">
           <img :src="publicData.imageUrl" :alt="publicData.imageAlt" />
@@ -156,6 +156,14 @@
   }
   $colgap: 2rem;
   $flexgap: ($colgap/2);
+  // Accessibly swap presentation order of titles.
+  .petition-titles {
+    display: flex;
+    flex-direction: column;
+
+    h2 { order: 1; margin: 0; text-transform: none; font-size: 2rem; }
+    h1 { order: 2; text-transform: none; margin-top: 0; }
+  }
   form {
     display: flex;
     flex-wrap: wrap;
@@ -163,6 +171,7 @@
     margin: 0 (-$flexgap) 2rem;
   }
   .petition-image {
+    margin-bottom: 1rem;
     img { max-width: 100%; height:auto; display:block; }
   }
   .petition-info {
