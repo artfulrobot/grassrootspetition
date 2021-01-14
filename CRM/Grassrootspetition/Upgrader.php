@@ -386,6 +386,17 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     ];
     $this->createOrUpdate('OptionValue', $baseParams, $allParams);
 
+    // Require a dir.
+    $dir = Civi::paths()->getPath('[civicrm.files]/grassrootspetition-images');
+    if (!$dir) {
+      throw new \RuntimeException("Failed to obtain path to civicrm.files");
+    }
+    else {
+      if (!is_dir($dir)) {
+        // Create the dir now.
+        mkdir($dir);
+      }
+    }
   }
   /**
    * Helper function

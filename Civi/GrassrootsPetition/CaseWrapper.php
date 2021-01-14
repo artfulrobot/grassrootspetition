@@ -286,6 +286,12 @@ class CaseWrapper {
   }
   /**
    * Return the name of the case status from its value.
+   *
+   * N.b. the names are:
+   * - 'grpet_Pending'
+   * - 'Open'
+   * - 'grpet_Dead'
+   * - 'grpet_Won'
    */
   public function getCaseStatus() :string {
     $this->mustBeLoaded();
@@ -417,6 +423,159 @@ class CaseWrapper {
       Civi::log()->error("Failed to send MessageTemplate with params: " . json_encode($params, JSON_PRETTY_PRINT) . " Caught " . get_class($e) . ": " . $e->getMessage());
     }
   }
+  /**
+   */
+  public function syncImages() {
+    if ($this->getCaseStatus() === 'grpet_Pending') {
+      $this->deactivateImages();
+    }
+    else {
+      // Case is public
+      $this->activateImages();
+    }
+  }
+  /**
+   */
+  public function activateImages() {
+    // Main case image.
+
+    // Get open case activity.
+    $openCase = civicrm_api3('Activity', 'get', [
+      'case_id' => $this->case['id'],
+      'activity_type_id' => static::$activityTypesByName['Grassroots Petition created']['value'],
+      'return' => ['id', 'status_id']
+    ]);
+    if (empty($openCase['id'])) {
+      // This is an error!
+      throw new \RuntimeException("Case {$this->case['id']} has no Grassroots Petition created activity.");
+    }
+
+    // Get first attachment for this activity.
+    $attachment = civicrm_api3('Attachment', 'get', [
+      'entity_table' => 'civicrm_activity',
+      'entity_id' => $openCase['id'],
+      'options' => ['limit' => 1, 'sort' => 'id'],
+    ]);
+
+    $filePath = $this->getFile('path');
+
+    if ($attachment['count'] == 0) {
+      // No main image.
+      if (file_exists($filePath)) {
+        unlink($filePath);
+        Civi::log()->info("GrassrootsPetition: Deleted file '$filePath' since Case {$this->case['id']} no longer has an image file attached.");
+      }
+      return;
+    }
+
+    if (!file_exists($filePath)) {
+      // File does not exist.
+      $tempFile = $this->createPublicImage($attachment['values'][$attachment['id']]);
+      if ($tempFile) {
+        rename($tempFile, $filePath);
+        Civi::log()->info("GrassrootsPetition: Created file '$filePath' for Case {$this->case['id']}");
+      }
+    }
+  }
+  /**
+   * Returns absolute file path or url to an image.
+   *
+   * A URL is only returned if the file exists, however the path is always returned.
+   *
+   * If $activityID is 0 then a temp file name is returned.
+   */
+  public function getFile(string $pathOrUrl, ?int $activityID=NULL) :?string {
+    $petitionHash = substr(sha1(CIVICRM_SITE_KEY . $this->case['id']), 0, 8);
+
+    if ($activityID === 0) {
+      if ($pathOrUrl !== 'path') {
+        throw new \RuntimeException("requires 'path' if temp file requested");
+      }
+      $unique = substr(sha1(CIVICRM_SITE_KEY . 'grpe tempfile' ), 0, 8);
+      $fileName = "$petitionHash-temp-$unique.jpg";
+    }
+    elseif ($activityID !== NULL) {
+       $fileName = "$petitionHash-update-$activityID.jpg";
+    }
+    else {
+      $fileName = "$petitionHash-main.jpg";
+    }
+
+    $filePath = Civi::paths()->getPath("[civicrm.files]/grassrootspetition-images/$fileName");
+    if (!file_exists($filePath) && $pathOrUrl === 'url') {
+      // URL requested, but file does not exist.
+      return NULL;
+    }
+
+    $method = ['path' => 'getPath', 'url' => 'getUrl'][$pathOrUrl] ?? '';
+    if (!$method) {
+      // Coding error.
+      throw new \Exception(__FUNCTION__ . " requires pathOrUrl to be path|url. '$pathOrUrl' given.");
+    }
+    return Civi::paths()->$method("[civicrm.files]/grassrootspetition-images/$fileName");
+  }
+  /**
+   * Creates a temporary rescaled image file and returns its path, if successful.
+   */
+  public function createPublicImage(array $attachment) :?string {
+    $attachmentID = ((int) $attachment['id'] ?? 0) ?: '<missing ID!>';
+    if (!in_array(($attachment['mime_type'] ?? ''), ['image/jpeg'])) {
+      // File is not of correct type.
+      throw new \RuntimeException("Attachment $attachmentID is not image/jpeg");
+    }
+    if (!preg_match('/\.jpe?g$/', $attachment['name'] ?? '')) {
+      // File is not of correct extension.
+      throw new \RuntimeException("Attachment $attachmentID does not have jpeg/jpg extension.");
+    }
+    $src = $attachment['path'] ?? '';
+    if (!$src || !file_exists($src) || !is_readable($src)) {
+      throw new \RuntimeException("Attachment $attachmentID file $src is unreadable/non-existent.");
+    }
+    // Limit processing to 12MB files. Seems reasonable.
+    if (filesize($src) > 1024 * 1024 * 12) {
+      throw new \RuntimeException("Attachment $attachmentID does $src too big to process.");
+    }
+    // OK, we have something that could be a JPEG.
+    if (!extension_loaded('gd') || !function_exists('gd_info')) {
+      throw new \RuntimeException("Attachment $attachmentID can’t be processed as gd is not available.");
+    }
+
+    $tempFile = $this->getFile('path', 0);
+    $imgProperties = getimagesize($src);
+    if($imgProperties[2] !== IMAGETYPE_JPEG) {
+      throw new \RuntimeException("Attachment $attachmentID file $src is not a jpeg file according to GD");
+    }
+    $srcImage = imagecreatefromjpeg($src);
+    // Calculate new size.
+    // We need images that are 1000px wide.
+    $newW = 1000;
+    $newH = $imgProperties[1] * $newW / $imgProperties[0];
+    $offsetY = 0;
+    $ratio = 9/16; // height/width
+    if ($newH > ($ratio*$newW)) {
+      // Image is taller than 16:9 ratio.
+      // We will take a crop from the middle.
+      $offsetY = (int) (($newH - $ratio*$newW)/2);
+    }
+    $destImg = imagecreatetruecolor($newW, $newH);
+    imagecopyresampled($destImg, $srcImage, 0, 0,
+      0, $offsetY,
+      $newW, $newH,
+      $imgProperties[0], $imgProperties[1]);
+    // Save file.
+    imagejpeg($destImg, $tempFile);
+    // move_uploaded_file($image, $pathToImages.$imageName);
+    return $tempFile;
+  }
+
+  function image_resize($source,$width,$height) {
+    $new_width =150;
+    $new_height =150;
+    $thumbImg=imagecreatetruecolor($new_width,$new_height);
+    return $thumbImg;
+  }
+
+
   /**
    * Assert that the case is loaded; used by public getters.
    */
