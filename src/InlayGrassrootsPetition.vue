@@ -13,6 +13,10 @@
         <h2>To: {{publicData.targetName}} <br />
           {{publicData.location}}</h2>
 
+        <div class="petition-image" v-if="publicData.imageUrl">
+          <img :src="publicData.imageUrl" :alt="publicData.imageAlt" />
+        </div>
+
         <div class="petition-text" v-html="publicData.petitionHTML"></div>
       </div>
       <div class="petition-form">
@@ -157,6 +161,9 @@
     flex-wrap: wrap;
     padding:0;
     margin: 0 (-$flexgap) 2rem;
+  }
+  .petition-image {
+    img { max-width: 100%; height:auto; display:block; }
   }
   .petition-info {
     padding: 0 $flexgap;

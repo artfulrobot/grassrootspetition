@@ -140,6 +140,9 @@ class CaseWrapper {
    * @return array
    */
   public function getPublicData() {
+
+    $mainImage = $this->getMainImage();
+
     $public = [
       'status'         => $this->getCaseStatus(),
       'location'       => $this->getCustomData('grpet_location'),
@@ -150,7 +153,8 @@ class CaseWrapper {
       'petitionTitle'  => $this->case['subject'] ?? '',
       'petitionHTML'   => $this->case['details'] ?? '',
       'campaign'       => $this->getCampaignPublicName(),
-      'image'          => $this->getPetitionImageURL(), /* @todo */
+      'imageUrl'       => $mainImage['url'],
+      'imageAlt'       => $mainImage['alt'],
       'updates'        => $this->getPetitionUpdates(),
       'signatureCount' => $this->getPetitionSigsCount(),
       // @todo expose these on the Inlay Config
@@ -214,12 +218,6 @@ class CaseWrapper {
         ->execute()->first();
     }
     return $this->campaign;
-  }
-  /**
-   * @todo
-   */
-  public function getPetitionImageURL() {
-
   }
   /**
    * Updates are activities of the 'Grassroots Petition progress' type
@@ -435,49 +433,6 @@ class CaseWrapper {
     }
   }
   /**
-   */
-  public function activateImages() {
-    // Main case image.
-
-    // Get open case activity.
-    $openCase = civicrm_api3('Activity', 'get', [
-      'case_id' => $this->case['id'],
-      'activity_type_id' => static::$activityTypesByName['Grassroots Petition created']['value'],
-      'return' => ['id', 'status_id']
-    ]);
-    if (empty($openCase['id'])) {
-      // This is an error!
-      throw new \RuntimeException("Case {$this->case['id']} has no Grassroots Petition created activity.");
-    }
-
-    // Get first attachment for this activity.
-    $attachment = civicrm_api3('Attachment', 'get', [
-      'entity_table' => 'civicrm_activity',
-      'entity_id' => $openCase['id'],
-      'options' => ['limit' => 1, 'sort' => 'id'],
-    ]);
-
-    $filePath = $this->getFile('path');
-
-    if ($attachment['count'] == 0) {
-      // No main image.
-      if (file_exists($filePath)) {
-        unlink($filePath);
-        Civi::log()->info("GrassrootsPetition: Deleted file '$filePath' since Case {$this->case['id']} no longer has an image file attached.");
-      }
-      return;
-    }
-
-    if (!file_exists($filePath)) {
-      // File does not exist.
-      $tempFile = $this->createPublicImage($attachment['values'][$attachment['id']]);
-      if ($tempFile) {
-        rename($tempFile, $filePath);
-        Civi::log()->info("GrassrootsPetition: Created file '$filePath' for Case {$this->case['id']}");
-      }
-    }
-  }
-  /**
    * Returns absolute file path or url to an image.
    *
    * A URL is only returned if the file exists, however the path is always returned.
@@ -507,12 +462,16 @@ class CaseWrapper {
       return NULL;
     }
 
-    $method = ['path' => 'getPath', 'url' => 'getUrl'][$pathOrUrl] ?? '';
-    if (!$method) {
-      // Coding error.
+    $path = "[civicrm.files]/grassrootspetition-images/$fileName";
+    if ($pathOrUrl === 'path') {
+      return Civi::paths()->getPath($path);
+    }
+    elseif ($pathOrUrl === 'url') {
+      return Civi::paths()->getUrl($path, 'absolute');
+    }
+    else {
       throw new \Exception(__FUNCTION__ . " requires pathOrUrl to be path|url. '$pathOrUrl' given.");
     }
-    return Civi::paths()->$method("[civicrm.files]/grassrootspetition-images/$fileName");
   }
   /**
    * Creates a temporary rescaled image file and returns its path, if successful.
@@ -549,32 +508,87 @@ class CaseWrapper {
     // Calculate new size.
     // We need images that are 1000px wide.
     $newW = 1000;
-    $newH = $imgProperties[1] * $newW / $imgProperties[0];
+    $ratio = 16/9;
+
+    $maxH = (int) ($newW / $ratio);
+    $newH = (int) ($imgProperties[1] * $newW / $imgProperties[0]);
     $offsetY = 0;
-    $ratio = 9/16; // height/width
-    if ($newH > ($ratio*$newW)) {
+    $copyW = $imgProperties[0]; // copy full width
+    $copyH = $imgProperties[1]; // copy full height
+    if ($newH > $maxH) {
       // Image is taller than 16:9 ratio.
       // We will take a crop from the middle.
-      $offsetY = (int) (($newH - $ratio*$newW)/2);
+      $offsetY = (int) (($imgProperties[1] - $imgProperties[0]/$ratio)/2);
+      $copyH = (int) ($copyW / $ratio);
+      // Restrict new height.
+      $newH = $maxH;
     }
     $destImg = imagecreatetruecolor($newW, $newH);
-    imagecopyresampled($destImg, $srcImage, 0, 0,
-      0, $offsetY,
-      $newW, $newH,
-      $imgProperties[0], $imgProperties[1]);
+    imagecopyresampled(
+      $destImg, $srcImage,
+      0, 0, /* dest x, y */
+      0, $offsetY, /* src x, y */
+      $newW, $newH, /* dest w, h */
+      $imgProperties[0], $copyH);
     // Save file.
     imagejpeg($destImg, $tempFile);
     // move_uploaded_file($image, $pathToImages.$imageName);
     return $tempFile;
   }
 
-  function image_resize($source,$width,$height) {
-    $new_width =150;
-    $new_height =150;
-    $thumbImg=imagecreatetruecolor($new_width,$new_height);
-    return $thumbImg;
-  }
+  /**
+   * Return an array with the public URL (or NULL) and ALT text for the main image.
+   *
+   * This will create images that don't exist, and it will delete imags that do but shouldn't!
+   */
+  public function getMainImage() :array {
+    $openCase = $this->getPetitionCreatedActivity();
 
+    // Get first attachment for this activity.
+    $attachment = civicrm_api3('Attachment', 'get', [
+      'entity_table' => 'civicrm_activity',
+      'entity_id' => $openCase['id'],
+      'options' => ['limit' => 1, 'sort' => 'id'],
+    ]);
+
+    $filePath = $this->getFile('path');
+
+    if ($attachment['count'] == 0) {
+      // No main image.
+      if (file_exists($filePath)) {
+        unlink($filePath);
+        Civi::log()->info("GrassrootsPetition: Deleted file '$filePath' since Case {$this->case['id']} no longer has an image file attached.");
+      }
+      return ['url' => NULL, 'alt' => NULL];
+    }
+
+    if (!file_exists($filePath)) {
+      // File does not exist.
+      $tempFile = $this->createPublicImage($attachment['values'][$attachment['id']]);
+      if ($tempFile) {
+        rename($tempFile, $filePath);
+        Civi::log()->info("GrassrootsPetition: Created file '$filePath' for Case {$this->case['id']}");
+      }
+    }
+
+    return ['url' => $this->getFile('url'), 'alt' => $attachment['description']];
+  }
+  /**
+   * Look up the Grassroots Petition created activity.
+   */
+  public function getPetitionCreatedActivity() :array {
+    // Get open case activity.
+    $openCase = civicrm_api3('Activity', 'get', [
+      'case_id' => $this->case['id'],
+      'activity_type_id' => static::$activityTypesByName['Grassroots Petition created']['value'],
+      'return' => ['id', 'status_id']
+    ]);
+    if (empty($openCase['id'])) {
+      // This is an error!
+      throw new \RuntimeException("Case {$this->case['id']} has no Grassroots Petition created activity.");
+    }
+    return $openCase;
+  }
 
   /**
    * Assert that the case is loaded; used by public getters.

@@ -293,6 +293,13 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -761,7 +768,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n", ""]);
+exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-image img {\n  max-width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n", ""]);
 
 // exports
 
@@ -2081,6 +2088,17 @@ var render = function() {
                 _c("br"),
                 _vm._v("\n        " + _vm._s(_vm.publicData.location))
               ]),
+              _vm._v(" "),
+              _vm.publicData.imageUrl
+                ? _c("div", { staticClass: "petition-image" }, [
+                    _c("img", {
+                      attrs: {
+                        src: _vm.publicData.imageUrl,
+                        alt: _vm.publicData.imageAlt
+                      }
+                    })
+                  ])
+                : _vm._e(),
               _vm._v(" "),
               _c("div", {
                 staticClass: "petition-text",
