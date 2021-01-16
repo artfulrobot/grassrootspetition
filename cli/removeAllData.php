@@ -61,8 +61,13 @@ $caseStatuses = Civi\Api4\OptionValue::delete()
 fwrite(STDOUT, "Deleted activity_status statuses "  . json_encode($caseStatuses) . "\n");
 
 // Delete Case Type
-civicrm_api3('CaseType', 'delete', ['id' => $caseTypeID]);
-fwrite(STDOUT, "Deleted case type $caseTypeID\n");
+if (!empty($caseTypeID)) {
+  civicrm_api3('CaseType', 'delete', ['id' => $caseTypeID]);
+  fwrite(STDOUT, "Deleted case type $caseTypeID\n");
+}
+else {
+  fwrite(STDOUT, "No case type to delete\n");
+}
 
 // Delete Activity types
 $caseStatuses = Civi\Api4\OptionValue::delete()

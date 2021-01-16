@@ -309,6 +309,7 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
 
 
 
@@ -2108,8 +2109,13 @@ var render = function() {
                 : _vm._e(),
               _vm._v(" "),
               _c("div", {
-                staticClass: "petition-text",
-                domProps: { innerHTML: _vm._s(_vm.publicData.petitionHTML) }
+                staticClass: "petition-why",
+                domProps: { innerHTML: _vm._s(_vm.publicData.petitionWhyHTML) }
+              }),
+              _vm._v(" "),
+              _c("div", {
+                staticClass: "petition-what",
+                domProps: { innerHTML: _vm._s(_vm.publicData.petitionWhatHTML) }
               })
             ]),
             _vm._v(" "),

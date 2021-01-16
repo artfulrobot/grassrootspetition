@@ -54,7 +54,7 @@ CREATE TABLE `civicrm_grpet_campaign` (
      `label` varchar(255)    COMMENT 'Public name',
      `description` longtext    COMMENT 'Describes the campaign',
      `is_active` tinyint   DEFAULT 1 COMMENT 'Whether to allow these petitions',
-     `template` longtext    COMMENT 'HTML template for new petitions' 
+     `template` longtext    COMMENT 'HTML template for the \'What\' of new petitions' 
 ,
         PRIMARY KEY (`id`)
  

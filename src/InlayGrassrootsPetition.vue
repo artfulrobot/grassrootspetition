@@ -17,7 +17,8 @@
           <img :src="publicData.imageUrl" :alt="publicData.imageAlt" />
         </div>
 
-        <div class="petition-text" v-html="publicData.petitionHTML"></div>
+        <div class="petition-why" v-html="publicData.petitionWhyHTML"></div>
+        <div class="petition-what" v-html="publicData.petitionWhatHTML"></div>
       </div>
       <div class="petition-form">
         <ometer :count="publicData.signatureCount"

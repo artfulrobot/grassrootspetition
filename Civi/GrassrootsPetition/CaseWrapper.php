@@ -18,6 +18,9 @@ class CaseWrapper {
   /** @var array Cache of the civicrm_grpet_campaign row data */
   public $campaign;
 
+  /** @var array Cache of the petition created activity */
+  public $createdActivity;
+
   /** @var Array */
   public static $activityTypesByName;
 
@@ -25,6 +28,7 @@ class CaseWrapper {
   public static $activityStatuses;
   /** @var array Status name to option value */
   public static $caseStatuses;
+  public static $caseTypeID;
   /**
    * @var array of CaseWrapper objects keyed by Case ID. This will speed up
    * processing the same case over and over, e.g. when batch processing
@@ -71,7 +75,99 @@ class CaseWrapper {
     return NULL;
   }
 
+  /**
+   * Create new petition.
+   *
+   * There's very little validation here; do that first.
+   *
+   * @return NULL|CaseWrapper
+   */
+  public static function createNew(
+    int $contactID,
+    string $title,
+    string $campaignLabel,
+    string $location,
+    string $targetName,
+    ?string $slug
+  ) :?CaseWrapper {
+
+    $campaign = GrassrootsPetitionCampaign::get(FALSE)
+      ->setCheckPermissions(FALSE)
+      ->addWhere('label', '=', $campaignLabel)
+      ->execute()->first();
+
+    if (!$campaign) {
+      throw new \RuntimeException("Campaign not found '$campaignLabel' in GrassrootsPetition CaseWrapper::newFromCampaign");
+    }
+
+    // Create the slug.
+    if ($slug) {
+      $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($slug)), '-');
+    }
+    else {
+      $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($title)), '-');
+    }
+
+    // Check slug does not exist.
+    $sql = "SELECT slug FROM civicrm_grpet_petition WHERE slug like %1 ORDER BY slug DESC LIMIT 1";
+    $dao = CRM_Core_DAO::executeQuery($sql, [1 => ["$slug%", 'String']]);
+    $maxN = NULL;
+    while ($dao->fetch()) {
+      if ($dao->slug === $slug) {
+        $maxN = 1;
+      }
+      else {
+        $suffix = substr($dao->slug, strlen($slug));
+        if (preg_match('/-(\d+)$/', $suffix, $matches)) {
+          $maxN = $matches[1] + 1;
+        }
+        else {
+          // could be another petition - skip it.
+        }
+      }
+    };
+    $slug .= ($maxN ? "-$maxN" : '');
+
+    // Create the case.
+    $inlay = new GrassrootsPetition();
+    $campaignApiField = $inlay->getCustomFields('grpet_campaign');
+    $locationApiField = $inlay->getCustomFields('grpet_location');
+    $targetNameApiField = $inlay->getCustomFields('grpet_target_name');
+    $targetCountApiField = $inlay->getCustomFields('grpet_target_count');
+    $slugApiField = $inlay->getCustomFields('grpet_slug');
+
+    $caseParams = [
+      'contact_id'         => $contactID,
+      'creator_id'         => $contactID,
+      'case_type_id'       => 'grassrootspetition',
+      'status_id'          => 'grpet_Pending',
+      'subject'            => $title,
+      'details'            => $campaign['template'],
+      $campaignApiField    => $campaign['id'],
+      $locationApiField    => $location,
+      $targetNameApiField  => $targetName,
+      $targetCountApiField => 100,
+      $slugApiField        => $slug,
+    ];
+    print "Create case with: " . json_encode($caseParams, JSON_PRETTY_PRINT) . "\n";
+    $case = civicrm_api3('Case', 'create', $caseParams);
+
+    return static::fromID($case['id']);
+  }
+
+  /**
+   * Get case type ID
+   */
+  public static function getCaseTypeID() :int {
+    if (!isset(static::$caseTypeID)) {
+      static::$caseTypeID = (int) civicrm_api3('CaseType', 'get', ['name' => 'grassrootspetition'])['id'];
+    }
+    return static::$caseTypeID;
+  }
+
   public function __construct() {
+    static::getCaseTypeID();
+
     if (!isset(static::$activityTypesByName)) {
       // Look these up once now.
       static::$activityTypesByName = OptionValue::get(FALSE)
@@ -124,13 +220,15 @@ class CaseWrapper {
     }
   }
   /**
+   * Import an array of Case data (as from api3 case.get)
    *
    * @return CaseWrapper
    */
   public function loadFromArray($data) {
     $this->case = $data;
-    // This gets looked up later, if needed.
+    // These get looked up later, if needed.
     $this->campaign = NULL;
+    $this->createdActivity = NULL;
     return $this;
   }
 
@@ -144,19 +242,20 @@ class CaseWrapper {
     $mainImage = $this->getMainImage();
 
     $public = [
-      'status'         => $this->getCaseStatus(),
-      'location'       => $this->getCustomData('grpet_location'),
-      'slug'           => $this->getCustomData('grpet_slug'),
-      'targetCount'    => $this->getCustomData('grpet_target_count'),
-      'targetName'     => $this->getCustomData('grpet_target_name'),
-      'tweet'          => $this->getCustomData('grpet_tweet_text'),
-      'petitionTitle'  => $this->case['subject'] ?? '',
-      'petitionHTML'   => $this->case['details'] ?? '',
-      'campaign'       => $this->getCampaignPublicName(),
-      'imageUrl'       => $mainImage['url'],
-      'imageAlt'       => $mainImage['alt'],
-      'updates'        => $this->getPetitionUpdates(),
-      'signatureCount' => $this->getPetitionSigsCount(),
+      'status'           => $this->getCaseStatus(),
+      'location'         => $this->getCustomData('grpet_location'),
+      'slug'             => $this->getCustomData('grpet_slug'),
+      'targetCount'      => $this->getCustomData('grpet_target_count'),
+      'targetName'       => $this->getCustomData('grpet_target_name'),
+      'tweet'            => $this->getCustomData('grpet_tweet_text'),
+      'petitionTitle'    => $this->getPetitionTitle(),
+      'petitionWhatHTML' => $this->getWhat(),
+      'petitionWhyHTML'  => $this->getWhy(),
+      'campaign'         => $this->getCampaignPublicName(),
+      'imageUrl'         => $mainImage['url'],
+      'imageAlt'         => $mainImage['alt'],
+      'updates'          => $this->getPetitionUpdates(),
+      'signatureCount'   => $this->getPetitionSigsCount(),
       // @todo expose these on the Inlay Config
       'consentIntroHTML' => '<p>Get emails about this campaign and from People & Planet on our current and future projects, campaigns and appeals. There’s a link to unsubscribe at the bottom of each email update. <a href="https://peopleandplanet.org/privacy">Privacy Policy</a></p>',
       'consentYesText'   => 'Yes please',
@@ -220,13 +319,27 @@ class CaseWrapper {
     return $this->campaign;
   }
   /**
+   * Returns the HTML details of *what* the people who sign have signed up for.
+   */
+  public function getWhat() :string {
+    $this->mustBeLoaded();
+    return $this->case['details'] ?? '';
+  }
+  /**
+   * Returns the HTML details of *why* people should sign, this is the intro text.
+   */
+  public function getWhy() :string {
+    $this->mustBeLoaded();
+    return $this->getPetitionCreatedActivity()['details'] ?? '';
+  }
+  /**
    * Updates are activities of the 'Grassroots Petition progress' type
    */
   public function getPetitionUpdates() {
     $this->mustBeLoaded();
     $caseID = (int) $this->case['id'];
 
-    $updateActivityTypeID = (int) $this->activityTypes['Grassroots Petition update']['id'];
+    $updateActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition update']['value'];
     $validStatuses = [static::$activityStatuses['Completed']];
     // @todo allow drafts?
     $validStatuses = implode(', ', $validStatuses);
@@ -308,6 +421,26 @@ class CaseWrapper {
   public function getPetitionTitle() :string {
     $this->mustBeLoaded();
     return (string) $this->case['subject'] ?? '';
+  }
+  /**
+   * Change the case status.
+   */
+  public function setStatus(string $caseStatus) :CaseWrapper {
+    $this->mustBeLoaded();
+    if (empty(static::$caseStatuses[$caseStatus])) {
+      throw new \InvalidArgumentException("'$caseStatus' is invalid case status");
+    }
+    $newStatusID = static::$caseStatuses[$caseStatus];
+    if ($this->case['status_id'] == $newStatusID) {
+      // Nothing to do.
+      return $this;
+    }
+    civicrm_api3('case', 'create', [
+      'id'        => $this->case['id'],
+      'status_id' => $newStatusID,
+    ]);
+    $this->case['status_id'] = static::$caseStatuses[$caseStatus];
+    return $this;
   }
   /**
    * Add a signed petition activity to the case for the given contact.
@@ -575,19 +708,24 @@ class CaseWrapper {
   }
   /**
    * Look up the Grassroots Petition created activity.
+   *
+   * This is cached.
    */
   public function getPetitionCreatedActivity() :array {
-    // Get open case activity.
-    $openCase = civicrm_api3('Activity', 'get', [
-      'case_id' => $this->case['id'],
-      'activity_type_id' => static::$activityTypesByName['Grassroots Petition created']['value'],
-      'return' => ['id', 'status_id']
-    ]);
-    if (empty($openCase['id'])) {
-      // This is an error!
-      throw new \RuntimeException("Case {$this->case['id']} has no Grassroots Petition created activity.");
+    if (!isset($this->createdActivity)) {
+      // Get open case activity.
+      $openCase = civicrm_api3('Activity', 'get', [
+        'case_id' => $this->case['id'],
+        'activity_type_id' => static::$activityTypesByName['Grassroots Petition created']['value'],
+        'return' => ['id', 'status_id']
+      ]);
+      if (empty($openCase['id'])) {
+        // This is an error!
+        throw new \RuntimeException("Case {$this->case['id']} has no Grassroots Petition created activity.");
+      }
+      $this->createdActivity = $openCase;
     }
-    return $openCase;
+    return $this->createdActivity;
   }
 
   /**

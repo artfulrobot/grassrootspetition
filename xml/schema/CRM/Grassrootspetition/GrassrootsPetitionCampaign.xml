@@ -48,7 +48,7 @@
   <field>
     <name>template</name>
     <type>longtext</type>
-    <comment>HTML template for new petitions</comment>
+    <comment>HTML template for the 'What' of new petitions</comment>
   </field>
 
 </table>

@@ -188,7 +188,7 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
         ],
       ]
     ];
-    $case_id = $this->createOrUpdate('CaseType', $baseParams, $allParams);
+    $case_id = $this->createOrUpdate('CaseType', $baseParams, $allParams, FALSE);
 
     // Create custom field group for the case.
     $baseParams = [
@@ -254,15 +254,7 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
-    // Description can be saved with the Open Case activity.
-
-    // @todo Image
-    // There's the Attachment API https://docs.civicrm.org/dev/en/latest/api/v3/changes/#460-attachment-api
-    // But it outputs URLs that assume you are logged in.
-    // We might need a special public location for files.
-    // We must take care though not to allow anon file uploads, e.g. if someone
-    // were to start a petition, upload a horrible image, and be able to access
-    // that image before/after moderation.
+    // Description can be saved on the case itself.
 
     // Tweet text.
     $baseParams = [
@@ -272,12 +264,12 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     $allParams = [
       'column_name'     => "tweet_text",
       'label'           => "Suggested tweet",
-      'data_type'       => "String",
-      'text_length'     => 280,
+      'data_type'       => "Memo",
+      // 'text_length'     => 512,
       'html_type'       => "TextArea",
       'note_rows'       => 3,
       'note_columns'    => 40,
-      'is_required'     => 1,
+      'is_required'     => 0,
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
@@ -297,7 +289,7 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
-    // which campaign it belongs to. (FK to a GrassrootsPetitionCampaign entity.
+    // which campaign it belongs to. (FK to a GrassrootsPetitionCampaign entity).
     $baseParams = [
       'custom_group_id' => $customGroupIDPetition,
       'name'            => "grpet_campaign",
@@ -404,16 +396,20 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
    * @param string $entity e.g. Contact
    * @param array $baseParams used to find the entity
    * @param array $allParams used to update details of the entity. Added to $baseParams for new entities.
+   * @param bool $update. If entity found, should we still do a create call to update it?
    *
    * @return int ID of thing created.
    */
-  protected function createOrUpdate($entity, $baseParams, $allParams) {
+  protected function createOrUpdate($entity, $baseParams, $allParams, $update=TRUE) {
     $results = civicrm_api3($entity, 'get', $baseParams);
 
     $params = $allParams;
     $debug_details = '';
     $count = $results['count'];
     if ($count === 1) {
+      if (!$update) {
+        return $results['id'];
+      }
       $params['id'] = $results['id'];
       $debug_details = 'update';
     }
@@ -425,6 +421,7 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     elseif ($count > 1) {
       throw new Exception("Found multiple $entity entities matching: " . json_encode($baseParams));
     }
+    //print "$debug_details entity.create " . json_encode($params, JSON_PRETTY_PRINT) . "\n";
     $id = (int) civicrm_api3($entity, 'create', $params)['id'] ?? NULL;
     if (!$id) {
       throw new \Exception("Failed to $debug_details '$entity' entity with: " . json_encode($params));
