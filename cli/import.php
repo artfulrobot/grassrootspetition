@@ -86,26 +86,34 @@ class Importer {
   }
 
   public function importEfforts() {
-    $efforts = CRM_Core_DAO::executeQuery('SELECT * FROM csl.efforts');
+    $efforts = CRM_Core_DAO::executeQuery('SELECT * FROM csl.efforts WHERE title_default <> ""');
     while ($efforts->fetch()) {
-      $title = trim(preg_replace('/{{target.name}} /', '', $efforts->title_default));
-      if (!$title) {
-        continue;
-      }
-      $this->log("Looking up effort called: $title");
-      $this->efforts[(int) $efforts->id] = $title;
+      $this->ensureCampaign((int) ($efforts->id), $efforts);
     }
-    $this->log("efforts", $this->efforts);
-    // @todo
   }
-  public function ensureCampaign($campaignName) :int {
-    if (!isset(static::$campaigns[$campaignName])) {
-      // Missing campaign, create it now.
-      $campaign = GrassrootsPetitionCampaign::create(FALSE)
-        ->addValue('name', $campaignName)
-        ->addValue('label', $campaignName)
-        ->addValue('is_active', 1)
+  public function ensureCampaign(int $effortID, ?CRM_Core_DAO $effort=NULL) :int {
+    if (!isset(static::$effortsToCampaignID[$effortID])) {
+      if (empty($effort)) {
+        throw new \RuntimeException("can't lookup effort $effortID without original data");
+      }
+
+      // Missing campaign
+      $title = trim(preg_replace('/{{target.name}} /', '', $effort->title_default));
+
+      $campaign = GrassrootsPetitionCampaign::get(FALSE)
+        ->addWhere('name', '=', $campaignName)
         ->execute()->first();
+
+      if (!$campaign) {
+        // Not found, create now.
+        $campaign = GrassrootsPetitionCampaign::create(FALSE)
+          ->addValue('name', $campaignName)
+          ->addValue('label', $campaignName)
+          ->addValue('template_what', $effort->what_default)
+          ->addValue('template_why', $effort->why_default)
+          ->addValue('is_active', 1)
+          ->execute()->first();
+      }
       static::$campaigns[$campaignName] = $campaign;
     }
     return (int) static::$campaigns[$campaignName]['id'];

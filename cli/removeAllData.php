@@ -2,6 +2,8 @@
 /**
  * Remove all data and all data structures related to this extension. For testing/development.
  *
+ * Run AFTER uninstalling.
+ *
  * Run this with: cv scr removeAllData.php
  */
 if (php_sapi_name() !== 'cli') {

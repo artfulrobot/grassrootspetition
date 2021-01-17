@@ -46,9 +46,20 @@
   </field>
 
   <field>
-    <name>template</name>
+    <name>template_what</name>
     <type>longtext</type>
     <comment>HTML template for the 'What' of new petitions</comment>
+  </field>
+  <field>
+    <name>template_why</name>
+    <type>longtext</type>
+    <comment>HTML template for the 'Why' of new petitions</comment>
+  </field>
+  <field>
+    <name>template_title</name>
+    <type>varchar</type>
+    <length>255</length>
+    <comment>HTML template for the title of new petitions</comment>
   </field>
 
 </table>

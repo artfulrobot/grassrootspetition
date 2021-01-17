@@ -18,12 +18,13 @@ $u = new CRM_Grassrootspetition_Upgrader(E::SHORT_NAME, E::path());
 $campaignID = Civi\Api4\GrassrootsPetitionCampaign::get(FALSE)
   ->addWhere('name', '=', 'Fossil free: divestment')
   ->execute()->first()['id'] ?? 0;
+
 if (!$campaignID) {
   $campaignID = Civi\Api4\GrassrootsPetitionCampaign::create(FALSE)
     ->addValue('name', 'Fossil free: divestment')
     ->addValue('label', 'Fossil free: divestment')
-    ->addValue('description', 'desc for Fossil free: divestment')
-    ->addValue('template', '<p>Put what people are signing for here</p>')
+    ->addValue('template_what', '<p>We the undersigned ...</p>')
+    ->addValue('template_why', '<p>This is terrible. We should do something.</p>')
     ->execute()->first()['id'];
   // Create demo campaign
   print "Created campaign $campaignID\n";
