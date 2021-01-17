@@ -2,6 +2,7 @@
 
 use CRM_Grassrootspetition_ExtensionUtil as E;
 use Civi\Api4\GrassrootsPetitionCampaign;
+use Civi\GrassrootsPetition\CaseWrapper;
 
 /*
  * Run this with: cv scr removeAllData.php
@@ -52,7 +53,14 @@ class Importer {
     ['Workers Rights', 'Stop Union Busting in the Electronics Industry', 'https://act.peopleandplanet.org/petitions/stop-union-busting-in-the-electronics-industry'],
   ];
 
+  /**
+   */
   public static $campaigns;
+
+  /**
+   */
+  public static $effortsToCampaignID = [];
+
   public $efforts = [];
 
   public function __construct() {
@@ -66,21 +74,61 @@ class Importer {
 
     // Import 'efforts' as campaigns
     $this->importEfforts();
-    return;
-
 
     foreach ($this->toImport as $petitionToImport) {
       $campaignName = $petitionToImport[0];
       $petitionTitle = $petitionToImport[1];
       $oldUrl = $petitionToImport[2];
       $active = $petitionToImport[3] ?? 'YES';
-      $slug = preg_replace('@^https.*\.org/([^/?#]+).*$@', '$1', $oldUrl);
+      $slug = preg_replace('@^https.*\.org/petitions/([^/?#]+).*$@', '$1', $oldUrl);
 
-      $log->info("Doing $slug ($campaignName: $petitionTitle)");
-      $campaignID = $this->ensureCampaign($campaignName);
-      $petitionID = $this->migratePetitionDefinition($slug, $campaignID, $active !== 'NO');
-      $log->info("Created petition $petitionID from $slug");
-      $this->migrateSignatures($petitionID);
+      $this->log("Doing $slug ($campaignName: $petitionTitle)");
+
+      // Find the petition
+      $petition = CRM_Core_DAO::executeQuery(
+        "SELECT p.*, u.first_name, u.last_name, u.email, l.venue, t.name targetName
+        FROM csl.petitions p
+        INNER JOIN csl.users u ON p.user_id = u.id
+        INNER JOIN csl.locations l on p.location_id = l.id
+        INNER JOIN csl.targets t on p.target_id = t.id
+        WHERE p.slug = %1", [1 => [$slug, 'String']]);
+      if (!$petition->fetch()) {
+        $this->log("xxx CSL slug not found: '$slug'");
+      }
+      else {
+        $this->log("CSL slug found: '$slug'");
+        $campaign = $this->ensureCampaign((int) $petition->effort_id);
+        $this->log("CSL campaign $campaign[id]");
+      }
+
+      // We need to find the petition owner.
+      $xcmParams = [
+        'contact_type' => 'Individual',
+        'email'        => $petition->email,
+        'first_name'   => $petition->first_name,
+        'last_name'    => $petition->last_name,
+      ];
+      $contactID = (int) civicrm_api3('Contact', 'getorcreate', $xcmParams)['id'];
+
+      $petitionCase = CaseWrapper::createNew(
+        $contactID,
+        $petition->title,
+        $campaign['label'],
+        $petition->venue, // location
+        $petition->targetName,
+        $slug
+      );
+      $this->log("Created petition {$petitionCase->getID()} from $slug");
+
+      // Add other details to petition.
+      $petitionCase->setWhy($petition->why);
+      $petitionCase->setWhat($petition->what);
+      $petitionCase->setStatus('Open');
+
+      // public name of who created petition todo
+
+
+      // $this->migrateSignatures($petitionID);
       break;
     }
   }
@@ -91,8 +139,10 @@ class Importer {
       $this->ensureCampaign((int) ($efforts->id), $efforts);
     }
   }
-  public function ensureCampaign(int $effortID, ?CRM_Core_DAO $effort=NULL) :int {
+  public function ensureCampaign(int $effortID, ?CRM_Core_DAO $effort=NULL) :array {
     if (!isset(static::$effortsToCampaignID[$effortID])) {
+      $this->log("Failed to find effort $effortID");
+
       if (empty($effort)) {
         throw new \RuntimeException("can't lookup effort $effortID without original data");
       }
@@ -100,23 +150,25 @@ class Importer {
       // Missing campaign
       $title = trim(preg_replace('/{{target.name}} /', '', $effort->title_default));
 
-      $campaign = GrassrootsPetitionCampaign::get(FALSE)
-        ->addWhere('name', '=', $campaignName)
-        ->execute()->first();
-
+      $campaign = static::$campaigns[$title] ?? NULL;
       if (!$campaign) {
+        $this->log("Failed to find campaign '$title'");
         // Not found, create now.
         $campaign = GrassrootsPetitionCampaign::create(FALSE)
-          ->addValue('name', $campaignName)
-          ->addValue('label', $campaignName)
+          ->addValue('name', $title)
+          ->addValue('label', $title)
           ->addValue('template_what', $effort->what_default)
           ->addValue('template_why', $effort->why_default)
           ->addValue('is_active', 1)
           ->execute()->first();
+        static::$campaigns[$title] = $campaign;
       }
-      static::$campaigns[$campaignName] = $campaign;
+      else {
+        $this->log("Found campaign $campaign[id] for '$title'");
+      }
+      static::$effortsToCampaignID[$effortID] = $campaign;
     }
-    return (int) static::$campaigns[$campaignName]['id'];
+    return static::$effortsToCampaignID[$effortID];
   }
 
   public function migratePetitionDefinition(string $slug, int $campaignID, bool $isActive) :int {

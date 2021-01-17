@@ -443,6 +443,29 @@ class CaseWrapper {
     return $this;
   }
   /**
+   */
+  public function setWhy(string $html) :CaseWrapper {
+    $this->mustBeLoaded();
+    // @todo clean HTML
+    $activity = $this->getPetitionCreatedActivity();
+    $params = ['id' => $activity['id'], 'details' => $html];
+    civicrm_api3('Activity', 'create', $params);
+    // Update our cache.
+    $this->createdActivity['details'] = $html;
+    return $this;
+  }
+  /**
+   */
+  public function setWhat(string $html) :CaseWrapper {
+    $this->mustBeLoaded();
+    // @todo clean HTML
+    $params = ['id' => $this->case['id'], 'details' => $html];
+    civicrm_api3('Case', 'create', $params);
+    // Update our cache.
+    $this->case['details'] = $html;
+    return $this;
+  }
+  /**
    * Add a signed petition activity to the case for the given contact.
    *
    * @return int Activity ID created.
