@@ -8,7 +8,7 @@
     <form action='#' @submit.prevent="submitForm" v-if="showTheForm">
       <div class="petition-info">
         <div class="petition-titles">
-          <h1>xx{{publicData.title}}</h1>
+          <h1>{{publicData.petitionTitle}}</h1>
 
           <h2>To: {{publicData.targetName}}</h2>
         </div>
@@ -207,6 +207,12 @@
     color: #933202;
     font-style: italic;
     padding-left: 36px;
+  }
+  .petition-why {
+    padding-bottom: 2rem;
+  }
+  .petition-what {
+    font-weight: bold;
   }
 }
 </style>

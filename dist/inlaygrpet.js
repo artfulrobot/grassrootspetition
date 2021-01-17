@@ -2092,7 +2092,7 @@ var render = function() {
           [
             _c("div", { staticClass: "petition-info" }, [
               _c("div", { staticClass: "petition-titles" }, [
-                _c("h1", [_vm._v("xx" + _vm._s(_vm.publicData.title))]),
+                _c("h1", [_vm._v(_vm._s(_vm.publicData.petitionTitle))]),
                 _vm._v(" "),
                 _c("h2", [_vm._v("To: " + _vm._s(_vm.publicData.targetName))])
               ]),

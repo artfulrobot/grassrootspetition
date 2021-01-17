@@ -362,6 +362,8 @@ class GrassrootsPetition extends InlayType {
    * - grpet_slug
    * - grpet_sig_public
    * - grpet_sig_shared
+   * - grpet_what
+   * - grpet_why
    *
    * @param NULL|string
    * @return array|string

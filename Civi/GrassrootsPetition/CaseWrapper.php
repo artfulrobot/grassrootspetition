@@ -249,7 +249,7 @@ class CaseWrapper {
       'targetName'       => $this->getCustomData('grpet_target_name'),
       'tweet'            => $this->getCustomData('grpet_tweet_text'),
       'petitionTitle'    => $this->getPetitionTitle(),
-      'petitionWhatHTML' => $this->getWhat(),
+      'petitionWhatHTML' => $this->getWhat(), // html?
       'petitionWhyHTML'  => $this->getWhy(),
       'campaign'         => $this->getCampaignPublicName(),
       'imageUrl'         => $mainImage['url'],
@@ -319,18 +319,18 @@ class CaseWrapper {
     return $this->campaign;
   }
   /**
-   * Returns the HTML details of *what* the people who sign have signed up for.
+   * Returns the text details of *what* the people who sign have signed up for.
    */
   public function getWhat() :string {
     $this->mustBeLoaded();
-    return $this->case['details'] ?? '';
+    return $this->getCustomData('grpet_what');
   }
   /**
-   * Returns the HTML details of *why* people should sign, this is the intro text.
+   * Returns the details of *why* people should sign, this is the intro text.
    */
   public function getWhy() :string {
     $this->mustBeLoaded();
-    return $this->getPetitionCreatedActivity()['details'] ?? '';
+    return $this->getCustomData('grpet_why');
   }
   /**
    * Updates are activities of the 'Grassroots Petition progress' type
@@ -444,25 +444,31 @@ class CaseWrapper {
   }
   /**
    */
-  public function setWhy(string $html) :CaseWrapper {
-    $this->mustBeLoaded();
-    // @todo clean HTML
-    $activity = $this->getPetitionCreatedActivity();
-    $params = ['id' => $activity['id'], 'details' => $html];
-    civicrm_api3('Activity', 'create', $params);
-    // Update our cache.
-    $this->createdActivity['details'] = $html;
-    return $this;
+  public function setWhy(string $value) :CaseWrapper {
+    return $this->setCustomData(['grpet_why' => $value]);
   }
   /**
    */
-  public function setWhat(string $html) :CaseWrapper {
+  public function setWhat(string $value) :CaseWrapper {
+    return $this->setCustomData(['grpet_what' => $value]);
+  }
+  /**
+   * Set value of custom fields
+   */
+  public function setCustomData(array $fieldnameToValue) :CaseWrapper {
     $this->mustBeLoaded();
-    // @todo clean HTML
-    $params = ['id' => $this->case['id'], 'details' => $html];
+    $inlay = new GrassrootsPetition();
+    $params = [
+      'id' => $this->case['id'],
+    ];
+    foreach ($fieldnameToValue as $field => $value) {
+      $apiName = $inlay->getCustomFields($field);
+      $params[$apiName] = $value;
+      // update cache.
+      $this->case[$apiName] = $value;
+    }
+
     civicrm_api3('Case', 'create', $params);
-    // Update our cache.
-    $this->case['details'] = $html;
     return $this;
   }
   /**

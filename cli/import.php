@@ -121,8 +121,10 @@ class Importer {
       $this->log("Created petition {$petitionCase->getID()} from $slug");
 
       // Add other details to petition.
-      $petitionCase->setWhy($petition->why);
-      $petitionCase->setWhat($petition->what);
+      $petitionCase->setCustomData([
+        'grpet_why' => $petition->why,
+        'grpet_what' => $petition->what,
+      ]);
       $petitionCase->setStatus('Open');
 
       // public name of who created petition todo

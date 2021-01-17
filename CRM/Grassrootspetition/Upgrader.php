@@ -190,7 +190,9 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     ];
     $case_id = $this->createOrUpdate('CaseType', $baseParams, $allParams, FALSE);
 
+    //
     // Create custom field group for the case.
+    //
     $baseParams = [
       'name'       => 'grpet_petition',
       'table_name' => 'civicrm_grpet_petition',
@@ -254,8 +256,6 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
-    // Description can be saved on the case itself.
-
     // Tweet text.
     $baseParams = [
       'custom_group_id' => $customGroupIDPetition,
@@ -303,6 +303,42 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
       'is_required'     => 1,
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
+
+    // Why, What
+    // (originally stored as case details, but there's no UI for that field, which begins as a copy of the open case activity)
+    // Decided it was simpler to just put it on a custom field
+
+    $baseParams = [
+      'custom_group_id' => $customGroupIDPetition,
+      'name'            => "grpet_why",
+    ];
+    $allParams = [
+      'column_name'     => "why",
+      'label'           => "Why is this important? What's the reasoning for this petition?",
+      'data_type'       => "Memo",
+      'html_type'       => "TextArea",
+      'note_rows'       => 3,
+      'note_columns'    => 40,
+      'is_required'     => 0,
+    ];
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
+
+    $baseParams = [
+      'custom_group_id' => $customGroupIDPetition,
+      'name'            => "grpet_what",
+    ];
+    $allParams = [
+      'column_name'     => "what",
+      'label'           => "What are people putting their names to?",
+      'data_type'       => "Memo",
+      //'html_type'       => "RichTextEditor",
+      'html_type'       => "TextArea",
+      'note_rows'       => 3,
+      'note_columns'    => 40,
+      'is_required'     => 0,
+    ];
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
+
 
     // Create custom field group for the petition signed activity.
     $baseParams = [
