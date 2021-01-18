@@ -321,6 +321,7 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
 
 
 
@@ -350,6 +351,18 @@ __webpack_require__.r(__webpack_exports__);
     return d;
   },
   computed: {
+    stretchTarget: function stretchTarget() {
+      if (this.publicData.signatureCount > this.publicData.targetCount) {
+        // We need to do a stretch target.
+        var m = this.publicData.signatureCount > 10000 ? 10000 : this.publicData.signatureCount > 1000 ? 1000 : 100;
+        return Math.floor(this.publicData.signatureCount / 0.75 / m) * m;
+      } else {
+        return this.publicData.targetCount;
+      }
+    },
+    isStretchTarget: function isStretchTarget() {
+      return this.publicData.signatureCount > this.publicData.targetCount;
+    },
     showTheForm: function showTheForm() {
       return ['form', 'thanksShareAsk', 'thanksDonateAsk'].includes(this.stage);
     },
@@ -478,6 +491,167 @@ __webpack_require__.r(__webpack_exports__);
       }).then(function () {
         progress.cancelTimer();
         _this2.$root.submissionRunning = false;
+      });
+    }
+  }
+});
+
+/***/ }),
+
+/***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=script&lang=js&":
+/*!*******************************************************************************************************************************************************************!*\
+  !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=script&lang=js& ***!
+  \*******************************************************************************************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _InlayProgress_vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./InlayProgress.vue */ "./src/InlayProgress.vue");
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+/* harmony default export */ __webpack_exports__["default"] = ({
+  props: ['inlay'],
+  components: {
+    InlayProgress: _InlayProgress_vue__WEBPACK_IMPORTED_MODULE_0__["default"]
+  },
+  data: function data() {
+    var d = {
+      stage: 'loading',
+      myId: this.$root.getNextId(),
+      loadingError: 'There was an error loading this petition, please get in touch.',
+      loadingMessage: 'Loading...',
+      authEmail: ''
+    };
+    return d;
+  },
+  computed: {},
+  mounted: function mounted() {
+    var _this = this;
+
+    // Are we authenticated?
+    // Look for an auth hash as the fragment.
+    var authHash = (window.location.hash || '#').substr(1);
+
+    if (authHash.match(/^[0-9a-z]{16}$/)) {
+      // Found a hash. Try to authenticate.
+      // Remove hash from browser history(?)
+      window.location.hash = '';
+      this.inlay.request({
+        method: 'post',
+        body: {
+          need: 'adminSessionToken',
+          authHash: authHash
+        }
+      }).then(function (r) {
+        if (r.success) {
+          _this.bootList();
+        }
+      })["catch"](function (e) {
+        _this.stage = 'unauthorised';
+        return;
+      });
+    } else {
+      // There's no hash. Perhaps we're already authorised.
+      this.bootList();
+    }
+  },
+  methods: {
+    bootList: function bootList() {
+      var _this2 = this;
+
+      this.stage = 'loading';
+      this.loadingMessage = "Loading petitions...";
+      this.petitions = []; // @todo send request to load petitions.
+
+      this.inlay.request({
+        method: 'post',
+        body: {
+          need: 'adminPetitionsList'
+        }
+      }).then(function (r) {
+        if (r.petitions) {
+          _this2.petitions = r.petitions;
+          _this2.stage = 'listPetitions';
+        } else {
+          console.warn("hmmm", r);
+        }
+      })["catch"](function (e) {
+        _this2.stage = 'unauthorised';
+        return;
+      });
+    },
+    submitAuthEmail: function submitAuthEmail() {
+      var _this3 = this;
+
+      // Send request for auth email.
+      var progress = this.$refs.loadingProgress;
+      progress.startTimer(5, 100, true);
+      this.$root.submissionRunning = true;
+      this.inlay.request({
+        method: 'post',
+        body: {
+          need: 'adminAuthEmail',
+          email: this.authEmail
+        }
+      }).then(function (r) {
+        if (r.publicError) {
+          alert(r.publicError);
+        } else {
+          _this3.stage = 'authSent';
+        }
+      })["catch"](function (e) {// Inlay has already chucked up an alert()
+      })["finally"](function () {
+        _this3.$root.submissionRunning = false;
+        progress.cancelTimer();
       });
     }
   }
@@ -719,8 +893,11 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
-  props: ['count', 'stmt', 'target'],
+  props: ['count', 'stmt', 'target', 'stretchTarget'],
   data: function data() {
     return {
       animStart: false,
@@ -733,8 +910,9 @@ __webpack_require__.r(__webpack_exports__);
     barStyle: function barStyle() {
       var s = this.step;
       s = s * s;
+      var t = this.stretchTarget && this.stretchTarget > this.target ? this.stretchTarget : this.target;
       return {
-        width: s * this.count / this.target * 100 + '%'
+        width: s * this.count / t * 100 + '%'
       };
     }
   },
@@ -790,6 +968,25 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 // module
 exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet .petition-titles {\n  display: flex;\n  flex-direction: column;\n}\n.grpet .petition-titles h2 {\n  order: 1;\n  margin: 0;\n  text-transform: none;\n  font-size: 2rem;\n}\n.grpet .petition-titles h1 {\n  order: 2;\n  text-transform: none;\n  margin-top: 0;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-image {\n  margin-bottom: 1rem;\n}\n.grpet .petition-image img {\n  max-width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n.grpet .petition-why {\n  padding-bottom: 2rem;\n}\n.grpet .petition-what {\n  font-weight: bold;\n  padding-bottom: 2rem;\n}\n", ""]);
+
+// exports
+
+
+/***/ }),
+
+/***/ "./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss&":
+/*!******************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/css-loader!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src??ref--6-2!./node_modules/sass-loader/dist/cjs.js??ref--6-3!./node_modules/vue-loader/lib??vue-loader-options!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss& ***!
+  \******************************************************************************************************************************************************************************************************************************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/lib/css-base.js */ "./node_modules/css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, ".grpet-admin .grpet-error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet-admin label {\n  display: block;\n}\n", ""]);
 
 // exports
 
@@ -1342,6 +1539,36 @@ process.umask = function() { return 0; };
 
 
 var content = __webpack_require__(/*! !../node_modules/css-loader!../node_modules/vue-loader/lib/loaders/stylePostLoader.js!../node_modules/postcss-loader/src??ref--6-2!../node_modules/sass-loader/dist/cjs.js??ref--6-3!../node_modules/vue-loader/lib??vue-loader-options!./InlayGrassrootsPetition.vue?vue&type=style&index=0&lang=scss& */ "./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayGrassrootsPetition.vue?vue&type=style&index=0&lang=scss&");
+
+if(typeof content === 'string') content = [[module.i, content, '']];
+
+var transform;
+var insertInto;
+
+
+
+var options = {"hmr":true}
+
+options.transform = transform
+options.insertInto = undefined;
+
+var update = __webpack_require__(/*! ../node_modules/style-loader/lib/addStyles.js */ "./node_modules/style-loader/lib/addStyles.js")(content, options);
+
+if(content.locals) module.exports = content.locals;
+
+if(false) {}
+
+/***/ }),
+
+/***/ "./node_modules/style-loader/index.js!./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss&":
+/*!**********************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/style-loader!./node_modules/css-loader!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src??ref--6-2!./node_modules/sass-loader/dist/cjs.js??ref--6-3!./node_modules/vue-loader/lib??vue-loader-options!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss& ***!
+  \**********************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+var content = __webpack_require__(/*! !../node_modules/css-loader!../node_modules/vue-loader/lib/loaders/stylePostLoader.js!../node_modules/postcss-loader/src??ref--6-2!../node_modules/sass-loader/dist/cjs.js??ref--6-3!../node_modules/vue-loader/lib??vue-loader-options!./InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss& */ "./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss&");
 
 if(typeof content === 'string') content = [[module.i, content, '']];
 
@@ -2144,6 +2371,7 @@ var render = function() {
                   attrs: {
                     count: _vm.publicData.signatureCount,
                     target: _vm.publicData.targetCount,
+                    "stretch-target": _vm.stretchTarget,
                     stmt: "Signatures"
                   }
                 }),
@@ -2556,6 +2784,162 @@ render._withStripped = true
 
 /***/ }),
 
+/***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=template&id=28408e30&":
+/*!***********************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=template&id=28408e30& ***!
+  \***********************************************************************************************************************************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "render", function() { return render; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return staticRenderFns; });
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c(
+    "div",
+    { staticClass: "grpet-admin" },
+    [
+      _c(
+        "div",
+        {
+          directives: [
+            {
+              name: "show",
+              rawName: "v-show",
+              value: _vm.stage === "loading",
+              expression: "stage === 'loading'"
+            }
+          ]
+        },
+        [_vm._v(_vm._s(_vm.loadingMessage))]
+      ),
+      _vm._v(" "),
+      _c(
+        "form",
+        {
+          directives: [
+            {
+              name: "show",
+              rawName: "v-show",
+              value: _vm.stage === "unauthorised",
+              expression: "stage === 'unauthorised'"
+            }
+          ],
+          staticClass: "unauthorised",
+          on: {
+            submit: function($event) {
+              $event.preventDefault()
+              return _vm.submitAuthEmail($event)
+            }
+          }
+        },
+        [
+          _c("div", [
+            _c("h2", [_vm._v("Unauthorised")]),
+            _vm._v(" "),
+            _c("label", { attrs: { for: _vm.myId + "authEmail" } }, [
+              _vm._v("Enter the email you registered with")
+            ]),
+            _vm._v(" "),
+            _c("input", {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model",
+                  value: _vm.authEmail,
+                  expression: "authEmail"
+                }
+              ],
+              attrs: {
+                type: "email",
+                id: _vm.myId + "authEmail",
+                disabled: _vm.$root.submissionRunning,
+                required: ""
+              },
+              domProps: { value: _vm.authEmail },
+              on: {
+                input: function($event) {
+                  if ($event.target.composing) {
+                    return
+                  }
+                  _vm.authEmail = $event.target.value
+                }
+              }
+            }),
+            _vm._v(" "),
+            _c(
+              "button",
+              {
+                staticClass: "primary",
+                attrs: { type: "submit", disabled: _vm.$root.submissionRunning }
+              },
+              [_vm._v("Send one-time login link")]
+            )
+          ])
+        ]
+      ),
+      _vm._v(" "),
+      _c(
+        "div",
+        {
+          directives: [
+            {
+              name: "show",
+              rawName: "v-show",
+              value: _vm.stage === "authSent",
+              expression: "stage === 'authSent'"
+            }
+          ]
+        },
+        [
+          _c("h2", [_vm._v("Unauthorised")]),
+          _vm._v(" "),
+          _c("p", [
+            _vm._v(
+              "Thanks, check your inbox for an email from us which contains a link to let you in."
+            )
+          ]),
+          _vm._v(" "),
+          _c("p", [
+            _vm._v(
+              "(If you can't find it, check your spam/junk folder! And if you find it in there, be sure to click the Not Spam button so it doesn't happen with other emails from us.)"
+            )
+          ])
+        ]
+      ),
+      _vm._v(" "),
+      _c(
+        "div",
+        {
+          directives: [
+            {
+              name: "show",
+              rawName: "v-show",
+              value: _vm.stage === "loadingError",
+              expression: "stage === 'loadingError'"
+            }
+          ],
+          staticClass: "grpet-error"
+        },
+        [_vm._v(_vm._s(_vm.loadingError))]
+      ),
+      _vm._v(" "),
+      _c("inlay-progress", { ref: "loadingProgress" })
+    ],
+    1
+  )
+}
+var staticRenderFns = []
+render._withStripped = true
+
+
+
+/***/ }),
+
 /***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayProgress.vue?vue&type=template&id=5aecd6fa&":
 /*!********************************************************************************************************************************************************************************************!*\
   !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./src/InlayProgress.vue?vue&type=template&id=5aecd6fa& ***!
@@ -2792,7 +3176,44 @@ var render = function() {
     ]),
     _vm._v(" "),
     _c("span", { staticClass: "ipetometer__target" }, [
-      _vm._v("Target " + _vm._s(_vm.target))
+      _c(
+        "span",
+        {
+          directives: [
+            {
+              name: "show",
+              rawName: "v-show",
+              value: _vm.stretchTarget && _vm.stretchTarget > _vm.target,
+              expression: "stretchTarget && stretchTarget > target"
+            }
+          ],
+          staticClass: "stretch"
+        },
+        [
+          _vm._v(
+            "Original target (" +
+              _vm._s(_vm.target.toLocaleString()) +
+              ") exceeded! Let’s go for " +
+              _vm._s(_vm.stretchTarget.toLocaleString())
+          )
+        ]
+      ),
+      _vm._v(" "),
+      _c(
+        "span",
+        {
+          directives: [
+            {
+              name: "show",
+              rawName: "v-show",
+              value: !_vm.stretchTarget || _vm.stretchTarget < _vm.target,
+              expression: "!stretchTarget || stretchTarget < target"
+            }
+          ],
+          staticClass: "original"
+        },
+        [_vm._v("Target " + _vm._s(_vm.target.toLocaleString()))]
+      )
     ])
   ])
 }
@@ -15019,6 +15440,93 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
+/***/ "./src/InlayGrassrootsPetitionAdmin.vue":
+/*!**********************************************!*\
+  !*** ./src/InlayGrassrootsPetitionAdmin.vue ***!
+  \**********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _InlayGrassrootsPetitionAdmin_vue_vue_type_template_id_28408e30___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./InlayGrassrootsPetitionAdmin.vue?vue&type=template&id=28408e30& */ "./src/InlayGrassrootsPetitionAdmin.vue?vue&type=template&id=28408e30&");
+/* harmony import */ var _InlayGrassrootsPetitionAdmin_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./InlayGrassrootsPetitionAdmin.vue?vue&type=script&lang=js& */ "./src/InlayGrassrootsPetitionAdmin.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport *//* harmony import */ var _InlayGrassrootsPetitionAdmin_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss& */ "./src/InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss&");
+/* harmony import */ var _node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../node_modules/vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/vue-loader/lib/runtime/componentNormalizer.js");
+
+
+
+
+
+
+/* normalize component */
+
+var component = Object(_node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_3__["default"])(
+  _InlayGrassrootsPetitionAdmin_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
+  _InlayGrassrootsPetitionAdmin_vue_vue_type_template_id_28408e30___WEBPACK_IMPORTED_MODULE_0__["render"],
+  _InlayGrassrootsPetitionAdmin_vue_vue_type_template_id_28408e30___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
+  false,
+  null,
+  null,
+  null
+  
+)
+
+/* hot reload */
+if (false) { var api; }
+component.options.__file = "src/InlayGrassrootsPetitionAdmin.vue"
+/* harmony default export */ __webpack_exports__["default"] = (component.exports);
+
+/***/ }),
+
+/***/ "./src/InlayGrassrootsPetitionAdmin.vue?vue&type=script&lang=js&":
+/*!***********************************************************************!*\
+  !*** ./src/InlayGrassrootsPetitionAdmin.vue?vue&type=script&lang=js& ***!
+  \***********************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayGrassrootsPetitionAdmin_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../node_modules/babel-loader/lib??ref--4-0!../node_modules/vue-loader/lib??vue-loader-options!./InlayGrassrootsPetitionAdmin.vue?vue&type=script&lang=js& */ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayGrassrootsPetitionAdmin_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
+/***/ "./src/InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss&":
+/*!********************************************************************************!*\
+  !*** ./src/InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss& ***!
+  \********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayGrassrootsPetitionAdmin_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../node_modules/style-loader!../node_modules/css-loader!../node_modules/vue-loader/lib/loaders/stylePostLoader.js!../node_modules/postcss-loader/src??ref--6-2!../node_modules/sass-loader/dist/cjs.js??ref--6-3!../node_modules/vue-loader/lib??vue-loader-options!./InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss& */ "./node_modules/style-loader/index.js!./node_modules/css-loader/index.js!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/sass-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=style&index=0&lang=scss&");
+/* harmony import */ var _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayGrassrootsPetitionAdmin_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayGrassrootsPetitionAdmin_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__);
+/* harmony reexport (unknown) */ for(var __WEBPACK_IMPORT_KEY__ in _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayGrassrootsPetitionAdmin_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__) if(["default"].indexOf(__WEBPACK_IMPORT_KEY__) < 0) (function(key) { __webpack_require__.d(__webpack_exports__, key, function() { return _node_modules_style_loader_index_js_node_modules_css_loader_index_js_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_2_node_modules_sass_loader_dist_cjs_js_ref_6_3_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayGrassrootsPetitionAdmin_vue_vue_type_style_index_0_lang_scss___WEBPACK_IMPORTED_MODULE_0__[key]; }) }(__WEBPACK_IMPORT_KEY__));
+
+
+/***/ }),
+
+/***/ "./src/InlayGrassrootsPetitionAdmin.vue?vue&type=template&id=28408e30&":
+/*!*****************************************************************************!*\
+  !*** ./src/InlayGrassrootsPetitionAdmin.vue?vue&type=template&id=28408e30& ***!
+  \*****************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayGrassrootsPetitionAdmin_vue_vue_type_template_id_28408e30___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../node_modules/vue-loader/lib??vue-loader-options!./InlayGrassrootsPetitionAdmin.vue?vue&type=template&id=28408e30& */ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./src/InlayGrassrootsPetitionAdmin.vue?vue&type=template&id=28408e30&");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayGrassrootsPetitionAdmin_vue_vue_type_template_id_28408e30___WEBPACK_IMPORTED_MODULE_0__["render"]; });
+
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_InlayGrassrootsPetitionAdmin_vue_vue_type_template_id_28408e30___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
+
+
+
+/***/ }),
+
 /***/ "./src/InlayProgress.vue":
 /*!*******************************!*\
   !*** ./src/InlayProgress.vue ***!
@@ -15292,6 +15800,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vue */ "./node_modules/vue/dist/vue.common.js");
 /* harmony import */ var vue__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(vue__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _InlayGrassrootsPetition_vue__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./InlayGrassrootsPetition.vue */ "./src/InlayGrassrootsPetition.vue");
+/* harmony import */ var _InlayGrassrootsPetitionAdmin_vue__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./InlayGrassrootsPetitionAdmin.vue */ "./src/InlayGrassrootsPetitionAdmin.vue");
+
 
 
 
@@ -15301,10 +15811,21 @@ __webpack_require__.r(__webpack_exports__);
     // We need to define anything global here.
     // Create the boot function.
     window.inlayGrpetInit = function (inlay) {
-      console.log("boooooooooting", inlay);
       var inlayNode = document.createElement('div');
-      inlay.script.insertAdjacentElement('afterend', inlayNode);
+      inlay.script.insertAdjacentElement('afterend', inlayNode); // We need to choose the UX we offer based on the URL.
+      // Supported URLs are:
+      // /petitions/<slug>
+      // /petition-admin/
+
+      var path = window.location.pathname; // Default ux is the public petition.
+
+      var ux = _InlayGrassrootsPetition_vue__WEBPACK_IMPORTED_MODULE_1__["default"]; // Check for public petition page.
+
+      if (path === '/petitions-admin') {
+        ux = _InlayGrassrootsPetitionAdmin_vue__WEBPACK_IMPORTED_MODULE_2__["default"];
+      }
       /* eslint no-unused-vars: 0 */
+
 
       var app = new vue__WEBPACK_IMPORTED_MODULE_0___default.a({
         el: inlayNode,
@@ -15317,7 +15838,7 @@ __webpack_require__.r(__webpack_exports__);
           return d;
         },
         render: function render(h) {
-          return h(_InlayGrassrootsPetition_vue__WEBPACK_IMPORTED_MODULE_1__["default"], {
+          return h(ux, {
             props: {
               inlay: inlay
             }

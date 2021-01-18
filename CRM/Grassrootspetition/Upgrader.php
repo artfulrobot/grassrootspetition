@@ -10,10 +10,10 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
   // upgrade tasks. They are executed in order (like Drupal's hook_update_N).
 
   /**
-   * Example: Run an external SQL script when the module is installed.
-   *
+   * Create the auth table.
+   */
   public function install() {
-    $this->executeSqlFile('sql/myinstall.sql');
+    $this->executeSqlFile('sql/createGrpetAuthTable.sql');
   }
 
   /**
@@ -388,6 +388,22 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
+    // Create 'Opted In'
+    $baseParams = [
+      'custom_group_id' => $customGroupIDSig,
+      'name'            => "grpet_sig_optin",
+    ];
+    $allParams = [
+      'column_name'     => "optin",
+      'label'           => "Opted in",
+      'data_type'       => "Boolean",
+      'html_type'       => "Radio",
+      'default_value'   => 0,
+      'is_searchable'   => 1,
+      'is_required'     => 0,
+    ];
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
+
     // Create 'Shared'
     $baseParams = [
       'custom_group_id' => $customGroupIDSig,
@@ -482,9 +498,9 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
   /**
    * Example: Run an external SQL script when the module is uninstalled.
    */
-  // public function uninstall() {
-  //  $this->executeSqlFile('sql/myuninstall.sql');
-  // }
+  public function uninstall() {
+   $this->executeSqlFile('sql/dropGrpetAuthTable.sql');
+  }
 
   /**
    * Example: Run a simple query when a module is enabled.

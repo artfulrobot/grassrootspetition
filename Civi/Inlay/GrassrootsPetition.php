@@ -6,6 +6,7 @@ use Civi\Inlay\Type as InlayType;
 use Civi\Inlay\ApiRequest;
 use Civi\Inlay\ApiException;
 use Civi\GrassrootsPetition\CaseWrapper;
+use Civi\GrassrootsPetition\Auth;
 use Civi;
 use Civi\Api4\Inlay;
 use CRM_Grassrootspetition_ExtensionUtil as E;
@@ -159,7 +160,10 @@ class GrassrootsPetition extends InlayType {
         'publicData' => 'processGetPublicDataRequest',
       ],
       'POST' => [
-        'submitSignature' => 'processSubmitSignatureRequest',
+        'submitSignature'   => 'processSubmitSignatureRequest',
+        'adminAuthEmail'    => 'processAdminAuthEmail',
+        'adminSessionToken' => 'processAdminSessionToken',
+        'adminPetitionsList' => 'processAdminPetitionsList',
       ]
     ];
     $method = $routes[$request->getMethod()][$request->getBody()['need'] ?? ''] ?? NULL;
@@ -360,15 +364,16 @@ class GrassrootsPetition extends InlayType {
    * - grpet_location
    * - grpet_campaign
    * - grpet_slug
-   * - grpet_sig_public
-   * - grpet_sig_shared
    * - grpet_what
    * - grpet_why
+   * - grpet_sig_public
+   * - grpet_sig_shared
+   * - grpet_sig_optin
    *
    * @param NULL|string
    * @return array|string
    */
-  public function getCustomFields($field = NULL) {
+  public static function getCustomFields($field = NULL) {
     if (!isset(static::$customFieldsMap)) {
       // Look up the custom field IDs we need.
       $customFields = \Civi\Api4\CustomField::get(FALSE)
@@ -461,6 +466,94 @@ class GrassrootsPetition extends InlayType {
     return '';
   }
 
+  /**
+   * Email submitted to obtain a one-time login link.
+   */
+  protected function processAdminAuthEmail(ApiRequest $request) {
+    $body = $request->getBody();
+    if (empty($body['email']) || !filter_var($body['email'], FILTER_VALIDATE_EMAIL)) {
+      return [
+        'publicError' => 'Invalid email',
+      ];
+    }
+
+    // Look up email, and whether they have any petitions.
+    new CaseWrapper();
+    $cases = CaseWrapper::getPetitionsOwnedByEmail($body['email']);
+    \Civi::log()->info("Got " . json_encode(['email' => $body['email'], 'cases' =>$cases]));
+    if (!$cases) {
+      // Don’t give away anything.
+      return ['success' => 1];
+    }
+    // Create contact hash, send auth email.
+
+    // @todo for testing, we output this to the browser ! we should email it.
+    // valid for 1 hour.
+    $hash = Auth::createAuthRecord($cases[0]['contactID'], 60*60);
+
+    return ['success' => 1,
+      'test' => $hash
+    ];
+  }
+
+  /**
+   * Check the auth hash given, and respond by setting a cookie.
+   */
+  protected function processAdminSessionToken(ApiRequest $request) {
+    $authHash = $request->getBody()['authHash'] ?? '';
+    $contactID = Auth::checkAuthRecord($authHash);
+    if (!$contactID) {
+      throw new \Civi\Inlay\ApiException(401, ['error' => 'Invalid authentication data']);
+    }
+
+    // OK, that worked. Swap it for a longer-lived token (24 hrs)
+    $token = Auth::createAuthRecord($contactID, 60*60*24);
+    setcookie('grpetToken', $token, $options = [
+      'expires'  => time() + 60*60*24,
+      'secure'   => TRUE,
+      'httponly' => TRUE,
+    ]);
+    // @todo remove original record?
+
+    return ['success' => 1];
+  }
+
+  /**
+   * List petitions for the contact.
+   */
+  protected function processAdminPetitionsList(ApiRequest $request) {
+    $contactID = $this->checkAuthenticated($request);
+
+    $cases = CaseWrapper::getPetitionsOwnedByContact($contactID);
+
+    // Summarise the cases
+    $list = [];
+    foreach ($cases as $case) {
+      $list[] = [
+        'id'             => $case->getID(),
+        'title'          => $case->getPetitionTitle(),
+        'status'         => $case->getCaseStatus(),
+        'location'       => $case->getCustomData('grpet_location'),
+        'slug'           => $case->getCustomData('grpet_slug'),
+        'targetCount'    => $this->getCustomData('grpet_target_count'),
+        'targetName'     => $this->getCustomData('grpet_target_name'),
+        'campaign'       => $this->getCampaignPublicName(),
+        'signatureCount' => $this->getPetitionSigsCount(),
+      ];
+    }
+
+    return ['success' => 1, 'petitions' => $list];
+  }
+  /**
+   * Returns the authenticated contactID, or throws a 401 ApiException
+   */
+  protected function checkAuthenticated(ApiRequest $request) :int {
+    $contactID = Auth::checkAuthRecord($_COOKIE['grpetToken'] ?? '');
+    if (!$contactID) {
+      throw new \Civi\Inlay\ApiException(401, ['error' => 'Unauthorised']);
+    }
+    return $contactID;
+  }
 
   /**
    * Has the given contact signed this petition already?

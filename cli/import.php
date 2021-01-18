@@ -219,15 +219,18 @@ class Importer {
 
     // Import: people should be in db already, so just use name, email.
     // - comments. Can't import these yet. xx todo add structure.
-    $sigs = CRM_Core_DAO::executeQuery("SELECT email, first_name, last_name, s.created_at, source, c.text
+    $sigs = CRM_Core_DAO::executeQuery("SELECT email, first_name, last_name, s.created_at, s.source,
+        s.email_opt_in_type_id IS NOT NULL `optin`,
+        c.text comment
       FROM csl.signatures s
       LEFT JOIN csl.comments c ON c.signature_id = s.id AND c.approved = 't'
       WHERE petition_id = $petitionID");
 
     $done = 0;
     $start = time();
+    // First report after 2s.
+    $lastReport = $start - (10-2);
 
-    $signedActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition signed']['value'];
     while ($sigs->fetch()) {
 
       // Find contact.
@@ -237,35 +240,39 @@ class Importer {
         'email'      => $sigs->email,
       ])['id'];
 
+      // Add signed activity
       $petitionCase->addSignedPetitionActivity($contactID, [
-        'location' => $sigs->source,
-// xxx
+        'location'           => $sigs->source,
+        'optin'              => s.optin ? 'yes' : 'no',
+        'comment'            => $sigs->comment,
+        'activity_date_time' => $sigs->created_at,
       ]);
 
+      // Progress.
       $done++;
-      if ($done % 100) {
+
+      if ((time() - $lastReport) > 10) {
+        $lastReport = time();
         $rate = (time() - $start) / $done;
-        $est = ($total - $done) * rate;
+        $est = ($total - $done) * $rate;
         $h = [];
         if ($est > 60*60) {
           $_ = floor($est/60/60);
           $h[] = $_ . " hours";
-          $est -= $_;
+          $est -= $_ * 60 * 60;
         }
         if ($est > 60) {
           $_ = floor($est/60);
           $h[] = $_ . " mins";
-          $est -= $_;
+          $est -= $_ * 60;
         }
         if ($est > 0) {
           $h[] = ((int) $est) . "s";
         }
         $h = implode(', ', $h);
-        print "Done $done/$todo (" . round($done*100/$todo, 1) . '%) Est ' . $h . " to go. (Rate: " . round($rate,3) . "s per record)\n";
+        print "Done $done/$total (" . round($done*100/$total, 1) . '%) Est ' . $h . " to go. (Rate: " . round($rate,3) . "s per record)\n";
       }
     }
-
-
 
   }
   public function log($msg, $obj='object not provided') {

@@ -25,6 +25,7 @@
       <div class="petition-form">
         <ometer :count="publicData.signatureCount"
            :target="publicData.targetCount"
+           :stretch-target="stretchTarget"
            stmt="Signatures"></ometer>
 
         <div v-if="acceptingSignatures && stage === 'form'">
@@ -247,6 +248,24 @@ export default {
     return d;
   },
   computed: {
+    stretchTarget() {
+      if (this.publicData.signatureCount > this.publicData.targetCount) {
+        // We need to do a stretch target.
+
+        var m = (this.publicData.signatureCount > 10000)
+          ? 10000
+          : ((this.publicData.signatureCount > 1000)
+            ? 1000
+            : 100);
+        return Math.floor((this.publicData.signatureCount / 0.75) / m) * m;
+      }
+      else {
+        return this.publicData.targetCount;
+      }
+    },
+    isStretchTarget() {
+      return (this.publicData.signatureCount > this.publicData.targetCount);
+    },
     showTheForm() {
       return ['form', 'thanksShareAsk', 'thanksDonateAsk'].includes(this.stage);
     },

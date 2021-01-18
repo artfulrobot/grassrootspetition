@@ -5,12 +5,15 @@
     </div>
     <span class="ipetometer__bignum">{{ count.toLocaleString() }}</span>
     <span class="ipetometer__words">{{stmt}}</span>
-    <span class="ipetometer__target">Target {{target}}</span>
+    <span class="ipetometer__target">
+      <span v-show="stretchTarget && stretchTarget > target" class="stretch">Original target ({{target.toLocaleString()}}) exceeded! Let’s go for {{stretchTarget.toLocaleString()}}</span>
+      <span v-show="!stretchTarget || stretchTarget < target" class="original">Target {{target.toLocaleString()}}</span>
+    </span>
   </div>
 </template>
 <script>
 export default {
-  props: ['count', 'stmt', 'target'],
+  props: ['count', 'stmt', 'target', 'stretchTarget'],
   data() {
     return {
       animStart: false,
@@ -24,8 +27,9 @@ export default {
     barStyle() {
       var s = this.step;
       s = s*s;
+      var t = (this.stretchTarget && this.stretchTarget>this.target) ? this.stretchTarget : this.target;
       return {
-        width: (s * this.count / this.target * 100) + '%'
+        width: (s * this.count / t * 100) + '%'
       };
     },
   },

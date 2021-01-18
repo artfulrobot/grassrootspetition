@@ -41,8 +41,7 @@ class CaseWrapper {
    * @return CaseWrapper
    */
   public static function fromSlug(string $slug) :?CaseWrapper {
-    $inlay = new GrassrootsPetition();
-    $params = [ $inlay->getCustomFields('grpet_slug') => $slug, 'sequential' => 1 ];
+    $params = [ GrassrootsPetition::getCustomFields('grpet_slug') => $slug, 'sequential' => 1 ];
     $cases = civicrm_api3('Case', 'get', $params);
     if ($cases['count'] == 1) {
       $case = new static();
@@ -130,13 +129,12 @@ class CaseWrapper {
     $slug .= ($maxN ? "-$maxN" : '');
 
     // Create the case.
-    $inlay = new GrassrootsPetition();
-    $campaignApiField = $inlay->getCustomFields('grpet_campaign');
-    $locationApiField = $inlay->getCustomFields('grpet_location');
-    $targetNameApiField = $inlay->getCustomFields('grpet_target_name');
-    $targetCountApiField = $inlay->getCustomFields('grpet_target_count');
-    $slugApiField = $inlay->getCustomFields('grpet_slug');
-    $whoApiField = $inlay->getCustomFields('grpet_who');
+    $campaignApiField = GrassrootsPetition::getCustomFields('grpet_campaign');
+    $locationApiField = GrassrootsPetition::getCustomFields('grpet_location');
+    $targetNameApiField = GrassrootsPetition::getCustomFields('grpet_target_name');
+    $targetCountApiField = GrassrootsPetition::getCustomFields('grpet_target_count');
+    $slugApiField = GrassrootsPetition::getCustomFields('grpet_slug');
+    $whoApiField = GrassrootsPetition::getCustomFields('grpet_who');
 
     $caseParams = [
       'contact_id'         => $contactID,
@@ -168,6 +166,35 @@ class CaseWrapper {
     return static::$caseTypeID;
   }
 
+  /**
+   * Return an array of arrays with contactID and caseID that were created by the contact with the given email.
+   */
+  public static function getPetitionsOwnedByEmail(string $email) :?array {
+    $activityTypeID = (int) static::$activityTypesByName['Grassroots Petition created']['value'];
+    $sql = "
+      SELECT e.contact_id contactID, cs.id caseID
+      FROM civicrm_email e
+      INNER JOIN civicrm_contact c ON e.contact_id = c.id AND c.is_deceased = 0 AND c.is_deleted = 0
+      INNER JOIN civicrm_activity_contact ac ON ac.contact_id = e.contact_id AND ac.record_type_id = 3 /* Target */
+      INNER JOIN civicrm_activity a ON ac.activity_id = a.id AND a.is_deleted = 0 AND a.activity_type_id = $activityTypeID
+      INNER JOIN civicrm_case_activity ca ON ca.activity_id = ac.activity_id
+      INNER JOIN civicrm_case cs ON cs.id = ca.case_id AND cs.is_deleted = 0
+      WHERE e.email = %1 AND e.on_hold = 0";
+    return CRM_Core_DAO::executeQuery($sql, [1 => [$email, 'String']])->fetchAll();
+  }
+  /**
+   * Return an array CaseWrapper objects for the given contact.
+   */
+  public static function getPetitionsOwnedByContact(int $contactID) :array {
+    $result = civicrm_api3('Case', 'get', ['contact_id' => $contactID])['values'] ?? [];
+    $cases = [];
+    foreach ($result as $caseData) {
+      $case = new static();
+      $case->loadFromArray($caseData);
+      $cases[] = $case;
+    }
+    return $cases;
+  }
   public function __construct() {
     static::getCaseTypeID();
 
@@ -278,7 +305,7 @@ class CaseWrapper {
    */
   public function getCustomData(string $field) {
     $inlay = new GrassrootsPetition();
-    return $this->case[$inlay->getCustomFields($field)] ?? NULL;
+    return $this->case[GrassrootsPetition::getCustomFields($field)] ?? NULL;
   }
 
   /**
@@ -466,12 +493,11 @@ class CaseWrapper {
    */
   public function setCustomData(array $fieldnameToValue) :CaseWrapper {
     $this->mustBeLoaded();
-    $inlay = new GrassrootsPetition();
     $params = [
       'id' => $this->case['id'],
     ];
     foreach ($fieldnameToValue as $field => $value) {
-      $apiName = $inlay->getCustomFields($field);
+      $apiName = GrassrootsPetition::getCustomFields($field);
       $params[$apiName] = $value;
       // update cache.
       $this->case[$apiName] = $value;
@@ -483,10 +509,21 @@ class CaseWrapper {
   /**
    * Add a signed petition activity to the case for the given contact.
    *
+   * Nb we assume some validation/filtering has been done on the input.
+   *
+   * @param int $contactID
+   * @param array $data containing these keys:
+   *   - location       The URL of the page the petition was on, inc. query and hash
+   *   - optin          If 'yes' record they opted in to updates.
+   *                    Nb. storing here is duplication for the convenience of reporting.
+   *   - comment        Public comment
+   *   - activity_date_time (optional)
+   *
    * @return int Activity ID created.
    */
   public function addSignedPetitionActivity(int $contactID, array $data) :int {
 
+    $optin = GrassrootsPetition::getCustomFields('grpet_sig_optin');
     $activityCreateParams = [
       'activity_type_id'     => static::$activityTypesByName['Grassroots Petition signed']['value'],
       'target_id'            => $contactID,
@@ -495,10 +532,18 @@ class CaseWrapper {
       'status_id'            => 'Completed',
       'case_id'              => $this->case['id'],
       'location'             => $data['location'],
-      // xxx move this to custom field.
-      'details'              => ($data['optin'] === 'yes') ? '<p>Opted in to updates</p>' : '<p>Did not opt in</p>',
+      $optin                 => ($data['optin'] === 'yes') ? 1 : 0,
     ];
+    if (!empty($data['activity_date_time'])) {
+      $activityCreateParams['activity_date_time'] = $data['activity_date_time'];
+    }
+    if (!empty($data['comment'])) {
+      $activityCreateParams['details'] = $data['comment'];
+    }
+
     $result = civicrm_api3('Activity', 'create', $activityCreateParams);
+
+    // @todo moderation?
 
     return (int) $result['id'];
   }

@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import InlayGrassrootsPetition from './InlayGrassrootsPetition.vue';
+import InlayGrassrootsPetitionAdmin from './InlayGrassrootsPetitionAdmin.vue';
 
 (() => {
   if (!window.inlayGrpetInit) {
@@ -8,9 +9,21 @@ import InlayGrassrootsPetition from './InlayGrassrootsPetition.vue';
 
     // Create the boot function.
     window.inlayGrpetInit = inlay => {
-      console.log("boooooooooting", inlay);
       const inlayNode = document.createElement('div');
       inlay.script.insertAdjacentElement('afterend', inlayNode);
+
+      // We need to choose the UX we offer based on the URL.
+      // Supported URLs are:
+      // /petitions/<slug>
+      // /petition-admin/
+      var path = window.location.pathname;
+      // Default ux is the public petition.
+      var ux = InlayGrassrootsPetition;
+      // Check for public petition page.
+      if (path === '/petitions-admin') {
+        ux = InlayGrassrootsPetitionAdmin;
+      }
+
       /* eslint no-unused-vars: 0 */
       const app = new Vue({
         el: inlayNode,
@@ -22,7 +35,7 @@ import InlayGrassrootsPetition from './InlayGrassrootsPetition.vue';
           };
           return d;
         },
-        render: h => h(InlayGrassrootsPetition, {props: {inlay}}),
+        render: h => h(ux, {props: {inlay}}),
         methods: {
           // Generate a unique ID.
           getNextId() {
