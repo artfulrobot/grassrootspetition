@@ -308,6 +308,20 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     // (originally stored as case details, but there's no UI for that field, which begins as a copy of the open case activity)
     // Decided it was simpler to just put it on a custom field
 
+    $x=1;
+    $baseParams = [
+      'custom_group_id' => $customGroupIDPetition,
+      'name'            => "grpet_who",
+    ];
+    $allParams = [
+      'column_name'     => "who",
+      'label'           => "Who is running this petition?",
+      'data_type'       => "String",
+      'html_type'       => "Text",
+      'is_required'     => 1,
+    ];
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
+
     $baseParams = [
       'custom_group_id' => $customGroupIDPetition,
       'name'            => "grpet_why",

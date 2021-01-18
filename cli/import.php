@@ -1,4 +1,6 @@
 <?php
+use Symfony\Component\Console\Helper\ProgressBar;
+
 
 use CRM_Grassrootspetition_ExtensionUtil as E;
 use Civi\Api4\GrassrootsPetitionCampaign;
@@ -116,6 +118,7 @@ class Importer {
         $campaign['label'],
         $petition->venue, // location
         $petition->targetName,
+        $petition->who,
         $slug
       );
       $this->log("Created petition {$petitionCase->getID()} from $slug");
@@ -127,10 +130,8 @@ class Importer {
       ]);
       $petitionCase->setStatus('Open');
 
-      // public name of who created petition todo
-
-
-      // $this->migrateSignatures($petitionID);
+      $this->importImage($petition, $petitionCase);
+      $this->migrateSignatures((int) $petition->id, $petitionCase);
       break;
     }
   }
@@ -141,6 +142,41 @@ class Importer {
       $this->ensureCampaign((int) ($efforts->id), $efforts);
     }
   }
+  public function importImage(CRM_Core_DAO $petition, CaseWrapper $petitionCase) {
+    if (!$petition->image_file_name && $petition->image_file_size > 10240) {
+      return;
+    }
+    // image_file_name:                                                        Sheffield-Barclays-Boycott-640x400.jpg
+    // https://d8s293fyljwh4.cloudfront.net/petitions/images/202824/horizontal/Sheffield-Barclays-Boycott-640x400.jpg?1504786097
+    //                                                       petID
+    // https://d8s293fyljwh4.cloudfront.net/petitions/images/202824/original/Sheffield-Barclays-Boycott-640x400.jpg
+    // OK try to load image.
+    $imageUrl = "https://d8s293fyljwh4.cloudfront.net/petitions/images/$petition->id/original/$petition->image_file_name";
+
+    $imageContent = file_get_contents($imageUrl);
+    if (!$imageContent) {
+      $this->log("Failed to load image $imageUrl");
+      return;
+    }
+    // Got image.
+
+    // The image is stored on the grpet creted activity.
+    $activity = $petitionCase->getPetitionCreatedActivity();
+
+    // Create an attachment for a core field
+    $result = civicrm_api3('Attachment', 'create', array(
+      'entity_table' => 'civicrm_activity',
+      'entity_id'    => $activity['id'],
+      'name'         => $petition->image_file_name,
+      'mime_type'    => 'image/jpeg',
+      'content'      => $imageContent,
+    ));
+    $attachment = $result['values'][$result['id']];
+    $this->log("Imported image $petition->image_file_name as '$attachment[name]': " . $attachment['url']  . "\n");
+  }
+  /**
+   * Import 'efforts' as 'campaigns'
+   */
   public function ensureCampaign(int $effortID, ?CRM_Core_DAO $effort=NULL) :array {
     if (!isset(static::$effortsToCampaignID[$effortID])) {
       $this->log("Failed to find effort $effortID");
@@ -173,11 +209,63 @@ class Importer {
     return static::$effortsToCampaignID[$effortID];
   }
 
-  public function migratePetitionDefinition(string $slug, int $campaignID, bool $isActive) :int {
-    // Load petition.
+  public function migrateSignatures(int $petitionID, CaseWrapper $petitionCase) {
+    // We need to create one activity per signer, but we need to make sure it's not already imported.
 
-  }
-  public function migrateSignatures(int $petitionID) {
+    // 1. failsafe: count all exising webhook signatures.
+
+    // This will be really slow.
+    $total = CRM_Core_DAO::singleValueQuery("SELECT COUNT(*) FROM csl.signatures WHERE petition_id = $petitionID");
+
+    // Import: people should be in db already, so just use name, email.
+    // - comments. Can't import these yet. xx todo add structure.
+    $sigs = CRM_Core_DAO::executeQuery("SELECT email, first_name, last_name, s.created_at, source, c.text
+      FROM csl.signatures s
+      LEFT JOIN csl.comments c ON c.signature_id = s.id AND c.approved = 't'
+      WHERE petition_id = $petitionID");
+
+    $done = 0;
+    $start = time();
+
+    $signedActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition signed']['value'];
+    while ($sigs->fetch()) {
+
+      // Find contact.
+      $contactID = (int) civicrm_api3('Contact', 'getorcreate', [
+        'first_name' => $sigs->first_name,
+        'last_name'  => $sigs->last_name,
+        'email'      => $sigs->email,
+      ])['id'];
+
+      $petitionCase->addSignedPetitionActivity($contactID, [
+        'location' => $sigs->source,
+// xxx
+      ]);
+
+      $done++;
+      if ($done % 100) {
+        $rate = (time() - $start) / $done;
+        $est = ($total - $done) * rate;
+        $h = [];
+        if ($est > 60*60) {
+          $_ = floor($est/60/60);
+          $h[] = $_ . " hours";
+          $est -= $_;
+        }
+        if ($est > 60) {
+          $_ = floor($est/60);
+          $h[] = $_ . " mins";
+          $est -= $_;
+        }
+        if ($est > 0) {
+          $h[] = ((int) $est) . "s";
+        }
+        $h = implode(', ', $h);
+        print "Done $done/$todo (" . round($done*100/$todo, 1) . '%) Est ' . $h . " to go. (Rate: " . round($rate,3) . "s per record)\n";
+      }
+    }
+
+
 
   }
   public function log($msg, $obj='object not provided') {

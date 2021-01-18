@@ -19,6 +19,8 @@
 
         <div class="petition-why" v-html="publicData.petitionWhyHTML"></div>
         <div class="petition-what" v-html="publicData.petitionWhatHTML"></div>
+        <div class="petition-who" >Organisers: <em>{{publicData.organiser}}</em>.</div>
+
       </div>
       <div class="petition-form">
         <ometer :count="publicData.signatureCount"
@@ -213,6 +215,9 @@
   }
   .petition-what {
     font-weight: bold;
+    padding-bottom: 2rem;
+  }
+  .petition-who {
   }
 }
 </style>

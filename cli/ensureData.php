@@ -12,7 +12,7 @@ if (php_sapi_name() !== 'cli') {
 }
 
 $u = new CRM_Grassrootspetition_Upgrader(E::SHORT_NAME, E::path());
-//$u->ensureDataStructuresExist();
+$u->ensureDataStructuresExist();
 
 // Create demo campaign
 $campaignID = Civi\Api4\GrassrootsPetitionCampaign::get(FALSE)
@@ -39,7 +39,14 @@ $new = CaseWrapper::fromSlug('foo');
 if (!$new) {
   $contactID = 8685;
   $new = CaseWrapper::createNew(
-    $contactID, 'Demo campaign', 'Fossil free: divestment', 'Somewhere', 'The power holder', 'foo');
+    $contactID,
+    'Demo campaign', /*title*/
+    'Fossil free: divestment', /*capaign*/
+    'Somewhere', /*location*/
+    'The power holder', /*targetName*/
+    'Some local group', /*who*/
+    'foo' /*slug*/
+  );
 
   print "Created case " . $new->getID() . " " . $new->getCustomData('grpet_slug') . "\n";
 

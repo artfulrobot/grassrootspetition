@@ -88,6 +88,7 @@ class CaseWrapper {
     string $campaignLabel,
     string $location,
     string $targetName,
+    string $who,
     ?string $slug
   ) :?CaseWrapper {
 
@@ -135,6 +136,7 @@ class CaseWrapper {
     $targetNameApiField = $inlay->getCustomFields('grpet_target_name');
     $targetCountApiField = $inlay->getCustomFields('grpet_target_count');
     $slugApiField = $inlay->getCustomFields('grpet_slug');
+    $whoApiField = $inlay->getCustomFields('grpet_who');
 
     $caseParams = [
       'contact_id'         => $contactID,
@@ -147,6 +149,7 @@ class CaseWrapper {
       $locationApiField    => $location,
       $targetNameApiField  => $targetName,
       $targetCountApiField => 100,
+      $whoApiField         => $who,
       $slugApiField        => $slug,
     ];
     print "Create case with: " . json_encode($caseParams, JSON_PRETTY_PRINT) . "\n";
@@ -249,6 +252,7 @@ class CaseWrapper {
       'targetName'       => $this->getCustomData('grpet_target_name'),
       'tweet'            => $this->getCustomData('grpet_tweet_text'),
       'petitionTitle'    => $this->getPetitionTitle(),
+      'organiser'        => $this->getCustomData('grpet_who'),
       'petitionWhatHTML' => $this->getWhat(), // html?
       'petitionWhyHTML'  => $this->getWhy(),
       'campaign'         => $this->getCampaignPublicName(),
@@ -451,6 +455,11 @@ class CaseWrapper {
    */
   public function setWhat(string $value) :CaseWrapper {
     return $this->setCustomData(['grpet_what' => $value]);
+  }
+  /**
+   */
+  public function setWho(string $value) :CaseWrapper {
+    return $this->setCustomData(['grpet_who' => $value]);
   }
   /**
    * Set value of custom fields
