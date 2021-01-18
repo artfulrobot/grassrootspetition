@@ -497,7 +497,7 @@ class GrassrootsPetition extends InlayType {
   }
 
   /**
-   * Check the auth hash given, and respond by setting a cookie.
+   * Check the auth hash given, and respond with a session token.
    */
   protected function processAdminSessionToken(ApiRequest $request) {
     $authHash = $request->getBody()['authHash'] ?? '';
@@ -508,14 +508,9 @@ class GrassrootsPetition extends InlayType {
 
     // OK, that worked. Swap it for a longer-lived token (24 hrs)
     $token = Auth::createAuthRecord($contactID, 60*60*24);
-    setcookie('grpetToken', $token, $options = [
-      'expires'  => time() + 60*60*24,
-      'secure'   => TRUE,
-      'httponly' => TRUE,
-    ]);
-    // @todo remove original record?
+    // @todo remove original record? Let it rot, should only last a short while.
 
-    return ['success' => 1];
+    return ['success' => 1, 'token' => $token];
   }
 
   /**
@@ -535,10 +530,10 @@ class GrassrootsPetition extends InlayType {
         'status'         => $case->getCaseStatus(),
         'location'       => $case->getCustomData('grpet_location'),
         'slug'           => $case->getCustomData('grpet_slug'),
-        'targetCount'    => $this->getCustomData('grpet_target_count'),
-        'targetName'     => $this->getCustomData('grpet_target_name'),
-        'campaign'       => $this->getCampaignPublicName(),
-        'signatureCount' => $this->getPetitionSigsCount(),
+        'targetCount'    => $case->getCustomData('grpet_target_count'),
+        'targetName'     => $case->getCustomData('grpet_target_name'),
+        'campaign'       => $case->getCampaignPublicName(),
+        'signatureCount' => $case->getPetitionSigsCount(),
       ];
     }
 
@@ -548,7 +543,7 @@ class GrassrootsPetition extends InlayType {
    * Returns the authenticated contactID, or throws a 401 ApiException
    */
   protected function checkAuthenticated(ApiRequest $request) :int {
-    $contactID = Auth::checkAuthRecord($_COOKIE['grpetToken'] ?? '');
+    $contactID = Auth::checkAuthRecord($request->getBody()['authToken'] ?? '');
     if (!$contactID) {
       throw new \Civi\Inlay\ApiException(401, ['error' => 'Unauthorised']);
     }

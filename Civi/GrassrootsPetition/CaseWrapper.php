@@ -186,7 +186,10 @@ class CaseWrapper {
    * Return an array CaseWrapper objects for the given contact.
    */
   public static function getPetitionsOwnedByContact(int $contactID) :array {
-    $result = civicrm_api3('Case', 'get', ['contact_id' => $contactID])['values'] ?? [];
+    $result = civicrm_api3('Case', 'get', [
+      'contact_id'   => $contactID,
+      'case_type_id' => 'grassrootspetition',
+    ])['values'] ?? [];
     $cases = [];
     foreach ($result as $caseData) {
       $case = new static();

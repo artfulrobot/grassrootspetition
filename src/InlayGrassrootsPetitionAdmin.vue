@@ -29,6 +29,15 @@
       <p>Thanks, check your inbox for an email from us which contains a link to let you in.</p>
       <p>(If you can't find it, check your spam/junk folder! And if you find it in there, be sure to click the Not Spam button so it doesn't happen with other emails from us.)</p>
     </div>
+    <div v-if="stage === 'listPetitions'" class="grpet-list" >
+      <h2>Your petitions</h2>
+      <ul class="petition">
+        <li v-for="petition in petitions" :key="petition.id">
+          <p><a :href="'/petitions/' + petition.slug" target="_blank" rel="noopener" >{{ petition.title }}</a></p>
+          <p>{{petition.signatureCount}} / {{petition.targetCount}}</p>
+        </li>
+      </ul>
+    </div>
 
     <div v-show="stage === 'loadingError'" class="grpet-error" >{{loadingError}}</div>
 
@@ -60,6 +69,9 @@ export default {
       loadingMessage: 'Loading...',
 
       authEmail: '',
+      authToken: '',
+
+      petitions: [],
     };
     return d;
   },
@@ -67,22 +79,28 @@ export default {
   },
   mounted() {
     // Are we authenticated?
+    if (this.authToken) {
+      // Assume so.
+      this.bootList();
+      return;
+    }
 
     // Look for an auth hash as the fragment.
     var authHash = (window.location.hash || '#').substr(1);
 
-
     if (authHash.match(/^[0-9a-z]{16}$/)) {
       // Found a hash. Try to authenticate.
-      // Remove hash from browser history(?)
-      window.location.hash = '';
       this.inlay.request({method: 'post', body: { need: 'adminSessionToken', authHash }})
-        .then(r => { if (r.success) { this.bootList(); } })
+        .then(r => {
+          if (r.success) {
+            this.authToken = r.token;
+            this.bootList();
+          }})
         .catch(e => { this.stage = 'unauthorised'; return; });
     }
     else {
       // There's no hash. Perhaps we're already authorised.
-      this.bootList();
+      this.stage = 'unauthorised';;
     }
   },
   methods: {
@@ -91,7 +109,7 @@ export default {
       this.loadingMessage = "Loading petitions...";
       this.petitions = [];
       // @todo send request to load petitions.
-      this.inlay.request({method: 'post', body: { need: 'adminPetitionsList' }})
+      this.inlay.request({method: 'post', body: { need: 'adminPetitionsList', authToken: this.authToken }})
         .then(r => {
           if (r.petitions) {
             this.petitions = r.petitions;

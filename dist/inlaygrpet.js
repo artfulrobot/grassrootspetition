@@ -557,6 +557,15 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
@@ -569,7 +578,9 @@ __webpack_require__.r(__webpack_exports__);
       myId: this.$root.getNextId(),
       loadingError: 'There was an error loading this petition, please get in touch.',
       loadingMessage: 'Loading...',
-      authEmail: ''
+      authEmail: '',
+      authToken: '',
+      petitions: []
     };
     return d;
   },
@@ -578,13 +589,17 @@ __webpack_require__.r(__webpack_exports__);
     var _this = this;
 
     // Are we authenticated?
-    // Look for an auth hash as the fragment.
+    if (this.authToken) {
+      // Assume so.
+      this.bootList();
+      return;
+    } // Look for an auth hash as the fragment.
+
+
     var authHash = (window.location.hash || '#').substr(1);
 
     if (authHash.match(/^[0-9a-z]{16}$/)) {
       // Found a hash. Try to authenticate.
-      // Remove hash from browser history(?)
-      window.location.hash = '';
       this.inlay.request({
         method: 'post',
         body: {
@@ -593,6 +608,8 @@ __webpack_require__.r(__webpack_exports__);
         }
       }).then(function (r) {
         if (r.success) {
+          _this.authToken = r.token;
+
           _this.bootList();
         }
       })["catch"](function (e) {
@@ -601,7 +618,8 @@ __webpack_require__.r(__webpack_exports__);
       });
     } else {
       // There's no hash. Perhaps we're already authorised.
-      this.bootList();
+      this.stage = 'unauthorised';
+      ;
     }
   },
   methods: {
@@ -615,7 +633,8 @@ __webpack_require__.r(__webpack_exports__);
       this.inlay.request({
         method: 'post',
         body: {
-          need: 'adminPetitionsList'
+          need: 'adminPetitionsList',
+          authToken: this.authToken
         }
       }).then(function (r) {
         if (r.petitions) {
@@ -2911,6 +2930,43 @@ var render = function() {
           ])
         ]
       ),
+      _vm._v(" "),
+      _vm.stage === "listPetitions"
+        ? _c("div", { staticClass: "grpet-list" }, [
+            _c("h2", [_vm._v("Your petitions")]),
+            _vm._v(" "),
+            _c(
+              "ul",
+              { staticClass: "petition" },
+              _vm._l(_vm.petitions, function(petition) {
+                return _c("li", { key: petition.id }, [
+                  _c("p", [
+                    _c(
+                      "a",
+                      {
+                        attrs: {
+                          href: "/petitions/" + petition.slug,
+                          target: "_blank",
+                          rel: "noopener"
+                        }
+                      },
+                      [_vm._v(_vm._s(petition.title))]
+                    )
+                  ]),
+                  _vm._v(" "),
+                  _c("p", [
+                    _vm._v(
+                      _vm._s(petition.signatureCount) +
+                        " / " +
+                        _vm._s(petition.targetCount)
+                    )
+                  ])
+                ])
+              }),
+              0
+            )
+          ])
+        : _vm._e(),
       _vm._v(" "),
       _c(
         "div",
