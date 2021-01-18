@@ -162,7 +162,6 @@ class GrassrootsPetition extends InlayType {
       'POST' => [
         'submitSignature'   => 'processSubmitSignatureRequest',
         'adminAuthEmail'    => 'processAdminAuthEmail',
-        'adminSessionToken' => 'processAdminSessionToken',
         'adminPetitionsList' => 'processAdminPetitionsList',
       ]
     ];
@@ -497,27 +496,11 @@ class GrassrootsPetition extends InlayType {
   }
 
   /**
-   * Check the auth hash given, and respond with a session token.
-   */
-  protected function processAdminSessionToken(ApiRequest $request) {
-    $authHash = $request->getBody()['authHash'] ?? '';
-    $contactID = Auth::checkAuthRecord($authHash);
-    if (!$contactID) {
-      throw new \Civi\Inlay\ApiException(401, ['error' => 'Invalid authentication data']);
-    }
-
-    // OK, that worked. Swap it for a longer-lived token (24 hrs)
-    $token = Auth::createAuthRecord($contactID, 60*60*24);
-    // @todo remove original record? Let it rot, should only last a short while.
-
-    return ['success' => 1, 'token' => $token];
-  }
-
-  /**
    * List petitions for the contact.
    */
   protected function processAdminPetitionsList(ApiRequest $request) {
-    $contactID = $this->checkAuthenticated($request);
+    $response = [];
+    $contactID = $this->checkAuthenticated($request, $response);
 
     $cases = CaseWrapper::getPetitionsOwnedByContact($contactID);
 
@@ -537,17 +520,20 @@ class GrassrootsPetition extends InlayType {
       ];
     }
 
-    return ['success' => 1, 'petitions' => $list];
+    return $response + ['success' => 1, 'petitions' => $list];
   }
   /**
    * Returns the authenticated contactID, or throws a 401 ApiException
    */
-  protected function checkAuthenticated(ApiRequest $request) :int {
-    $contactID = Auth::checkAuthRecord($request->getBody()['authToken'] ?? '');
-    if (!$contactID) {
+  protected function checkAuthenticated(ApiRequest $request, array &$response) :int {
+    $result = Auth::checkAuthRecord($request->getBody()['authToken'] ?? '');
+    if (!$result['contactID']) {
       throw new \Civi\Inlay\ApiException(401, ['error' => 'Unauthorised']);
     }
-    return $contactID;
+    if (!empty($result['token'])) {
+      $response['token'] = $result['token'];
+    }
+    return $result['contactID'];
   }
 
   /**

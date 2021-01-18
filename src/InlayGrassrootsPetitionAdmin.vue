@@ -78,38 +78,38 @@ export default {
   computed: {
   },
   mounted() {
-    // Are we authenticated?
-    if (this.authToken) {
-      // Assume so.
-      this.bootList();
-      return;
-    }
-
-    // Look for an auth hash as the fragment.
-    var authHash = (window.location.hash || '#').substr(1);
-
-    if (authHash.match(/^[0-9a-z]{16}$/)) {
-      // Found a hash. Try to authenticate.
-      this.inlay.request({method: 'post', body: { need: 'adminSessionToken', authHash }})
-        .then(r => {
-          if (r.success) {
-            this.authToken = r.token;
-            this.bootList();
-          }})
-        .catch(e => { this.stage = 'unauthorised'; return; });
-    }
-    else {
-      // There's no hash. Perhaps we're already authorised.
-      this.stage = 'unauthorised';;
-    }
+    this.bootList();
   },
   methods: {
+    authorisedRequest(opts) {
+      if (this.authToken) {
+        opts.body.authToken = this.authToken;
+      }
+      else {
+        // App has no auth token.
+        var authHash = (window.location.hash || '#').substr(1);
+        if (authHash.match(/^[0-9a-z]{16}$/)) {
+          opts.body.authToken = authHash;
+        }
+        else {
+          this.stage = 'unauthorised';
+          return;
+        }
+      }
+      return this.inlay.request(opts).then(r => {
+        if (r.token) {
+          // Store updated token.
+          this.authToken = r.token;
+        }
+        return r;
+      });
+    },
     bootList() {
       this.stage = 'loading';
       this.loadingMessage = "Loading petitions...";
       this.petitions = [];
       // @todo send request to load petitions.
-      this.inlay.request({method: 'post', body: { need: 'adminPetitionsList', authToken: this.authToken }})
+      this.authorisedRequest({method: 'post', body: {need: 'adminPetitionsList'}})
         .then(r => {
           if (r.petitions) {
             this.petitions = r.petitions;

@@ -24,13 +24,14 @@ class Auth {
     return $hash;
   }
   /**
-   * Return the contactID identified by the given hash, or NULL.
+   * Return the contactID identified by the given hash, and possibly a new token.
    */
-  public static function checkAuthRecord($hash) :?int {
+  public static function checkAuthRecord($hash) :array {
 
+    $return =[ 'contactID' => NULL];
     if (!preg_match('/^[0-9a-z]{16}$/', $hash)) {
       // Invalid syntax, don't bother with db lookup.
-      return NULL;
+      return $return;
     }
     // First purge expired tokens.
     CRM_Core_DAO::executeQuery("DELETE FROM civicrm_grpet_auth WHERE validTo < CURRENT_TIMESTAMP;");
@@ -39,8 +40,14 @@ class Auth {
     $sql = "SELECT * FROM civicrm_grpet_auth WHERE id = %1";
     $dao = CRM_Core_DAO::executeQuery($sql, [ 1 => [$hash, 'String'] ]);
     if ($dao->fetch()) {
-      return $dao->contact_id;
+      $return['contactID'] = (int) $dao->contact_id;
+
+      // If this token expires soon, create a new one.
+      if ((strtotime($dao->validTo) - time()) < 60*60) {
+        // This expires within the hour. Make a new one that lasts a day.
+        $return['token'] = static::createAuthRecord($dao->contactID, 60*60*24);
+      }
     }
-    return NULL;
+    return $return;
   }
 }

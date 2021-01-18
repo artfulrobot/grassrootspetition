@@ -586,43 +586,35 @@ __webpack_require__.r(__webpack_exports__);
   },
   computed: {},
   mounted: function mounted() {
-    var _this = this;
-
-    // Are we authenticated?
-    if (this.authToken) {
-      // Assume so.
-      this.bootList();
-      return;
-    } // Look for an auth hash as the fragment.
-
-
-    var authHash = (window.location.hash || '#').substr(1);
-
-    if (authHash.match(/^[0-9a-z]{16}$/)) {
-      // Found a hash. Try to authenticate.
-      this.inlay.request({
-        method: 'post',
-        body: {
-          need: 'adminSessionToken',
-          authHash: authHash
-        }
-      }).then(function (r) {
-        if (r.success) {
-          _this.authToken = r.token;
-
-          _this.bootList();
-        }
-      })["catch"](function (e) {
-        _this.stage = 'unauthorised';
-        return;
-      });
-    } else {
-      // There's no hash. Perhaps we're already authorised.
-      this.stage = 'unauthorised';
-      ;
-    }
+    this.bootList();
   },
   methods: {
+    authorisedRequest: function authorisedRequest(opts) {
+      var _this = this;
+
+      if (this.authToken) {
+        opts.body.authToken = this.authToken;
+      } else {
+        // App has no auth token.
+        var authHash = (window.location.hash || '#').substr(1);
+
+        if (authHash.match(/^[0-9a-z]{16}$/)) {
+          opts.body.authToken = authHash;
+        } else {
+          this.stage = 'unauthorised';
+          return;
+        }
+      }
+
+      return this.inlay.request(opts).then(function (r) {
+        if (r.token) {
+          // Store updated token.
+          _this.authToken = r.token;
+        }
+
+        return r;
+      });
+    },
     bootList: function bootList() {
       var _this2 = this;
 
@@ -630,11 +622,10 @@ __webpack_require__.r(__webpack_exports__);
       this.loadingMessage = "Loading petitions...";
       this.petitions = []; // @todo send request to load petitions.
 
-      this.inlay.request({
+      this.authorisedRequest({
         method: 'post',
         body: {
-          need: 'adminPetitionsList',
-          authToken: this.authToken
+          need: 'adminPetitionsList'
         }
       }).then(function (r) {
         if (r.petitions) {
