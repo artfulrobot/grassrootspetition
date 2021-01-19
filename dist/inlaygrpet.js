@@ -743,6 +743,26 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
@@ -952,38 +972,53 @@ __webpack_require__.r(__webpack_exports__);
         need: 'adminSavePetition'
       }; // Copy our fields.
 
-      ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location'].forEach(function (f) {
+      ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location', 'imageAlt'].forEach(function (f) {
         d[f] = _this5.petitionBeingEdited[f];
       });
-
-      if (this.editingPetition) {
-        // send ID of existing petitions.
-        d.id = this.petitionBeingEdited.id;
-      } else {
-        // new petitions need this.
-        d.campaignLabel = this.petitionBeingEdited.campaignLabel;
-      } // Got data.
-
-
-      var progress = this.$refs.loadingProgress;
-      progress.startTimer(5, 100, true);
-      this.$root.submissionRunning = true;
-      this.authorisedRequest({
-        method: 'post',
-        body: d
-      }).then(function (r) {
-        _this5.$root.submissionRunning = false;
-        progress.cancelTimer(); // Were there any errors?
-        // We're not expecting any, so just use alert.
-
-        if (r.responseOk && r.success == 1) {
-          // The result of saving successfully is an updated set of petitions.
-          _this5.petitions = r.petitions;
-          _this5.stage = 'listPetitions';
-          _this5.petitionBeingEdited = null;
+      var p = new Promise(function (resolve, reject) {
+        if (_this5.$refs.imageFile.files.length === 1) {
+          var fr = new FileReader();
+          fr.addEventListener('load', function (e) {
+            // File loaded.
+            d.imageData = fr.result;
+            resolve(d);
+          });
+          fr.readAsDataURL(_this5.$refs.imageFile.files[0]);
         } else {
-          alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
+          resolve(d);
         }
+      });
+      p.then(function (d) {
+        if (_this5.editingPetition) {
+          // send ID of existing petitions.
+          d.id = _this5.petitionBeingEdited.id;
+        } else {
+          // new petitions need this.
+          d.campaignLabel = _this5.petitionBeingEdited.campaignLabel;
+        } // Got data.
+
+
+        var progress = _this5.$refs.loadingProgress;
+        progress.startTimer(5, 100, true);
+        _this5.$root.submissionRunning = true;
+
+        _this5.authorisedRequest({
+          method: 'post',
+          body: d
+        }).then(function (r) {
+          _this5.$root.submissionRunning = false;
+          progress.cancelTimer(); // Were there any errors?
+          // We're not expecting any, so just use alert.
+
+          if (r.responseOk && r.success == 1) {
+            // The result of saving successfully is an updated set of petitions.
+            _this5.petitions = r.petitions;
+            _this5.stage = 'listPetitions';
+            _this5.petitionBeingEdited = null;
+          } else {
+            alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
+          }
+        });
       });
     },
     getStatusMeta: function getStatusMeta(status) {
@@ -3777,6 +3812,65 @@ var render = function() {
               ]),
               _vm._v(" "),
               _c("div", { staticClass: "field" }, [
+                _c("label", { attrs: { for: _vm.myId + "petitionImage" } }, [
+                  _vm._v("Upload New Image")
+                ]),
+                _vm._v(" "),
+                _c("input", {
+                  ref: "imageFile",
+                  attrs: {
+                    type: "file",
+                    name: "image",
+                    id: _vm.myId + "petitionImage",
+                    disabled: _vm.$root.submissionRunning
+                  }
+                }),
+                _vm._v(" "),
+                _vm._m(0),
+                _vm._v(" "),
+                _c("label", { attrs: { for: _vm.myId + "petitionImageAlt" } }, [
+                  _vm._v(
+                    "Alternative text for paritally-sighted and blind people"
+                  )
+                ]),
+                _vm._v(" "),
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.petitionBeingEdited.imageAlt,
+                      expression: "petitionBeingEdited.imageAlt"
+                    }
+                  ],
+                  attrs: {
+                    type: "text",
+                    id: _vm.myId + "petitionImageAlt",
+                    disabled: _vm.$root.submissionRunning
+                  },
+                  domProps: { value: _vm.petitionBeingEdited.imageAlt },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.$set(
+                        _vm.petitionBeingEdited,
+                        "imageAlt",
+                        $event.target.value
+                      )
+                    }
+                  }
+                }),
+                _vm._v(" "),
+                _c("div", { staticClass: "field-help" }, [
+                  _vm._v(
+                    'If you provide an image you are required to provide a short bit of text that describes the content of the image. e.g. "Photo of students dropping banner saying End Fossil Fuels". This way someone who uses screen reader technology won’t be excluded.'
+                  )
+                ])
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "field" }, [
                 _c("button", { attrs: { type: "submit" } }, [
                   _vm._v(
                     _vm._s(
@@ -3810,7 +3904,20 @@ var render = function() {
     1
   )
 }
-var staticRenderFns = []
+var staticRenderFns = [
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "field-help" }, [
+      _vm._v("Make sure you upload a "),
+      _c("em", [_vm._v("landscape")]),
+      _vm._v(
+        " image (i.e. wider than it is tall), otherwise important parts of the image might be cropped. Ideally your image should be 16:9 ratio and over 1000px wide."
+      )
+    ])
+  }
+]
 render._withStripped = true
 
 

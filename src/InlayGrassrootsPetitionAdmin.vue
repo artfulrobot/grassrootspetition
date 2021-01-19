@@ -154,6 +154,26 @@
         <div class="field-help">How many signatures are you aiming for? This should be realistic; too high and it will put people off signing. Note that the target will auto-extend if you exceed this. You can also edit this manually later if you need to.</div>
       </div>
 
+      <div class="field" >
+        <label :for="myId + 'petitionImage'">Upload New Image</label>
+        <input
+          type="file"
+          name="image"
+          ref="imageFile"
+          :id="myId + 'petitionImage'"
+          :disabled="$root.submissionRunning"
+          />
+        <div class="field-help" >Make sure you upload a <em>landscape</em> image (i.e. wider than it is tall), otherwise important parts of the image might be cropped. Ideally your image should be 16:9 ratio and over 1000px wide.</div>
+        <label :for="myId + 'petitionImageAlt'">Alternative text for paritally-sighted and blind people</label>
+        <input
+          type="text"
+          :id="myId + 'petitionImageAlt'"
+          :disabled="$root.submissionRunning"
+          v-model="petitionBeingEdited.imageAlt"
+          />
+        <div class="field-help" >If you provide an image you are required to provide a short bit of text that describes the content of the image. e.g. "Photo of students dropping banner saying End Fossil Fuels". This way someone who uses screen reader technology won’t be excluded.</div>
+      </div>
+
       <div class="field">
         <button type="submit" >{{ editingPetition ? 'Save Petition' : 'Create Petition'}}</button>
       </div>
@@ -414,37 +434,57 @@ export default {
         need: 'adminSavePetition',
       };
       // Copy our fields.
-      ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location'].forEach(f => {
+      ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location', 'imageAlt'].forEach(f => {
         d[f] = this.petitionBeingEdited[f];
       });
-      if (this.editingPetition) {
-        // send ID of existing petitions.
-        d.id = this.petitionBeingEdited.id;
-      }
-      else {
-        // new petitions need this.
-        d.campaignLabel = this.petitionBeingEdited.campaignLabel;
-      }
-      // Got data.
-      const progress = this.$refs.loadingProgress;
-      progress.startTimer(5, 100, true);
-      this.$root.submissionRunning = true;
-      this.authorisedRequest({ method: 'post', body: d })
-      .then(r => {
-        this.$root.submissionRunning = false;
-        progress.cancelTimer();
 
-        // Were there any errors?
-        // We're not expecting any, so just use alert.
-        if (r.responseOk && r.success == 1) {
-          // The result of saving successfully is an updated set of petitions.
-          this.petitions = r.petitions;
-          this.stage = 'listPetitions';
-          this.petitionBeingEdited = null;
+      var p = new Promise((resolve, reject) => {
+        if (this.$refs.imageFile.files.length === 1) {
+
+          var fr = new FileReader();
+          fr.addEventListener('load', e => {
+            // File loaded.
+            d.imageData = fr.result;
+            resolve(d);
+          });
+          fr.readAsDataURL(this.$refs.imageFile.files[0]);
         }
         else {
-          alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
+          resolve(d);
         }
+      });
+
+      p.then( d => {
+
+        if (this.editingPetition) {
+          // send ID of existing petitions.
+          d.id = this.petitionBeingEdited.id;
+        }
+        else {
+          // new petitions need this.
+          d.campaignLabel = this.petitionBeingEdited.campaignLabel;
+        }
+        // Got data.
+        const progress = this.$refs.loadingProgress;
+        progress.startTimer(5, 100, true);
+        this.$root.submissionRunning = true;
+        this.authorisedRequest({ method: 'post', body: d })
+        .then(r => {
+          this.$root.submissionRunning = false;
+          progress.cancelTimer();
+
+          // Were there any errors?
+          // We're not expecting any, so just use alert.
+          if (r.responseOk && r.success == 1) {
+            // The result of saving successfully is an updated set of petitions.
+            this.petitions = r.petitions;
+            this.stage = 'listPetitions';
+            this.petitionBeingEdited = null;
+          }
+          else {
+            alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
+          }
+        });
       });
     },
     getStatusMeta(status) {

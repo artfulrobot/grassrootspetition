@@ -829,6 +829,47 @@ class CaseWrapper {
 
     return ['url' => $this->getFile('url'), 'alt' => $attachment['description']];
   }
+
+  /**
+   */
+  public function setMainImageFromImageData($imageData, $imageFileType) {
+    $activity = $this->getPetitionCreatedActivity();
+
+    // Delete existing images. todo
+
+    $filename = "petition_" . $this->case['id'] . "_main_image.";
+    if ($imageFileType === 'image/jpeg') {
+      $filename .= '.jpg';
+    }
+    elseif ($imageFileType === 'image/png') {
+      $filename .= '.png';
+    }
+    else {
+      throw new \InvalidArgumentException("Unsupported image type '$imageFileType'");
+    }
+
+    // Get first attachment for this activity.
+    $original = civicrm_api3('Attachment', 'get', [
+      'return' => 'id',
+      'entity_table' => 'civicrm_activity',
+      'entity_id' => $activity['id'],
+      'options' => ['limit' => 1, 'sort' => 'id'],
+    ]);
+    if (!empty($original['id'])) {
+      civicrm_api3('Attachment', 'delete', [
+        'id' => $original['id']
+      ]);
+    }
+
+    civicrm_api3('Attachment', 'create', [
+      'entity_table' => 'civicrm_activity',
+      'entity_id' => $activity['id'],
+      'name' => $filename,
+      'mime_type' => $imageFileType,
+      'content' => $imageData,
+    ]);
+
+  }
   /**
    * Look up the Grassroots Petition created activity.
    *

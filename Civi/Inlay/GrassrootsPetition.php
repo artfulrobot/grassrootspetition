@@ -627,6 +627,19 @@ class GrassrootsPetition extends InlayType {
     ];
     $case->setCustomData($updates);
 
+    if (preg_match('@^data:(image/(?:jpeg|png));base64(.*)$@', $body['imageData'] ?? '', $m)) {
+      // An image was sent.
+      // Not sure if this frees RAM or not.
+      unset($body['imageData']);
+      $imageData = base64_decode($m[2]);
+      $imageFileType = $m[1];
+      unset($m);
+      if ($imageData) {
+        // We need to add our image to the case.
+        $case->setMainImageFromImageData($imageData, $imageFileType);
+      }
+    }
+
     // Done.
     return ['success' => 1, 'petitions' => $this->getListOfPetitionsForContact($contactID)];
   }
