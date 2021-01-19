@@ -27,7 +27,9 @@ class CaseWrapper {
   /** @var array Status name to option value */
   public static $activityStatuses;
   /** @var array Status name to option value */
-  public static $caseStatuses;
+  public static $caseStatusesByValue;
+  /** @var array Status value to option name */
+  public static $caseStatusesByName;
   public static $caseTypeID;
   /**
    * @var array of CaseWrapper objects keyed by Case ID. This will speed up
@@ -184,7 +186,7 @@ class CaseWrapper {
     return CRM_Core_DAO::executeQuery($sql, [1 => [$email, 'String']])->fetchAll();
   }
   /**
-   * Return an array CaseWrapper objects for the given contact.
+   * Return an array of CaseWrapper objects for the given contact (and optionally case)
    */
   public static function getPetitionsOwnedByContact(int $contactID, ?int $caseID=NULL) :array {
     $params = [
@@ -195,10 +197,6 @@ class CaseWrapper {
       $params['id'] = $caseID;
     }
     $result = civicrm_api3('Case', 'get', $params)['values'] ?? [];
-
-    if ($caseID) {
-      return $result[$caseID] ?? NULL;
-    }
 
     $cases = [];
     foreach ($result as $caseData) {
@@ -245,9 +243,9 @@ class CaseWrapper {
       }
     }
 
-    if (!isset(static::$caseStatuses)) {
+    if (!isset(static::$caseStatusesByName)) {
       // Create map activity status name => option value (status_id)
-      static::$caseStatuses = [];
+      static::$caseStatusesByName = [];
       $r = OptionValue::get(FALSE)
           ->setCheckPermissions(FALSE)
           ->addWhere('option_group_id:name', '=', 'case_status')
@@ -259,7 +257,8 @@ class CaseWrapper {
         if (!$_) {
           throw new \RuntimeException("Missing required '$requiredStatus' case status.");
         }
-        static::$caseStatuses[$_['name']] = $_['value'];
+        static::$caseStatusesByName[$_['name']] = $_;
+        static::$caseStatusesByValue[$_['value']] = & static::$caseStatusesByName[$_['name']];
       }
     }
   }
@@ -368,14 +367,14 @@ class CaseWrapper {
    */
   public function getWhat() :string {
     $this->mustBeLoaded();
-    return $this->getCustomData('grpet_what');
+    return $this->getCustomData('grpet_what') ?? '';
   }
   /**
    * Returns the details of *why* people should sign, this is the intro text.
    */
   public function getWhy() :string {
     $this->mustBeLoaded();
-    return $this->getCustomData('grpet_why');
+    return $this->getCustomData('grpet_why') ?? '';
   }
   /**
    * Updates are activities of the 'Grassroots Petition progress' type
@@ -441,7 +440,7 @@ class CaseWrapper {
     return $count;
   }
   /**
-   * Return the name of the case status from its value.
+   * Return the name (or other value) of the case status from its value.
    *
    * N.b. the names are:
    * - 'grpet_Pending'
@@ -449,13 +448,13 @@ class CaseWrapper {
    * - 'grpet_Dead'
    * - 'grpet_Won'
    */
-  public function getCaseStatus() :string {
+  public function getCaseStatus(string $field='name') :string {
     $this->mustBeLoaded();
-    $name = array_flip(static::$caseStatuses)[$this->case['status_id']];
-    if (!$name) {
+    $_ = static::$caseStatusesByValue[$this->case['status_id']][$field] ?? NULL;
+    if (!$_) {
       Civi::log()->error("Could not find valid case status for case {$this->case['id']}, status id is {$this->case['status_id']} and map is " . json_encode(static::$caseStatuses));
     }
-    return $name;
+    return $_;
   }
   /**
    * Get Case ID.

@@ -36,8 +36,9 @@
       <ul class="petition">
         <li v-for="petition in petitions" :key="petition.id">
           <article>
-            <p><a :href="'/petitions/' + petition.slug" target="_blank" rel="noopener" >{{ petition.title }}</a></p>
-            <p>{{petition.signatureCount}} / {{petition.targetCount}}</p>
+            <h1><a :href="'/petitions/' + petition.slug" target="_blank" rel="noopener" >{{ petition.title }}</a></h1>
+            <span class="status" :class="petition.status" >{{getStatusMeta(petition.status).description }}</span>
+            <p>Signatures: {{petition.signatureCount}} / {{petition.targetCount}}.</p>
             <p><a href @click.prevent="editPetition(petition)" >Edit petition (texts, targets etc.)</a> |
                <a href @click.prevent="updatePetition(petition)" >Provide updates, mark Won or Closed</a> |
                <a href @click.prevent="createEmail(petition)" >Email signers</a></p>
@@ -192,11 +193,21 @@
     }
     .fixed {
       background: #f0f0f0;
-      text-align: center;
       padding: 0.25rem 1rem;
       color: #555;
       font-size: (14rem/16);
     }
+  }
+  .status {
+    border-radius: 1rem;
+    padding: 0 1rem;
+    line-height: 1;
+    white-space: no-break;
+    color: white;
+    &.grpet_Won { background: #566a4a; }
+    &.grpet_Dead { background: #a4a19e; }
+    &.grpet_Pending { background: #747707; }
+    &.Open { background: #4aa219; }
   }
   ul.petition {
     margin: 2rem -1rem;
@@ -211,6 +222,12 @@
     article {
       background: white;
       padding: 1rem;
+      h1 {
+        font-size: 1.4rem;
+        line-height: 1;
+        margin: 0 0 1rem;
+        padding:0;
+      }
 
     }
   }
@@ -352,13 +369,28 @@ export default {
         });
     },
     editPetition(petition) {
-      this.petitionBeingEdited = petition;
       if (!petition.id) {
         // New petition, nothing to load.
         this.stage = 'editPetition';
+        this.petitionBeingEdited = petition;
         return;
       }
-      // xxx load exsting petition.
+      // Load exsting petition.
+      this.stage = 'loading';
+      this.loadingMessage = 'Loading petition...';
+      const progress = this.$refs.loadingProgress;
+      progress.startTimer(5, 100, true);
+      this.authorisedRequest({ method: 'post', body: { need: 'adminLoadPetition', petitionID: petition.id}})
+      .then(r => {
+        progress.cancelTimer();
+        if (r.responseOk && r.success == 1 && r.petition) {
+          this.petitionBeingEdited = r.petition;
+          this.stage = 'editPetition';
+        }
+        else {
+          alert("Sorry, there was an error: " + (r.publicError || 'Unknown error LP1'));
+        }
+      })
     },
     createNewPetition() {
       this.stage = 'createNewPetition';
@@ -382,11 +414,16 @@ export default {
         need: 'adminSavePetition',
       };
       // Copy our fields.
-      ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location', 'campaignLabel'].forEach(f => {
+      ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location'].forEach(f => {
         d[f] = this.petitionBeingEdited[f];
       });
       if (this.editingPetition) {
-        d.id = this.editingPetition.id;
+        // send ID of existing petitions.
+        d.id = this.petitionBeingEdited.id;
+      }
+      else {
+        // new petitions need this.
+        d.campaignLabel = this.petitionBeingEdited.campaignLabel;
       }
       // Got data.
       const progress = this.$refs.loadingProgress;
@@ -410,6 +447,14 @@ export default {
         }
       });
     },
+    getStatusMeta(status) {
+      return {
+        grpet_Pending: { description: 'Waiting on moderation', open: false },
+        Open: { description: 'Live', open: true },
+        grpet_Won: { description: 'Won!', open: false },
+        grpet_Dead: { description: 'Closed', open: false },
+      }[status];
+    }
   }
 }
 </script>

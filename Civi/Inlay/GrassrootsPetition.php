@@ -165,6 +165,7 @@ class GrassrootsPetition extends InlayType {
         'adminAuthEmail'     => 'processAdminAuthEmail',
         'adminPetitionsList' => 'processAdminPetitionsList',
         'adminSavePetition'  => 'processAdminSavePetition',
+        'adminLoadPetition'  => 'processAdminLoadPetition',
       ]
     ];
     $method = $routes[$request->getMethod()][$request->getBody()['need'] ?? ''] ?? NULL;
@@ -559,23 +560,11 @@ class GrassrootsPetition extends InlayType {
 
     $body = $request->getBody();
 
-    // We require the campaignLabel
-    if (!is_string($body['campaignLabel'] ?? NULL)) {
-      throw new ApiException(400, ['publicError' => 'Invalid request. (IVP2)'], "Contact $contactID tried to save case with missing/nonstring campaignLabel.");
-    }
-    $campaign = GrassrootsPetitionCampaign::get(FALSE)
-      ->addWhere('label', '=', $body['campaignLabel'])
-      ->addWhere('is_active', '=', TRUE)
-      ->execute()->first();
-    if (!$campaign) {
-      throw new ApiException(400, ['publicError' => 'Invalid request. (IVP3)'], "Contact $contactID tried to save case with invalid campaignLabel '$body[campaignLabel]'.");
-    }
-
     $caseID = (int) ($body['id'] ?? 0);
     if ($caseID) {
       // Editing an existing petition.
       // Check that it belongs to this person.
-      $case = CaseWrapper::getPetitionsOwnedByContact($contactID, $caseID);
+      $case = CaseWrapper::getPetitionsOwnedByContact($contactID, $caseID)[0] ?? NULL;
       if (!$case) {
         // This case does not exist, or is not owned by this contact.
         throw new ApiException(400, ['publicError' => 'Invalid request. (IVP1)'], "Contact $contactID tried to save case $caseID which does not belong to them.");
@@ -585,21 +574,34 @@ class GrassrootsPetition extends InlayType {
       // Fix campaign, this is not allowed to change.
       $campaign = $case->getCampaign();
     }
+    else {
+      // We require the campaignLabel for new petitions.
+      if (!is_string($body['campaignLabel'] ?? NULL)) {
+        throw new ApiException(400, ['publicError' => 'Invalid request. (IVP2)'], "Contact $contactID tried to save case with missing/nonstring campaignLabel.");
+      }
+      $campaign = GrassrootsPetitionCampaign::get(FALSE)
+        ->addWhere('label', '=', $body['campaignLabel'])
+        ->addWhere('is_active', '=', TRUE)
+        ->execute()->first();
+      if (!$campaign) {
+        throw new ApiException(400, ['publicError' => 'Invalid request. (IVP3)'], "Contact $contactID tried to save case with invalid campaignLabel '$body[campaignLabel]'.");
+      }
+    }
 
     // Validate the data
     $valid = [];
     // For create and for edit we need these:
-    $valid['targetName'] = $this->requireSimpleText($body['targetName'] ?? '', 255, "target name");
     $valid['why'] = $this->requireSimpleText($body['why'] ?? '', 50000, "why");
-    $valid['who'] = $this->requireSimpleText($body['who'] ?? '', 255, "who");
-    $valid['location'] = $this->requireSimpleText($body['location'] ?? '', 255, "location");
     $valid['targetCount'] = (int)($body['targetCount'] ?? 0);
+    $valid['title'] = $this->requireSimpleText($body['title'] ?? '', 255, "title");
     if (!($valid['targetCount']>0)) {
       throw new ApiException(400, ['publicError' => 'Target count must be a number.']);
     }
     if (!$caseID) {
       // We need more data for a new petition.
-      $valid['title'] = $this->requireSimpleText($body['title'] ?? '', 255, "title");
+      $valid['targetName'] = $this->requireSimpleText($body['targetName'] ?? '', 255, "target name");
+      $valid['location'] = $this->requireSimpleText($body['location'] ?? '', 255, "location");
+      $valid['who'] = $this->requireSimpleText($body['who'] ?? '', 255, "who");
       $valid['what'] = $this->requireSimpleText($body['what'] ?? '', 50000, "what");
       $valid['campaign'] = $campaign['label'];
     }
@@ -616,17 +618,60 @@ class GrassrootsPetition extends InlayType {
         'grpet_what'        => $valid['what'],
         'grpet_location'    => $valid['location'],
       ];
-      $case->setCustomData($updates)->setPetitionTitle($valid['title']);
+      $case->setPetitionTitle($valid['title']);
     }
     $updates += [
       'grpet_why'          => $valid['why'],
       'grpet_target_count' => $valid['targetCount'],
       'grpet_target_count' => $valid['targetCount'],
     ];
-
+    $case->setCustomData($updates);
 
     // Done.
     return ['success' => 1, 'petitions' => $this->getListOfPetitionsForContact($contactID)];
+  }
+  /**
+   * Load petition details for editing.
+   */
+  protected function processAdminLoadPetition(ApiRequest $request) {
+    $response = [];
+    $contactID = $this->checkAuthenticated($request, $response);
+
+    $body = $request->getBody();
+    $caseID = (int) ($body['petitionID'] ?? 0);
+    if (!$caseID) {
+      throw new ApiException(400, ['publicError' => 'Invalid request. (LP2)'], "Contact $contactID tried made adminLoadPetition request without id");
+    }
+    // Editing an existing petition.
+    // Check that it belongs to this person.
+    $case = CaseWrapper::getPetitionsOwnedByContact($contactID, $caseID)[0] ?? NULL;
+    if (!$case) {
+      // This case does not exist, or is not owned by this contact.
+      throw new ApiException(400, ['publicError' => 'Invalid request. (IVP1)'], "Contact $contactID tried to save case $caseID which does not belong to them.");
+    }
+
+    $mainImage = $case->getMainImage();
+    $data = [
+      'id'               => $case->getID(),
+      'title'            => $case->getPetitionTitle(),
+      'targetName'       => $case->getCustomData('grpet_target_name'),
+      'who'              => $case->getCustomData('grpet_who'),
+      'what'             => $case->getWhat(),
+      'why'              => $case->getWhy(),
+      'targetCount'      => $case->getCustomData('grpet_target_count'),
+      'location'         => $case->getCustomData('grpet_location'),
+      // campaigLabel not needed.
+
+      'slug'             => $case->getCustomData('grpet_slug'),
+
+      'imageUrl'         => $mainImage['url'],
+      'imageAlt'         => $mainImage['alt'],
+      'tweet'            => $case->getCustomData('grpet_tweet_text'),
+      'status'           => $case->getCaseStatus(),
+    ];
+
+    // Done.
+    return ['success' => 1, 'petition' => $data];
   }
   /**
    * Returns the authenticated contactID, or throws a 401 ApiException

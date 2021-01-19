@@ -726,6 +726,23 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
@@ -880,14 +897,36 @@ __webpack_require__.r(__webpack_exports__);
       });
     },
     editPetition: function editPetition(petition) {
-      this.petitionBeingEdited = petition;
+      var _this4 = this;
 
       if (!petition.id) {
         // New petition, nothing to load.
         this.stage = 'editPetition';
+        this.petitionBeingEdited = petition;
         return;
-      } // xxx load exsting petition.
+      } // Load exsting petition.
 
+
+      this.stage = 'loading';
+      this.loadingMessage = 'Loading petition...';
+      var progress = this.$refs.loadingProgress;
+      progress.startTimer(5, 100, true);
+      this.authorisedRequest({
+        method: 'post',
+        body: {
+          need: 'adminLoadPetition',
+          petitionID: petition.id
+        }
+      }).then(function (r) {
+        progress.cancelTimer();
+
+        if (r.responseOk && r.success == 1 && r.petition) {
+          _this4.petitionBeingEdited = r.petition;
+          _this4.stage = 'editPetition';
+        } else {
+          alert("Sorry, there was an error: " + (r.publicError || 'Unknown error LP1'));
+        }
+      });
     },
     createNewPetition: function createNewPetition() {
       this.stage = 'createNewPetition';
@@ -905,7 +944,7 @@ __webpack_require__.r(__webpack_exports__);
       this.editPetition(petition);
     },
     savePetition: function savePetition() {
-      var _this4 = this;
+      var _this5 = this;
 
       // The browser's checks say the fields are valid.
       // (do any custom stuff in response to the buttonclick)
@@ -913,12 +952,16 @@ __webpack_require__.r(__webpack_exports__);
         need: 'adminSavePetition'
       }; // Copy our fields.
 
-      ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location', 'campaignLabel'].forEach(function (f) {
-        d[f] = _this4.petitionBeingEdited[f];
+      ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location'].forEach(function (f) {
+        d[f] = _this5.petitionBeingEdited[f];
       });
 
       if (this.editingPetition) {
-        d.id = this.editingPetition.id;
+        // send ID of existing petitions.
+        d.id = this.petitionBeingEdited.id;
+      } else {
+        // new petitions need this.
+        d.campaignLabel = this.petitionBeingEdited.campaignLabel;
       } // Got data.
 
 
@@ -929,19 +972,39 @@ __webpack_require__.r(__webpack_exports__);
         method: 'post',
         body: d
       }).then(function (r) {
-        _this4.$root.submissionRunning = false;
+        _this5.$root.submissionRunning = false;
         progress.cancelTimer(); // Were there any errors?
         // We're not expecting any, so just use alert.
 
         if (r.responseOk && r.success == 1) {
           // The result of saving successfully is an updated set of petitions.
-          _this4.petitions = r.petitions;
-          _this4.stage = 'listPetitions';
-          _this4.petitionBeingEdited = null;
+          _this5.petitions = r.petitions;
+          _this5.stage = 'listPetitions';
+          _this5.petitionBeingEdited = null;
         } else {
           alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
         }
       });
+    },
+    getStatusMeta: function getStatusMeta(status) {
+      return {
+        grpet_Pending: {
+          description: 'Waiting on moderation',
+          open: false
+        },
+        Open: {
+          description: 'Live',
+          open: true
+        },
+        grpet_Won: {
+          description: 'Won!',
+          open: false
+        },
+        grpet_Dead: {
+          description: 'Closed',
+          open: false
+        }
+      }[status];
     }
   }
 });
@@ -1275,7 +1338,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin label {\n  display: block;\n}\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin .edit-petition input[type=\"text\"],\n.grpet-admin .edit-petition textarea,\n.grpet-admin .edit-petition select {\n  width: 100%;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  text-align: center;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n", ""]);
+exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin label {\n  display: block;\n}\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin .edit-petition input[type=\"text\"],\n.grpet-admin .edit-petition textarea,\n.grpet-admin .edit-petition select {\n  width: 100%;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin .status {\n  border-radius: 1rem;\n  padding: 0 1rem;\n  line-height: 1;\n  white-space: no-break;\n  color: white;\n}\n.grpet-admin .status.grpet_Won {\n  background: #566a4a;\n}\n.grpet-admin .status.grpet_Dead {\n  background: #a4a19e;\n}\n.grpet-admin .status.grpet_Pending {\n  background: #747707;\n}\n.grpet-admin .status.Open {\n  background: #4aa219;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n.grpet-admin ul.petition article h1 {\n  font-size: 1.4rem;\n  line-height: 1;\n  margin: 0 0 1rem;\n  padding: 0;\n}\n", ""]);
 
 // exports
 
@@ -3227,7 +3290,7 @@ var render = function() {
               _vm._l(_vm.petitions, function(petition) {
                 return _c("li", { key: petition.id }, [
                   _c("article", [
-                    _c("p", [
+                    _c("h1", [
                       _c(
                         "a",
                         {
@@ -3241,11 +3304,23 @@ var render = function() {
                       )
                     ]),
                     _vm._v(" "),
+                    _c(
+                      "span",
+                      { staticClass: "status", class: petition.status },
+                      [
+                        _vm._v(
+                          _vm._s(_vm.getStatusMeta(petition.status).description)
+                        )
+                      ]
+                    ),
+                    _vm._v(" "),
                     _c("p", [
                       _vm._v(
-                        _vm._s(petition.signatureCount) +
+                        "Signatures: " +
+                          _vm._s(petition.signatureCount) +
                           " / " +
-                          _vm._s(petition.targetCount)
+                          _vm._s(petition.targetCount) +
+                          "."
                       )
                     ]),
                     _vm._v(" "),
