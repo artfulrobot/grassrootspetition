@@ -566,6 +566,125 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
@@ -580,39 +699,77 @@ __webpack_require__.r(__webpack_exports__);
       loadingMessage: 'Loading...',
       authEmail: '',
       authToken: '',
-      petitions: []
+      petitions: [],
+      campaigns: [],
+      petitionBeingEdited: {}
     };
     return d;
   },
-  computed: {},
+  computed: {
+    creatingPetition: function creatingPetition() {
+      return this.petitionBeingEdited && !('id' in this.petitionBeingEdited);
+    },
+    editingPetition: function editingPetition() {
+      return this.petitionBeingEdited && 'id' in this.petitionBeingEdited;
+    }
+  },
   mounted: function mounted() {
     this.bootList();
   },
   methods: {
+    setUnauthorised: function setUnauthorised() {},
     authorisedRequest: function authorisedRequest(opts) {
       var _this = this;
 
       if (this.authToken) {
+        // We have already converted the temporary URL token to a session one.
         opts.body.authToken = this.authToken;
       } else {
-        // App has no auth token.
+        // App has no session token yet..
         var authHash = (window.location.hash || '#').substr(1);
 
-        if (authHash.match(/^[0-9a-z]{16}$/)) {
+        if (authHash.match(/^[TS][0-9a-z]{16}$/)) {
           opts.body.authToken = authHash;
         } else {
-          this.stage = 'unauthorised';
-          return;
+          console.log("Failed to find suitable means of authenticating.");
+          this.stage = 'unauthorised'; // We have to return a promise.
+
+          return Promise.resolve({
+            error: 'Unauthorised'
+          });
         }
       }
 
       return this.inlay.request(opts).then(function (r) {
+        if (!r.responseOk) {
+          console.log("authorisedRequest: did not get responseOk", r);
+          throw r;
+        }
+
         if (r.token) {
-          // Store updated token.
+          // Store updated token, if one sent.
           _this.authToken = r.token;
         }
 
         return r;
+      })["catch"](function (e) {
+        console.warn("InlayGrassrootsPetitionAdmin authorisedRequest caught", e);
+
+        if (e.responseStatus == 401) {
+          // Unauthorised. Reset everything.
+          _this.stage = 'unauthorised';
+          _this.petitions = [];
+          _this.authToken = '';
+          _this.authEmail = '';
+          ; // Handled.
+
+          return {
+            error: 'Unauthorised'
+          };
+        } // Unhandled.
+
+
+        throw e;
       });
     },
     bootList: function bootList() {
@@ -620,7 +777,7 @@ __webpack_require__.r(__webpack_exports__);
 
       this.stage = 'loading';
       this.loadingMessage = "Loading petitions...";
-      this.petitions = []; // @todo send request to load petitions.
+      this.petitions = []; // Send request to load petitions.
 
       this.authorisedRequest({
         method: 'post',
@@ -630,7 +787,14 @@ __webpack_require__.r(__webpack_exports__);
       }).then(function (r) {
         if (r.petitions) {
           _this2.petitions = r.petitions;
-          _this2.stage = 'listPetitions';
+          _this2.campaigns = r.campaigns;
+
+          if (_this2.petitions.length === 0) {
+            // Create new petition, since there are none.
+            _this2.createNewPetition();
+          } else {
+            _this2.stage = 'listPetitions';
+          }
         } else {
           console.warn("hmmm", r);
         }
@@ -663,6 +827,31 @@ __webpack_require__.r(__webpack_exports__);
         _this3.$root.submissionRunning = false;
         progress.cancelTimer();
       });
+    },
+    editPetition: function editPetition(petition) {
+      this.petitionBeingEdited = petition;
+
+      if (!petition.id) {
+        // New petition, nothing to load.
+        this.stage = 'editPetition';
+        return;
+      } // xxx load exsting petition.
+
+    },
+    createNewPetition: function createNewPetition() {
+      this.stage = 'createNewPetition';
+      this.petitionBeingEdited = null;
+    },
+    createNewPetitionFromType: function createNewPetitionFromType(campaign) {
+      console.log('createNewPetitionFromType', campaign);
+      var petition = {
+        campaignLabel: campaign.label,
+        title: campaign.template_title,
+        what: campaign.template_what,
+        why: campaign.template_why // @todo other defaults
+
+      };
+      this.editPetition(petition);
     }
   }
 });
@@ -996,7 +1185,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet-admin .grpet-error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet-admin label {\n  display: block;\n}\n", ""]);
+exports.push([module.i, ".grpet-admin .grpet-error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet-admin label {\n  display: block;\n}\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n", ""]);
 
 // exports
 
@@ -2931,32 +3120,436 @@ var render = function() {
               { staticClass: "petition" },
               _vm._l(_vm.petitions, function(petition) {
                 return _c("li", { key: petition.id }, [
-                  _c("p", [
-                    _c(
-                      "a",
-                      {
-                        attrs: {
-                          href: "/petitions/" + petition.slug,
-                          target: "_blank",
-                          rel: "noopener"
-                        }
-                      },
-                      [_vm._v(_vm._s(petition.title))]
-                    )
-                  ]),
-                  _vm._v(" "),
-                  _c("p", [
-                    _vm._v(
-                      _vm._s(petition.signatureCount) +
-                        " / " +
-                        _vm._s(petition.targetCount)
-                    )
+                  _c("article", [
+                    _c("p", [
+                      _c(
+                        "a",
+                        {
+                          attrs: {
+                            href: "/petitions/" + petition.slug,
+                            target: "_blank",
+                            rel: "noopener"
+                          }
+                        },
+                        [_vm._v(_vm._s(petition.title))]
+                      )
+                    ]),
+                    _vm._v(" "),
+                    _c("p", [
+                      _vm._v(
+                        _vm._s(petition.signatureCount) +
+                          " / " +
+                          _vm._s(petition.targetCount)
+                      )
+                    ]),
+                    _vm._v(" "),
+                    _c("p", [
+                      _c(
+                        "a",
+                        {
+                          attrs: { href: "" },
+                          on: {
+                            click: function($event) {
+                              $event.preventDefault()
+                              return _vm.editPetition(petition)
+                            }
+                          }
+                        },
+                        [_vm._v("Edit petition (texts, targets etc.)")]
+                      ),
+                      _vm._v(" |\n             "),
+                      _c(
+                        "a",
+                        {
+                          attrs: { href: "" },
+                          on: {
+                            click: function($event) {
+                              $event.preventDefault()
+                              return _vm.updatePetition(petition)
+                            }
+                          }
+                        },
+                        [_vm._v("Provide updates, mark Won or Closed")]
+                      ),
+                      _vm._v(" |\n             "),
+                      _c(
+                        "a",
+                        {
+                          attrs: { href: "" },
+                          on: {
+                            click: function($event) {
+                              $event.preventDefault()
+                              return _vm.createEmail(petition)
+                            }
+                          }
+                        },
+                        [_vm._v("Email signers")]
+                      )
+                    ])
                   ])
                 ])
               }),
               0
-            )
+            ),
+            _vm._v(" "),
+            _c("p", [
+              _c(
+                "a",
+                {
+                  attrs: { href: "" },
+                  on: {
+                    click: function($event) {
+                      $event.preventDefault()
+                      return _vm.createNewPetition()
+                    }
+                  }
+                },
+                [_vm._v("Create new petition")]
+              )
+            ])
           ])
+        : _vm._e(),
+      _vm._v(" "),
+      _vm.stage === "createNewPetition"
+        ? _c(
+            "div",
+            {
+              staticClass: "new-petition",
+              on: {
+                submit: function($event) {
+                  $event.preventDefault()
+                  return _vm.submitAuthEmail($event)
+                }
+              }
+            },
+            [
+              _c("h2", [_vm._v("Create new petition: choose type")]),
+              _vm._v(" "),
+              _vm._l(_vm.campaigns, function(campaign) {
+                return _c("ul", [
+                  _c("li", [
+                    _c("p", [_c("strong", [_vm._v(_vm._s(campaign.label))])]),
+                    _vm._v(" "),
+                    _c("p", [_vm._v(_vm._s(campaign.description))]),
+                    _vm._v(" "),
+                    _c("p", [
+                      _c(
+                        "a",
+                        {
+                          attrs: { href: "" },
+                          on: {
+                            click: function($event) {
+                              $event.preventDefault()
+                              return _vm.createNewPetitionFromType(campaign)
+                            }
+                          }
+                        },
+                        [_vm._v("Create local petition for this campaign")]
+                      )
+                    ])
+                  ])
+                ])
+              })
+            ],
+            2
+          )
+        : _vm._e(),
+      _vm._v(" "),
+      _vm.stage === "editPetition"
+        ? _c(
+            "form",
+            {
+              on: {
+                submit: function($event) {
+                  $event.preventDefault()
+                  return _vm.savePetition($event)
+                }
+              }
+            },
+            [
+              _c("h2", [
+                _vm._v(
+                  _vm._s(_vm.editingPetition ? "Edit" : "Create") + " Petition"
+                )
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "field" }, [
+                _c("label", { attrs: { for: _vm.myId + "petitionTitle" } }, [
+                  _vm._v("Petition title")
+                ]),
+                _vm._v(" "),
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.petitionBeingEdited.title,
+                      expression: "petitionBeingEdited.title"
+                    }
+                  ],
+                  attrs: {
+                    type: "text",
+                    required: "",
+                    id: _vm.myId + "petitionTitle"
+                  },
+                  domProps: { value: _vm.petitionBeingEdited.title },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.$set(
+                        _vm.petitionBeingEdited,
+                        "title",
+                        $event.target.value
+                      )
+                    }
+                  }
+                }),
+                _vm._v(" "),
+                _c("div", { staticClass: "field-help" })
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "field" }, [
+                _c(
+                  "label",
+                  { attrs: { for: _vm.myId + "petitionTargetName" } },
+                  [_vm._v("Who/what is the petition to (the power holder)")]
+                ),
+                _vm._v(" "),
+                _vm.creatingPetition
+                  ? _c("input", {
+                      directives: [
+                        {
+                          name: "model",
+                          rawName: "v-model",
+                          value: _vm.petitionBeingEdited.targetName,
+                          expression: "petitionBeingEdited.targetName"
+                        }
+                      ],
+                      attrs: {
+                        type: "text",
+                        required: "",
+                        id: _vm.myId + "petitionTargetName"
+                      },
+                      domProps: { value: _vm.petitionBeingEdited.targetName },
+                      on: {
+                        input: function($event) {
+                          if ($event.target.composing) {
+                            return
+                          }
+                          _vm.$set(
+                            _vm.petitionBeingEdited,
+                            "targetName",
+                            $event.target.value
+                          )
+                        }
+                      }
+                    })
+                  : _vm._e(),
+                _vm._v(" "),
+                _vm.editingPetition
+                  ? _c(
+                      "p",
+                      {
+                        staticClass: "fixed",
+                        attrs: { title: "This can no longer be edited." }
+                      },
+                      [_vm._v(_vm._s(_vm.petitionBeingEdited.targetName))]
+                    )
+                  : _vm._e()
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "field" }, [
+                _c("label", { attrs: { for: _vm.myId + "petitionWho" } }, [
+                  _vm._v("Who’s organising this petition.")
+                ]),
+                _vm._v(" "),
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.petitionBeingEdited.who,
+                      expression: "petitionBeingEdited.who"
+                    }
+                  ],
+                  attrs: {
+                    type: "text",
+                    required: "",
+                    id: _vm.myId + "petitionWho"
+                  },
+                  domProps: { value: _vm.petitionBeingEdited.who },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.$set(
+                        _vm.petitionBeingEdited,
+                        "who",
+                        $event.target.value
+                      )
+                    }
+                  }
+                }),
+                _vm._v(" "),
+                _c("div", { staticClass: "field-help" }, [
+                  _vm._v("e.g. the name of your group.")
+                ])
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "field" }, [
+                _c("label", { attrs: { for: _vm.myId + "petitionWhy" } }, [
+                  _vm._v("Why should people sign?")
+                ]),
+                _vm._v(" "),
+                _c("textarea", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.petitionBeingEdited.why,
+                      expression: "petitionBeingEdited.why"
+                    }
+                  ],
+                  attrs: {
+                    required: "",
+                    rows: "5",
+                    cols: "60",
+                    id: _vm.myId + "petitionWhy"
+                  },
+                  domProps: { value: _vm.petitionBeingEdited.why },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.$set(
+                        _vm.petitionBeingEdited,
+                        "why",
+                        $event.target.value
+                      )
+                    }
+                  }
+                }),
+                _vm._v(" "),
+                _c("div", { staticClass: "field-help" }, [
+                  _vm._v("Why is this issue important?")
+                ])
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "field" }, [
+                _c("label", { attrs: { for: _vm.myId + "petitionWhat" } }, [
+                  _vm._v("What are people agreeing to by signing?")
+                ]),
+                _vm._v(" "),
+                _vm.creatingPetition
+                  ? _c("textarea", {
+                      directives: [
+                        {
+                          name: "model",
+                          rawName: "v-model",
+                          value: _vm.petitionBeingEdited.what,
+                          expression: "petitionBeingEdited.what"
+                        }
+                      ],
+                      attrs: {
+                        required: "",
+                        rows: "5",
+                        cols: "60",
+                        id: _vm.myId + "petitionWhat"
+                      },
+                      domProps: { value: _vm.petitionBeingEdited.what },
+                      on: {
+                        input: function($event) {
+                          if ($event.target.composing) {
+                            return
+                          }
+                          _vm.$set(
+                            _vm.petitionBeingEdited,
+                            "what",
+                            $event.target.value
+                          )
+                        }
+                      }
+                    })
+                  : _vm._e(),
+                _vm._v(" "),
+                _vm.editingPetition
+                  ? _c(
+                      "p",
+                      {
+                        staticClass: "fixed",
+                        attrs: { title: "This can no longer be edited." }
+                      },
+                      [_vm._v(_vm._s(_vm.petitionBeingEdited.what))]
+                    )
+                  : _vm._e(),
+                _vm._v(" "),
+                _vm.creatingPetition
+                  ? _c("div", { staticClass: "field-help" }, [
+                      _vm._v(
+                        "This should be a short and clear statement. It cannot be changed later."
+                      )
+                    ])
+                  : _vm._e()
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "field" }, [
+                _c(
+                  "label",
+                  { attrs: { for: _vm.myId + "petitionTargetCount" } },
+                  [_vm._v("Target")]
+                ),
+                _vm._v(" "),
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.petitionBeingEdited.targetCount,
+                      expression: "petitionBeingEdited.targetCount"
+                    }
+                  ],
+                  attrs: {
+                    type: "integer",
+                    required: "",
+                    id: _vm.myId + "petitionTargetCount"
+                  },
+                  domProps: { value: _vm.petitionBeingEdited.targetCount },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.$set(
+                        _vm.petitionBeingEdited,
+                        "targetCount",
+                        $event.target.value
+                      )
+                    }
+                  }
+                }),
+                _vm._v(" "),
+                _c("div", { staticClass: "field-help" }, [
+                  _vm._v(
+                    "How many signatures are you aiming for? This should be realistic; too high and it will put people off signing. Note that the target will auto-extend if you exceed this. You can also edit this manually later if you need to."
+                  )
+                ])
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "field" }, [
+                _c("button", { attrs: { type: "submit" } }, [
+                  _vm._v(
+                    _vm._s(
+                      _vm.editingPetition ? "Save Petition" : "Create Petition"
+                    )
+                  )
+                ])
+              ])
+            ]
+          )
         : _vm._e(),
       _vm._v(" "),
       _c(

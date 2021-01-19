@@ -9,6 +9,7 @@ use Civi\GrassrootsPetition\CaseWrapper;
 use Civi\GrassrootsPetition\Auth;
 use Civi;
 use Civi\Api4\Inlay;
+use Civi\Api4\GrassrootsPetitionCampaign;
 use CRM_Grassrootspetition_ExtensionUtil as E;
 
 class GrassrootsPetition extends InlayType {
@@ -488,15 +489,17 @@ class GrassrootsPetition extends InlayType {
 
     // @todo for testing, we output this to the browser ! we should email it.
     // valid for 1 hour.
-    $hash = Auth::createAuthRecord($cases[0]['contactID'], 60*60);
+    $hash = Auth::createAuthRecord($cases[0]['contactID'], 60*60, 'T');
 
     return ['success' => 1,
-      'test' => $hash
+      'test' => $hash, // xxx remove this!
     ];
   }
 
   /**
    * List petitions for the contact.
+   *
+   * We also output a list of campaigns that can create new petitions.
    */
   protected function processAdminPetitionsList(ApiRequest $request) {
     $response = [];
@@ -520,7 +523,19 @@ class GrassrootsPetition extends InlayType {
       ];
     }
 
-    return $response + ['success' => 1, 'petitions' => $list];
+    $response['campaigns'] = [];
+
+    $campaigns = GrassrootsPetitionCampaign::get(FALSE)
+      ->setCheckPermissions(FALSE)
+      ->addWhere('is_active', '=', TRUE)
+      ->execute();
+    foreach ($campaigns as $campaign) {
+      $response['campaigns'][] = array_intersect_key($campaign, array_flip([
+        'label', 'description', 'template_what', 'template_why', 'template_title'
+      ]));
+    }
+
+    return $response + ['success' => 1, 'petitions' => $list, 'campaigns' => $campaigns];
   }
   /**
    * Returns the authenticated contactID, or throws a 401 ApiException

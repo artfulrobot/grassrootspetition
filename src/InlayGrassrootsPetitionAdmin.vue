@@ -29,15 +29,114 @@
       <p>Thanks, check your inbox for an email from us which contains a link to let you in.</p>
       <p>(If you can't find it, check your spam/junk folder! And if you find it in there, be sure to click the Not Spam button so it doesn't happen with other emails from us.)</p>
     </div>
+
     <div v-if="stage === 'listPetitions'" class="grpet-list" >
       <h2>Your petitions</h2>
       <ul class="petition">
         <li v-for="petition in petitions" :key="petition.id">
-          <p><a :href="'/petitions/' + petition.slug" target="_blank" rel="noopener" >{{ petition.title }}</a></p>
-          <p>{{petition.signatureCount}} / {{petition.targetCount}}</p>
+          <article>
+            <p><a :href="'/petitions/' + petition.slug" target="_blank" rel="noopener" >{{ petition.title }}</a></p>
+            <p>{{petition.signatureCount}} / {{petition.targetCount}}</p>
+            <p><a href @click.prevent="editPetition(petition)" >Edit petition (texts, targets etc.)</a> |
+               <a href @click.prevent="updatePetition(petition)" >Provide updates, mark Won or Closed</a> |
+               <a href @click.prevent="createEmail(petition)" >Email signers</a></p>
+          </article>
         </li>
       </ul>
+      <p><a href @click.prevent="createNewPetition()" >Create new petition</a></p>
     </div>
+
+    <div v-if="stage === 'createNewPetition'"
+          class="new-petition"
+          @submit.prevent="submitAuthEmail"
+    >
+      <h2>Create new petition: choose type</h2>
+      <ul v-for="campaign in campaigns" >
+        <li>
+          <p><strong>{{campaign.label}}</strong></p>
+          <p>{{campaign.description}}</p>
+          <p><a href @click.prevent="createNewPetitionFromType(campaign)" >Create local petition for this campaign</a></p>
+        </li>
+      </ul>
+    </div><!-- /createNewPetition -->
+
+    <form
+      v-if="stage === 'editPetition'"
+      @submit.prevent="savePetition"
+    >
+      <h2>{{ editingPetition ? 'Edit' : 'Create' }} Petition</h2>
+
+      <div class="field" >
+        <label :for="myId + 'petitionTitle'">Petition title</label>
+        <input
+          type="text" required
+          :id="myId + 'petitionTitle'"
+          v-model="petitionBeingEdited.title"
+        />
+        <div class="field-help"></div>
+      </div>
+
+      <div class="field" >
+        <label :for="myId + 'petitionTargetName'">Who/what is the petition to (the power holder)</label>
+        <input
+          type="text" required
+          :id="myId + 'petitionTargetName'"
+          v-model="petitionBeingEdited.targetName"
+          v-if="creatingPetition"
+        />
+        <p class="fixed" title="This can no longer be edited." v-if="editingPetition" >{{petitionBeingEdited.targetName}}</p>
+      </div>
+
+      <div class="field" >
+        <label :for="myId + 'petitionWho'">Who’s organising this petition.</label>
+        <input
+          type="text" required
+          :id="myId + 'petitionWho'"
+          v-model="petitionBeingEdited.who"
+        />
+        <div class="field-help">e.g. the name of your group.</div>
+      </div>
+
+      <div class="field" >
+        <label :for="myId + 'petitionWhy'">Why should people sign?</label>
+        <textarea
+          required
+          rows=5
+          cols=60
+          :id="myId + 'petitionWhy'"
+          v-model="petitionBeingEdited.why"
+  ></textarea>
+        <div class="field-help">Why is this issue important?</div>
+      </div>
+
+      <div class="field" >
+        <label :for="myId + 'petitionWhat'">What are people agreeing to by signing?</label>
+        <textarea
+          required
+          rows=5
+          cols=60
+          :id="myId + 'petitionWhat'"
+          v-model="petitionBeingEdited.what"
+          v-if="creatingPetition"
+        ></textarea>
+        <p class="fixed" title="This can no longer be edited." v-if="editingPetition" >{{petitionBeingEdited.what}}</p>
+        <div class="field-help" v-if="creatingPetition">This should be a short and clear statement. It cannot be changed later.</div>
+      </div>
+
+      <div class="field" >
+        <label :for="myId + 'petitionTargetCount'">Target</label>
+        <input
+          type="integer" required
+          :id="myId + 'petitionTargetCount'"
+          v-model="petitionBeingEdited.targetCount"
+        />
+        <div class="field-help">How many signatures are you aiming for? This should be realistic; too high and it will put people off signing. Note that the target will auto-extend if you exceed this. You can also edit this manually later if you need to.</div>
+      </div>
+
+      <div class="field">
+        <button type="submit" >{{ editingPetition ? 'Save Petition' : 'Create Petition'}}</button>
+      </div>
+    </form><!-- /editingPetition -->
 
     <div v-show="stage === 'loadingError'" class="grpet-error" >{{loadingError}}</div>
 
@@ -53,6 +152,26 @@
   }
   label {
     display: block;
+  }
+  .grpet-list {
+    background-color: #f8f8f8;
+    padding: 1rem;
+  }
+  ul.petition {
+    margin: 2rem -1rem;
+    padding:0;
+    display:flex;
+    flex-wrap: wrap;
+    &>li {
+      flex: 1 0 18rem;
+      margin: 0 0 2rem;
+      padding: 0 1rem;
+    }
+    article {
+      background: white;
+      padding: 1rem;
+
+    }
   }
 }
 </style>
@@ -72,48 +191,90 @@ export default {
       authToken: '',
 
       petitions: [],
+      campaigns: [],
+
+      petitionBeingEdited: {},
     };
     return d;
   },
   computed: {
+    creatingPetition() {
+      return this.petitionBeingEdited && !('id' in this.petitionBeingEdited);
+    },
+    editingPetition() {
+      return this.petitionBeingEdited && ('id' in this.petitionBeingEdited);
+    },
   },
   mounted() {
     this.bootList();
   },
   methods: {
+    setUnauthorised() {
+
+    },
     authorisedRequest(opts) {
       if (this.authToken) {
+        // We have already converted the temporary URL token to a session one.
         opts.body.authToken = this.authToken;
       }
       else {
-        // App has no auth token.
+        // App has no session token yet..
         var authHash = (window.location.hash || '#').substr(1);
-        if (authHash.match(/^[0-9a-z]{16}$/)) {
+        if (authHash.match(/^[TS][0-9a-z]{16}$/)) {
           opts.body.authToken = authHash;
         }
         else {
+          console.log("Failed to find suitable means of authenticating.");
           this.stage = 'unauthorised';
-          return;
+          // We have to return a promise.
+          return Promise.resolve({ error: 'Unauthorised' });
         }
       }
+
       return this.inlay.request(opts).then(r => {
+        if (!r.responseOk) {
+          console.log("authorisedRequest: did not get responseOk", r);
+          throw r;
+        }
         if (r.token) {
-          // Store updated token.
+          // Store updated token, if one sent.
           this.authToken = r.token;
         }
         return r;
-      });
+      })
+      .catch( e => {
+        console.warn("InlayGrassrootsPetitionAdmin authorisedRequest caught", e);
+        if (e.responseStatus == 401) {
+          // Unauthorised. Reset everything.
+          this.stage = 'unauthorised';
+          this.petitions = [];
+          this.authToken = '';
+          this.authEmail = '';;
+          // Handled.
+          return { error: 'Unauthorised' };
+        }
+        // Unhandled.
+        throw e;
+      })
+      ;
     },
     bootList() {
       this.stage = 'loading';
       this.loadingMessage = "Loading petitions...";
       this.petitions = [];
-      // @todo send request to load petitions.
+      // Send request to load petitions.
       this.authorisedRequest({method: 'post', body: {need: 'adminPetitionsList'}})
         .then(r => {
           if (r.petitions) {
             this.petitions = r.petitions;
-            this.stage = 'listPetitions';
+            this.campaigns = r.campaigns;
+            if (this.petitions.length === 0) {
+              // Create new petition, since there are none.
+              this.createNewPetition();
+            }
+            else {
+              this.stage = 'listPetitions';
+            }
           }
           else {
             console.warn("hmmm", r);
@@ -143,6 +304,30 @@ export default {
           progress.cancelTimer();
         });
     },
+    editPetition(petition) {
+      this.petitionBeingEdited = petition;
+      if (!petition.id) {
+        // New petition, nothing to load.
+        this.stage = 'editPetition';
+        return;
+      }
+      // xxx load exsting petition.
+    },
+    createNewPetition() {
+      this.stage = 'createNewPetition';
+      this.petitionBeingEdited = null;
+    },
+    createNewPetitionFromType(campaign) {
+      console.log('createNewPetitionFromType', campaign);
+      const petition = {
+        campaignLabel: campaign.label,
+        title: campaign.template_title,
+        what: campaign.template_what,
+        why: campaign.template_why,
+        // @todo other defaults
+      };
+      this.editPetition(petition);
+    }
   }
 }
 </script>
