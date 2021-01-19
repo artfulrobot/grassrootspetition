@@ -161,9 +161,10 @@ class GrassrootsPetition extends InlayType {
         'publicData' => 'processGetPublicDataRequest',
       ],
       'POST' => [
-        'submitSignature'   => 'processSubmitSignatureRequest',
-        'adminAuthEmail'    => 'processAdminAuthEmail',
+        'submitSignature'    => 'processSubmitSignatureRequest',
+        'adminAuthEmail'     => 'processAdminAuthEmail',
         'adminPetitionsList' => 'processAdminPetitionsList',
+        'adminSavePetition'  => 'processAdminSavePetition',
       ]
     ];
     $method = $routes[$request->getMethod()][$request->getBody()['need'] ?? ''] ?? NULL;
@@ -502,9 +503,31 @@ class GrassrootsPetition extends InlayType {
    * We also output a list of campaigns that can create new petitions.
    */
   protected function processAdminPetitionsList(ApiRequest $request) {
-    $response = [];
+    $response = ['success' => 1];
     $contactID = $this->checkAuthenticated($request, $response);
 
+    $cases = CaseWrapper::getPetitionsOwnedByContact($contactID);
+
+    // Summarise the cases
+    $response['petitions'] = $this->getListOfPetitionsForContact($contactID);
+
+    $response['campaigns'] = [];
+    $campaigns = GrassrootsPetitionCampaign::get(FALSE)
+      ->setCheckPermissions(FALSE)
+      ->addWhere('is_active', '=', TRUE)
+      ->execute();
+    foreach ($campaigns as $campaign) {
+      $response['campaigns'][] = array_intersect_key($campaign, array_flip([
+        'label', 'description', 'template_what', 'template_why', 'template_title'
+      ]));
+    }
+
+    return $response;
+  }
+  /**
+   * List petitions for the contact.
+   */
+  protected function getListOfPetitionsForContact(int $contactID) :array {
     $cases = CaseWrapper::getPetitionsOwnedByContact($contactID);
 
     // Summarise the cases
@@ -523,19 +546,87 @@ class GrassrootsPetition extends InlayType {
       ];
     }
 
-    $response['campaigns'] = [];
+    return $list;
+  }
+  /**
+   * Save petition.
+   *
+   * We also output updated list of petitions.
+   */
+  protected function processAdminSavePetition(ApiRequest $request) {
+    $response = [];
+    $contactID = $this->checkAuthenticated($request, $response);
 
-    $campaigns = GrassrootsPetitionCampaign::get(FALSE)
-      ->setCheckPermissions(FALSE)
+    $body = $request->getBody();
+
+    // We require the campaignLabel
+    if (!is_string($body['campaignLabel'] ?? NULL)) {
+      throw new ApiException(400, ['publicError' => 'Invalid request. (IVP2)'], "Contact $contactID tried to save case with missing/nonstring campaignLabel.");
+    }
+    $campaign = GrassrootsPetitionCampaign::get(FALSE)
+      ->addWhere('label', '=', $body['campaignLabel'])
       ->addWhere('is_active', '=', TRUE)
-      ->execute();
-    foreach ($campaigns as $campaign) {
-      $response['campaigns'][] = array_intersect_key($campaign, array_flip([
-        'label', 'description', 'template_what', 'template_why', 'template_title'
-      ]));
+      ->execute()->first();
+    if (!$campaign) {
+      throw new ApiException(400, ['publicError' => 'Invalid request. (IVP3)'], "Contact $contactID tried to save case with invalid campaignLabel '$body[campaignLabel]'.");
     }
 
-    return $response + ['success' => 1, 'petitions' => $list, 'campaigns' => $campaigns];
+    $caseID = (int) ($body['id'] ?? 0);
+    if ($caseID) {
+      // Editing an existing petition.
+      // Check that it belongs to this person.
+      $case = CaseWrapper::getPetitionsOwnedByContact($contactID, $caseID);
+      if (!$case) {
+        // This case does not exist, or is not owned by this contact.
+        throw new ApiException(400, ['publicError' => 'Invalid request. (IVP1)'], "Contact $contactID tried to save case $caseID which does not belong to them.");
+      }
+      // We know that $caseID is valid, and $case is a CaseWrapper.
+
+      // Fix campaign, this is not allowed to change.
+      $campaign = $case->getCampaign();
+    }
+
+    // Validate the data
+    $valid = [];
+    // For create and for edit we need these:
+    $valid['targetName'] = $this->requireSimpleText($body['targetName'] ?? '', 255, "target name");
+    $valid['why'] = $this->requireSimpleText($body['why'] ?? '', 50000, "why");
+    $valid['who'] = $this->requireSimpleText($body['who'] ?? '', 255, "who");
+    $valid['location'] = $this->requireSimpleText($body['location'] ?? '', 255, "location");
+    $valid['targetCount'] = (int)($body['targetCount'] ?? 0);
+    if (!($valid['targetCount']>0)) {
+      throw new ApiException(400, ['publicError' => 'Target count must be a number.']);
+    }
+    if (!$caseID) {
+      // We need more data for a new petition.
+      $valid['title'] = $this->requireSimpleText($body['title'] ?? '', 255, "title");
+      $valid['what'] = $this->requireSimpleText($body['what'] ?? '', 50000, "what");
+      $valid['campaign'] = $campaign['label'];
+    }
+
+    // OK, if we get here, we have all we need in $valid.
+    $updates = [];
+    if (!$caseID) {
+      // New case, create it now.
+      $case = CaseWrapper::createNew($contactID, $valid['title'], $campaign['label'], $valid['location'], $valid['targetName'], $valid['who']);
+      // These are the things you're NOT allowed to change later.
+      $updates += [
+        'grpet_who'         => $valid['who'],
+        'grpet_target_name' => $valid['targetName'],
+        'grpet_what'        => $valid['what'],
+        'grpet_location'    => $valid['location'],
+      ];
+      $case->setCustomData($updates)->setPetitionTitle($valid['title']);
+    }
+    $updates += [
+      'grpet_why'          => $valid['why'],
+      'grpet_target_count' => $valid['targetCount'],
+      'grpet_target_count' => $valid['targetCount'],
+    ];
+
+
+    // Done.
+    return ['success' => 1, 'petitions' => $this->getListOfPetitionsForContact($contactID)];
   }
   /**
    * Returns the authenticated contactID, or throws a 401 ApiException
@@ -624,5 +715,33 @@ class GrassrootsPetition extends InlayType {
     // Extract what we need from the case.
 
     return $case;
+  }
+  /**
+   * Checks a string that we expect to be text for anything dodgy.
+   *
+   * @throws ApiException
+   */
+  public static function requireSimpleText($text, ?int $maxLength=NULL, string $src='') :string {
+    if (empty($text) || !is_string($text) || trim($text) === '') {
+      throw new ApiException(400, ['publicError' => "Invalid $src. (ST1)"],
+        "$src failed validation");
+    }
+    // Is a string.
+    $text = trim($text);
+    if (preg_match('@([<>]|http|//)@', $text)) {
+      throw new ApiException(400, ['publicError' => "Invalid $src. (ST2)"],
+        "$src contains special chars or http");
+    }
+    // Emojis? No thanks.
+    if (preg_match("/[\u{1f300}-\u{1f5ff}\u{e000}-\u{f8ff}]/u", $text)) {
+      throw new ApiException(400, ['publicError' => "Invalid $src, 😥 emojis are not allowed (ST3)"],
+        "$src contains emojis");
+    }
+    if ($maxLength && mb_strlen($text) > $maxLength) {
+      throw new ApiException(400, ['publicError' => "Invalid $src, too long (ST4)"],
+        "$src contains emojis");
+    }
+
+    return $text;
   }
 }

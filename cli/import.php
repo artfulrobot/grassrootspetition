@@ -137,7 +137,7 @@ class Importer {
   }
 
   public function importEfforts() {
-    $efforts = CRM_Core_DAO::executeQuery('SELECT * FROM csl.efforts WHERE title_default <> ""');
+    $efforts = CRM_Core_DAO::executeQuery('SELECT * FROM csl.efforts WHERE title_default is not null and title_default <> ""');
     while ($efforts->fetch()) {
       $this->ensureCampaign((int) ($efforts->id), $efforts);
     }
@@ -179,7 +179,7 @@ class Importer {
    */
   public function ensureCampaign(int $effortID, ?CRM_Core_DAO $effort=NULL) :array {
     if (!isset(static::$effortsToCampaignID[$effortID])) {
-      $this->log("Failed to find effort $effortID");
+      $this->log("Effort $effortID not in cache");
 
       if (empty($effort)) {
         throw new \RuntimeException("can't lookup effort $effortID without original data");
@@ -197,6 +197,7 @@ class Importer {
           ->addValue('label', $title)
           ->addValue('template_what', $effort->what_default)
           ->addValue('template_why', $effort->why_default)
+          ->addValue('template_title', $title)
           ->addValue('is_active', 1)
           ->execute()->first();
         static::$campaigns[$title] = $campaign;

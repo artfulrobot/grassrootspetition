@@ -88,7 +88,7 @@ class CaseWrapper {
     string $location,
     string $targetName,
     string $who,
-    ?string $slug
+    ?string $slug=NULL
   ) :?CaseWrapper {
 
     $campaign = GrassrootsPetitionCampaign::get(FALSE)
@@ -106,6 +106,9 @@ class CaseWrapper {
     }
     else {
       $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($title)), '-');
+    }
+    if (!$slug) {
+      throw new \RuntimeException("Invalid slug");
     }
 
     // Check slug does not exist.
@@ -142,7 +145,6 @@ class CaseWrapper {
       'case_type_id'       => 'grassrootspetition',
       'status_id'          => 'grpet_Pending',
       'subject'            => $title,
-      'details'            => $campaign['template'],
       $campaignApiField    => $campaign['id'],
       $locationApiField    => $location,
       $targetNameApiField  => $targetName,
@@ -150,7 +152,6 @@ class CaseWrapper {
       $whoApiField         => $who,
       $slugApiField        => $slug,
     ];
-    print "Create case with: " . json_encode($caseParams, JSON_PRETTY_PRINT) . "\n";
     $case = civicrm_api3('Case', 'create', $caseParams);
 
     return static::fromID($case['id']);
@@ -185,17 +186,27 @@ class CaseWrapper {
   /**
    * Return an array CaseWrapper objects for the given contact.
    */
-  public static function getPetitionsOwnedByContact(int $contactID) :array {
-    $result = civicrm_api3('Case', 'get', [
+  public static function getPetitionsOwnedByContact(int $contactID, ?int $caseID=NULL) :array {
+    $params = [
       'contact_id'   => $contactID,
       'case_type_id' => 'grassrootspetition',
-    ])['values'] ?? [];
+    ];
+    if ($caseID) {
+      $params['id'] = $caseID;
+    }
+    $result = civicrm_api3('Case', 'get', $params)['values'] ?? [];
+
+    if ($caseID) {
+      return $result[$caseID] ?? NULL;
+    }
+
     $cases = [];
     foreach ($result as $caseData) {
       $case = new static();
       $case->loadFromArray($caseData);
       $cases[] = $case;
     }
+
     return $cases;
   }
   public function __construct() {
@@ -440,7 +451,11 @@ class CaseWrapper {
    */
   public function getCaseStatus() :string {
     $this->mustBeLoaded();
-    return array_flip(static::$caseStatuses)[$this->case['status_id']];
+    $name = array_flip(static::$caseStatuses)[$this->case['status_id']];
+    if (!$name) {
+      Civi::log()->error("Could not find valid case status for case {$this->case['id']}, status id is {$this->case['status_id']} and map is " . json_encode(static::$caseStatuses));
+    }
+    return $name;
   }
   /**
    * Get Case ID.
@@ -501,12 +516,35 @@ class CaseWrapper {
     ];
     foreach ($fieldnameToValue as $field => $value) {
       $apiName = GrassrootsPetition::getCustomFields($field);
-      $params[$apiName] = $value;
-      // update cache.
-      $this->case[$apiName] = $value;
+      if (($this->case[$apiName] ?? '') !== $value) {
+        $params[$apiName] = $value;
+        // update cache.
+        $this->case[$apiName] = $value;
+      }
     }
 
-    civicrm_api3('Case', 'create', $params);
+    // Only update if something is changing.
+    if (count($params) > 1) {
+      civicrm_api3('Case', 'create', $params);
+    }
+    return $this;
+  }
+  /**
+   * Change the case status.
+   */
+  public function setPetitionTitle(string $title) :CaseWrapper {
+    $this->mustBeLoaded();
+    $title = trim($title);
+    if (!$title) {
+      throw new \InvalidArgumentException("Petition title cannot be empty");
+    }
+    if ($this->case['subject'] !== $title) {
+      civicrm_api3('case', 'create', [
+        'id'      => $this->case['id'],
+        'subject' => $title,
+      ]);
+      $this->case['subject'] = $title;
+    }
     return $this;
   }
   /**

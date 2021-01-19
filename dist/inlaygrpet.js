@@ -685,6 +685,47 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
@@ -717,6 +758,13 @@ __webpack_require__.r(__webpack_exports__);
     this.bootList();
   },
   methods: {
+    getAuthHash: function getAuthHash() {
+      var authHash = (window.location.hash || '#').substr(1);
+
+      if (authHash.match(/^[TS][0-9a-z]{16}$/)) {
+        return authHash;
+      }
+    },
     setUnauthorised: function setUnauthorised() {},
     authorisedRequest: function authorisedRequest(opts) {
       var _this = this;
@@ -726,19 +774,23 @@ __webpack_require__.r(__webpack_exports__);
         opts.body.authToken = this.authToken;
       } else {
         // App has no session token yet..
-        var authHash = (window.location.hash || '#').substr(1);
+        var authHash = this.getAuthHash();
 
-        if (authHash.match(/^[TS][0-9a-z]{16}$/)) {
+        if (authHash) {
           opts.body.authToken = authHash;
         } else {
           console.log("Failed to find suitable means of authenticating.");
           this.stage = 'unauthorised'; // We have to return a promise.
 
           return Promise.resolve({
-            error: 'Unauthorised'
+            error: 'Unauthorised',
+            responseOk: false,
+            responseStatus: 401
           });
         }
       }
+
+      opts.xdebug = 'foo'; // xxx
 
       return this.inlay.request(opts).then(function (r) {
         if (!r.responseOk) {
@@ -764,7 +816,9 @@ __webpack_require__.r(__webpack_exports__);
           ; // Handled.
 
           return {
-            error: 'Unauthorised'
+            error: 'Unauthorised',
+            responseOk: false,
+            responseStatus: 401
           };
         } // Unhandled.
 
@@ -798,9 +852,6 @@ __webpack_require__.r(__webpack_exports__);
         } else {
           console.warn("hmmm", r);
         }
-      })["catch"](function (e) {
-        _this2.stage = 'unauthorised';
-        return;
       });
     },
     submitAuthEmail: function submitAuthEmail() {
@@ -852,6 +903,45 @@ __webpack_require__.r(__webpack_exports__);
 
       };
       this.editPetition(petition);
+    },
+    savePetition: function savePetition() {
+      var _this4 = this;
+
+      // The browser's checks say the fields are valid.
+      // (do any custom stuff in response to the buttonclick)
+      var d = {
+        need: 'adminSavePetition'
+      }; // Copy our fields.
+
+      ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location', 'campaignLabel'].forEach(function (f) {
+        d[f] = _this4.petitionBeingEdited[f];
+      });
+
+      if (this.editingPetition) {
+        d.id = this.editingPetition.id;
+      } // Got data.
+
+
+      var progress = this.$refs.loadingProgress;
+      progress.startTimer(5, 100, true);
+      this.$root.submissionRunning = true;
+      this.authorisedRequest({
+        method: 'post',
+        body: d
+      }).then(function (r) {
+        _this4.$root.submissionRunning = false;
+        progress.cancelTimer(); // Were there any errors?
+        // We're not expecting any, so just use alert.
+
+        if (r.responseOk && r.success == 1) {
+          // The result of saving successfully is an updated set of petitions.
+          _this4.petitions = r.petitions;
+          _this4.stage = 'listPetitions';
+          _this4.petitionBeingEdited = null;
+        } else {
+          alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
+        }
+      });
     }
   }
 });
@@ -1185,7 +1275,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet-admin .grpet-error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet-admin label {\n  display: block;\n}\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n", ""]);
+exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin label {\n  display: block;\n}\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin .edit-petition input[type=\"text\"],\n.grpet-admin .edit-petition textarea,\n.grpet-admin .edit-petition select {\n  width: 100%;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  text-align: center;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n", ""]);
 
 // exports
 
@@ -3040,6 +3130,22 @@ var render = function() {
           _c("div", [
             _c("h2", [_vm._v("Unauthorised")]),
             _vm._v(" "),
+            _c(
+              "p",
+              {
+                directives: [
+                  {
+                    name: "show",
+                    rawName: "v-show",
+                    value: _vm.getAuthHash(),
+                    expression: "getAuthHash()"
+                  }
+                ],
+                staticClass: "grpet-error "
+              },
+              [_vm._v("This link has expired")]
+            ),
+            _vm._v(" "),
             _c("label", { attrs: { for: _vm.myId + "authEmail" } }, [
               _vm._v("Enter the email you registered with")
             ]),
@@ -3259,6 +3365,7 @@ var render = function() {
         ? _c(
             "form",
             {
+              staticClass: "edit-petition",
               on: {
                 submit: function($event) {
                   $event.preventDefault()
@@ -3290,7 +3397,8 @@ var render = function() {
                   attrs: {
                     type: "text",
                     required: "",
-                    id: _vm.myId + "petitionTitle"
+                    id: _vm.myId + "petitionTitle",
+                    disabled: _vm.$root.submissionRunning
                   },
                   domProps: { value: _vm.petitionBeingEdited.title },
                   on: {
@@ -3330,7 +3438,8 @@ var render = function() {
                       attrs: {
                         type: "text",
                         required: "",
-                        id: _vm.myId + "petitionTargetName"
+                        id: _vm.myId + "petitionTargetName",
+                        disabled: _vm.$root.submissionRunning
                       },
                       domProps: { value: _vm.petitionBeingEdited.targetName },
                       on: {
@@ -3361,6 +3470,55 @@ var render = function() {
               ]),
               _vm._v(" "),
               _c("div", { staticClass: "field" }, [
+                _c("label", { attrs: { for: _vm.myId + "petitionLocation" } }, [
+                  _vm._v("Where is this happening?")
+                ]),
+                _vm._v(" "),
+                _vm.creatingPetition
+                  ? _c("input", {
+                      directives: [
+                        {
+                          name: "model",
+                          rawName: "v-model",
+                          value: _vm.petitionBeingEdited.location,
+                          expression: "petitionBeingEdited.location"
+                        }
+                      ],
+                      attrs: {
+                        type: "text",
+                        required: "",
+                        id: _vm.myId + "petitionLocation",
+                        disabled: _vm.$root.submissionRunning
+                      },
+                      domProps: { value: _vm.petitionBeingEdited.location },
+                      on: {
+                        input: function($event) {
+                          if ($event.target.composing) {
+                            return
+                          }
+                          _vm.$set(
+                            _vm.petitionBeingEdited,
+                            "location",
+                            $event.target.value
+                          )
+                        }
+                      }
+                    })
+                  : _vm._e(),
+                _vm._v(" "),
+                _vm.editingPetition
+                  ? _c(
+                      "p",
+                      {
+                        staticClass: "fixed",
+                        attrs: { title: "This can no longer be edited." }
+                      },
+                      [_vm._v(_vm._s(_vm.petitionBeingEdited.location))]
+                    )
+                  : _vm._e()
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "field" }, [
                 _c("label", { attrs: { for: _vm.myId + "petitionWho" } }, [
                   _vm._v("Who’s organising this petition.")
                 ]),
@@ -3377,7 +3535,8 @@ var render = function() {
                   attrs: {
                     type: "text",
                     required: "",
-                    id: _vm.myId + "petitionWho"
+                    id: _vm.myId + "petitionWho",
+                    disabled: _vm.$root.submissionRunning
                   },
                   domProps: { value: _vm.petitionBeingEdited.who },
                   on: {
@@ -3417,7 +3576,8 @@ var render = function() {
                     required: "",
                     rows: "5",
                     cols: "60",
-                    id: _vm.myId + "petitionWhy"
+                    id: _vm.myId + "petitionWhy",
+                    disabled: _vm.$root.submissionRunning
                   },
                   domProps: { value: _vm.petitionBeingEdited.why },
                   on: {
@@ -3458,7 +3618,8 @@ var render = function() {
                         required: "",
                         rows: "5",
                         cols: "60",
-                        id: _vm.myId + "petitionWhat"
+                        id: _vm.myId + "petitionWhat",
+                        disabled: _vm.$root.submissionRunning
                       },
                       domProps: { value: _vm.petitionBeingEdited.what },
                       on: {
@@ -3513,9 +3674,10 @@ var render = function() {
                     }
                   ],
                   attrs: {
-                    type: "integer",
+                    type: "number",
                     required: "",
-                    id: _vm.myId + "petitionTargetCount"
+                    id: _vm.myId + "petitionTargetCount",
+                    disabled: _vm.$root.submissionRunning
                   },
                   domProps: { value: _vm.petitionBeingEdited.targetCount },
                   on: {

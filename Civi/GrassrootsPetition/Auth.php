@@ -51,7 +51,7 @@ class Auth {
         }
         else {
           // Create a new session token.
-          $return['token'] = static::createAuthRecord((int) $dao->contactID, 60*60*24, 'S');
+          $return['token'] = static::createAuthRecord((int) $dao->contact_id, 60*60*24, 'S');
           // Store it in the upgradedTo field
           CRM_Core_DAO::executeQuery("UPDATE civicrm_grpet_auth SET upgradedTo = %1 WHERE id = %2", [
             1 => [$return['token'], 'String'],

@@ -8,6 +8,7 @@
       >
       <div>
         <h2>Unauthorised</h2>
+        <p class="grpet-error " v-show="getAuthHash()" >This link has expired</p>
         <label :for="myId + 'authEmail'" >Enter the email you registered with</label>
         <input
           type="email"
@@ -61,6 +62,7 @@
     </div><!-- /createNewPetition -->
 
     <form
+      class="edit-petition"
       v-if="stage === 'editPetition'"
       @submit.prevent="savePetition"
     >
@@ -71,6 +73,7 @@
         <input
           type="text" required
           :id="myId + 'petitionTitle'"
+          :disabled="$root.submissionRunning"
           v-model="petitionBeingEdited.title"
         />
         <div class="field-help"></div>
@@ -81,6 +84,7 @@
         <input
           type="text" required
           :id="myId + 'petitionTargetName'"
+          :disabled="$root.submissionRunning"
           v-model="petitionBeingEdited.targetName"
           v-if="creatingPetition"
         />
@@ -88,10 +92,23 @@
       </div>
 
       <div class="field" >
+        <label :for="myId + 'petitionLocation'">Where is this happening?</label>
+        <input
+          type="text" required
+          :id="myId + 'petitionLocation'"
+          :disabled="$root.submissionRunning"
+          v-model="petitionBeingEdited.location"
+          v-if="creatingPetition"
+        />
+        <p class="fixed" title="This can no longer be edited." v-if="editingPetition" >{{petitionBeingEdited.location}}</p>
+      </div>
+
+      <div class="field" >
         <label :for="myId + 'petitionWho'">Who’s organising this petition.</label>
         <input
           type="text" required
           :id="myId + 'petitionWho'"
+          :disabled="$root.submissionRunning"
           v-model="petitionBeingEdited.who"
         />
         <div class="field-help">e.g. the name of your group.</div>
@@ -104,8 +121,9 @@
           rows=5
           cols=60
           :id="myId + 'petitionWhy'"
+          :disabled="$root.submissionRunning"
           v-model="petitionBeingEdited.why"
-  ></textarea>
+          ></textarea>
         <div class="field-help">Why is this issue important?</div>
       </div>
 
@@ -116,6 +134,7 @@
           rows=5
           cols=60
           :id="myId + 'petitionWhat'"
+          :disabled="$root.submissionRunning"
           v-model="petitionBeingEdited.what"
           v-if="creatingPetition"
         ></textarea>
@@ -126,8 +145,9 @@
       <div class="field" >
         <label :for="myId + 'petitionTargetCount'">Target</label>
         <input
-          type="integer" required
+          type="number" required
           :id="myId + 'petitionTargetCount'"
+          :disabled="$root.submissionRunning"
           v-model="petitionBeingEdited.targetCount"
         />
         <div class="field-help">How many signatures are you aiming for? This should be realistic; too high and it will put people off signing. Note that the target will auto-extend if you exceed this. You can also edit this manually later if you need to.</div>
@@ -145,17 +165,38 @@
 </template>
 <style lang="scss">
 .grpet-admin {
+  box-sizing: border-box;
+
   .grpet-error {
     color: #a00;
-    text-align: center;
     padding: 1rem;
   }
   label {
     display: block;
   }
+  .edit-petition,
   .grpet-list {
     background-color: #f8f8f8;
     padding: 1rem;
+  }
+  .edit-petition {
+    .field {
+      background: white;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+    }
+    .fixed {
+      background: #f0f0f0;
+      text-align: center;
+      padding: 0.25rem 1rem;
+      color: #555;
+      font-size: (14rem/16);
+    }
   }
   ul.petition {
     margin: 2rem -1rem;
@@ -209,6 +250,12 @@ export default {
     this.bootList();
   },
   methods: {
+    getAuthHash() {
+      var authHash = (window.location.hash || '#').substr(1);
+      if (authHash.match(/^[TS][0-9a-z]{16}$/)) {
+        return authHash;
+      }
+    },
     setUnauthorised() {
 
     },
@@ -219,17 +266,18 @@ export default {
       }
       else {
         // App has no session token yet..
-        var authHash = (window.location.hash || '#').substr(1);
-        if (authHash.match(/^[TS][0-9a-z]{16}$/)) {
+        var authHash = this.getAuthHash();
+        if (authHash) {
           opts.body.authToken = authHash;
         }
         else {
           console.log("Failed to find suitable means of authenticating.");
           this.stage = 'unauthorised';
           // We have to return a promise.
-          return Promise.resolve({ error: 'Unauthorised' });
+          return Promise.resolve({ error: 'Unauthorised', responseOk: false, responseStatus: 401 });
         }
       }
+      opts.xdebug='foo'; // xxx
 
       return this.inlay.request(opts).then(r => {
         if (!r.responseOk) {
@@ -251,7 +299,7 @@ export default {
           this.authToken = '';
           this.authEmail = '';;
           // Handled.
-          return { error: 'Unauthorised' };
+          return { error: 'Unauthorised', responseOk: false, responseStatus: 401 };
         }
         // Unhandled.
         throw e;
@@ -279,8 +327,7 @@ export default {
           else {
             console.warn("hmmm", r);
           }
-        })
-        .catch(e => { this.stage = 'unauthorised'; return; });
+        });
     },
     submitAuthEmail() {
       // Send request for auth email.
@@ -327,7 +374,42 @@ export default {
         // @todo other defaults
       };
       this.editPetition(petition);
-    }
+    },
+    savePetition() {
+      // The browser's checks say the fields are valid.
+      // (do any custom stuff in response to the buttonclick)
+      const d = {
+        need: 'adminSavePetition',
+      };
+      // Copy our fields.
+      ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location', 'campaignLabel'].forEach(f => {
+        d[f] = this.petitionBeingEdited[f];
+      });
+      if (this.editingPetition) {
+        d.id = this.editingPetition.id;
+      }
+      // Got data.
+      const progress = this.$refs.loadingProgress;
+      progress.startTimer(5, 100, true);
+      this.$root.submissionRunning = true;
+      this.authorisedRequest({ method: 'post', body: d })
+      .then(r => {
+        this.$root.submissionRunning = false;
+        progress.cancelTimer();
+
+        // Were there any errors?
+        // We're not expecting any, so just use alert.
+        if (r.responseOk && r.success == 1) {
+          // The result of saving successfully is an updated set of petitions.
+          this.petitions = r.petitions;
+          this.stage = 'listPetitions';
+          this.petitionBeingEdited = null;
+        }
+        else {
+          alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
+        }
+      });
+    },
   }
 }
 </script>
