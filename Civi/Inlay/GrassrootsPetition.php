@@ -166,6 +166,7 @@ class GrassrootsPetition extends InlayType {
         'adminPetitionsList' => 'processAdminPetitionsList',
         'adminSavePetition'  => 'processAdminSavePetition',
         'adminLoadPetition'  => 'processAdminLoadPetition',
+        'adminLoadUpdates'   => 'processAdminLoadUpdates',
       ]
     ];
     $method = $routes[$request->getMethod()][$request->getBody()['need'] ?? ''] ?? NULL;
@@ -685,6 +686,31 @@ class GrassrootsPetition extends InlayType {
 
     // Done.
     return ['success' => 1, 'petition' => $data];
+  }
+  /**
+   * Load petition updates for editing.
+   */
+  protected function processAdminLoadUpdates(ApiRequest $request) {
+    $response = [];
+    $contactID = $this->checkAuthenticated($request, $response);
+
+    $body = $request->getBody();
+    $caseID = (int) ($body['petitionID'] ?? 0);
+    if (!$caseID) {
+      throw new ApiException(400, ['publicError' => 'Invalid request. (LP2)'], "Contact $contactID tried made adminLoadPetition request without id");
+    }
+    // Editing an existing petition.
+    // Check that it belongs to this person.
+    $case = CaseWrapper::getPetitionsOwnedByContact($contactID, $caseID)[0] ?? NULL;
+    if (!$case) {
+      // This case does not exist, or is not owned by this contact.
+      throw new ApiException(400, ['publicError' => 'Invalid request. (IVP1)'], "Contact $contactID tried to save case $caseID which does not belong to them.");
+    }
+
+    $updates = $case->getAdminUpdates();
+
+    // We return all updates except cancelled.
+    return ['success' => 1, 'updates' => $updates];
   }
   /**
    * Returns the authenticated contactID, or throws a 401 ApiException

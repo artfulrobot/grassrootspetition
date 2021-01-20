@@ -763,6 +763,30 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
@@ -779,7 +803,10 @@ __webpack_require__.r(__webpack_exports__);
       authToken: '',
       petitions: [],
       campaigns: [],
-      petitionBeingEdited: {}
+      petitionBeingEdited: {},
+      mainImageFileCount: 0,
+      petitionBeingUpdated: {},
+      updateImageFileCount: 0
     };
     return d;
   },
@@ -802,7 +829,6 @@ __webpack_require__.r(__webpack_exports__);
         return authHash;
       }
     },
-    setUnauthorised: function setUnauthorised() {},
     authorisedRequest: function authorisedRequest(opts) {
       var _this = this;
 
@@ -948,6 +974,31 @@ __webpack_require__.r(__webpack_exports__);
         }
       });
     },
+    updatePetition: function updatePetition(petition) {
+      var _this5 = this;
+
+      // Load exsting petition.
+      this.stage = 'loading';
+      this.loadingMessage = 'Loading petition updates...';
+      var progress = this.$refs.loadingProgress;
+      progress.startTimer(5, 100, true);
+      this.authorisedRequest({
+        method: 'post',
+        body: {
+          need: 'adminLoadUpdates',
+          petitionID: petition.id
+        }
+      }).then(function (r) {
+        progress.cancelTimer();
+
+        if (r.responseOk && r.success == 1 && r.updates) {
+          _this5.updates = r.updates;
+          _this5.stage = 'updatePetition';
+        } else {
+          alert("Sorry, there was an error: " + (r.publicError || 'Unknown error UPL1'));
+        }
+      });
+    },
     createNewPetition: function createNewPetition() {
       this.stage = 'createNewPetition';
       this.petitionBeingEdited = null;
@@ -964,7 +1015,7 @@ __webpack_require__.r(__webpack_exports__);
       this.editPetition(petition);
     },
     savePetition: function savePetition() {
-      var _this5 = this;
+      var _this6 = this;
 
       // The browser's checks say the fields are valid.
       // (do any custom stuff in response to the buttonclick)
@@ -973,48 +1024,48 @@ __webpack_require__.r(__webpack_exports__);
       }; // Copy our fields.
 
       ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location', 'imageAlt'].forEach(function (f) {
-        d[f] = _this5.petitionBeingEdited[f];
+        d[f] = _this6.petitionBeingEdited[f];
       });
       var p = new Promise(function (resolve, reject) {
-        if (_this5.$refs.imageFile.files.length === 1) {
+        if (_this6.$refs.imageFile.files.length === 1) {
           var fr = new FileReader();
           fr.addEventListener('load', function (e) {
             // File loaded.
             d.imageData = fr.result;
             resolve(d);
           });
-          fr.readAsDataURL(_this5.$refs.imageFile.files[0]);
+          fr.readAsDataURL(_this6.$refs.imageFile.files[0]);
         } else {
           resolve(d);
         }
       });
       p.then(function (d) {
-        if (_this5.editingPetition) {
+        if (_this6.editingPetition) {
           // send ID of existing petitions.
-          d.id = _this5.petitionBeingEdited.id;
+          d.id = _this6.petitionBeingEdited.id;
         } else {
           // new petitions need this.
-          d.campaignLabel = _this5.petitionBeingEdited.campaignLabel;
+          d.campaignLabel = _this6.petitionBeingEdited.campaignLabel;
         } // Got data.
 
 
-        var progress = _this5.$refs.loadingProgress;
+        var progress = _this6.$refs.loadingProgress;
         progress.startTimer(5, 100, true);
-        _this5.$root.submissionRunning = true;
+        _this6.$root.submissionRunning = true;
 
-        _this5.authorisedRequest({
+        _this6.authorisedRequest({
           method: 'post',
           body: d
         }).then(function (r) {
-          _this5.$root.submissionRunning = false;
+          _this6.$root.submissionRunning = false;
           progress.cancelTimer(); // Were there any errors?
           // We're not expecting any, so just use alert.
 
           if (r.responseOk && r.success == 1) {
             // The result of saving successfully is an updated set of petitions.
-            _this5.petitions = r.petitions;
-            _this5.stage = 'listPetitions';
-            _this5.petitionBeingEdited = null;
+            _this6.petitions = r.petitions;
+            _this6.stage = 'listPetitions';
+            _this6.petitionBeingEdited = null;
           } else {
             alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
           }
@@ -1373,7 +1424,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin label {\n  display: block;\n}\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin .edit-petition input[type=\"text\"],\n.grpet-admin .edit-petition textarea,\n.grpet-admin .edit-petition select {\n  width: 100%;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin .status {\n  border-radius: 1rem;\n  padding: 0 1rem;\n  line-height: 1;\n  white-space: no-break;\n  color: white;\n}\n.grpet-admin .status.grpet_Won {\n  background: #566a4a;\n}\n.grpet-admin .status.grpet_Dead {\n  background: #a4a19e;\n}\n.grpet-admin .status.grpet_Pending {\n  background: #747707;\n}\n.grpet-admin .status.Open {\n  background: #4aa219;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n.grpet-admin ul.petition article h1 {\n  font-size: 1.4rem;\n  line-height: 1;\n  margin: 0 0 1rem;\n  padding: 0;\n}\n", ""]);
+exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin label {\n  font-weight: bold;\n  display: block;\n}\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin .edit-petition input[type=\"text\"],\n.grpet-admin .edit-petition textarea,\n.grpet-admin .edit-petition select {\n  width: 100%;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin .status {\n  border-radius: 1rem;\n  padding: 0 1rem;\n  line-height: 1;\n  white-space: no-break;\n  color: white;\n}\n.grpet-admin .status.grpet_Won {\n  background: #566a4a;\n}\n.grpet-admin .status.grpet_Dead {\n  background: #a4a19e;\n}\n.grpet-admin .status.grpet_Pending {\n  background: #747707;\n}\n.grpet-admin .status.Open {\n  background: #4aa219;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n.grpet-admin ul.petition article h1 {\n  font-size: 1.4rem;\n  line-height: 1;\n  margin: 0 0 1rem;\n  padding: 0;\n}\n", ""]);
 
 // exports
 
@@ -2785,8 +2836,8 @@ var render = function() {
                             attrs: {
                               required: "",
                               type: "text",
-                              id: _vm.myId + "fname",
                               name: "first_name",
+                              id: _vm.myId + "fname",
                               disabled: _vm.$root.submissionRunning
                             },
                             domProps: { value: _vm.first_name },
@@ -3359,48 +3410,54 @@ var render = function() {
                       )
                     ]),
                     _vm._v(" "),
-                    _c("p", [
-                      _c(
-                        "a",
-                        {
-                          attrs: { href: "" },
-                          on: {
-                            click: function($event) {
-                              $event.preventDefault()
-                              return _vm.editPetition(petition)
+                    _c("ul", [
+                      _c("li", [
+                        _c(
+                          "a",
+                          {
+                            attrs: { href: "" },
+                            on: {
+                              click: function($event) {
+                                $event.preventDefault()
+                                return _vm.editPetition(petition)
+                              }
                             }
-                          }
-                        },
-                        [_vm._v("Edit petition (texts, targets etc.)")]
-                      ),
-                      _vm._v(" |\n             "),
-                      _c(
-                        "a",
-                        {
-                          attrs: { href: "" },
-                          on: {
-                            click: function($event) {
-                              $event.preventDefault()
-                              return _vm.updatePetition(petition)
+                          },
+                          [_vm._v("Edit petition (texts, targets etc.)")]
+                        )
+                      ]),
+                      _vm._v(" "),
+                      _c("li", [
+                        _c(
+                          "a",
+                          {
+                            attrs: { href: "" },
+                            on: {
+                              click: function($event) {
+                                $event.preventDefault()
+                                return _vm.updatePetition(petition)
+                              }
                             }
-                          }
-                        },
-                        [_vm._v("Provide updates, mark Won or Closed")]
-                      ),
-                      _vm._v(" |\n             "),
-                      _c(
-                        "a",
-                        {
-                          attrs: { href: "" },
-                          on: {
-                            click: function($event) {
-                              $event.preventDefault()
-                              return _vm.createEmail(petition)
+                          },
+                          [_vm._v("Provide updates, mark Won or Closed")]
+                        )
+                      ]),
+                      _vm._v(" "),
+                      _c("li", [
+                        _c(
+                          "a",
+                          {
+                            attrs: { href: "" },
+                            on: {
+                              click: function($event) {
+                                $event.preventDefault()
+                                return _vm.createEmail(petition)
+                              }
                             }
-                          }
-                        },
-                        [_vm._v("Email signers")]
-                      )
+                          },
+                          [_vm._v("Email signers")]
+                        )
+                      ])
                     ])
                   ])
                 ])
@@ -3823,6 +3880,12 @@ var render = function() {
                     name: "image",
                     id: _vm.myId + "petitionImage",
                     disabled: _vm.$root.submissionRunning
+                  },
+                  on: {
+                    change: function($event) {
+                      _vm.mainImageFileCount =
+                        _vm.$refs.imageFile.files.length > 0
+                    }
                   }
                 }),
                 _vm._v(" "),
@@ -3846,7 +3909,8 @@ var render = function() {
                   attrs: {
                     type: "text",
                     id: _vm.myId + "petitionImageAlt",
-                    disabled: _vm.$root.submissionRunning
+                    disabled: _vm.$root.submissionRunning,
+                    required: _vm.mainImageFileCount
                   },
                   domProps: { value: _vm.petitionBeingEdited.imageAlt },
                   on: {
@@ -3871,14 +3935,74 @@ var render = function() {
               ]),
               _vm._v(" "),
               _c("div", { staticClass: "field" }, [
-                _c("button", { attrs: { type: "submit" } }, [
-                  _vm._v(
-                    _vm._s(
-                      _vm.editingPetition ? "Save Petition" : "Create Petition"
+                _c(
+                  "button",
+                  {
+                    staticClass: "secondary",
+                    attrs: { type: "submit" },
+                    on: {
+                      click: function($event) {
+                        $event.preventDefault()
+                        _vm.stage = "listPetitions"
+                        _vm.petitionBeingEdited = null
+                      }
+                    }
+                  },
+                  [_vm._v("Cancel")]
+                ),
+                _vm._v(" "),
+                _c(
+                  "button",
+                  { staticClass: "primary", attrs: { type: "submit" } },
+                  [
+                    _vm._v(
+                      _vm._s(
+                        _vm.editingPetition
+                          ? "Save Petition"
+                          : "Create Petition"
+                      )
                     )
-                  )
-                ])
+                  ]
+                )
               ])
+            ]
+          )
+        : _vm._e(),
+      _vm._v(" "),
+      _vm.stage === "updatePetition"
+        ? _c(
+            "form",
+            {
+              staticClass: "update-petition",
+              on: {
+                submit: function($event) {
+                  $event.preventDefault()
+                  return _vm.addPetitionUpdate($event)
+                }
+              }
+            },
+            [
+              _c("h2", [_vm._v("Provide updates")]),
+              _vm._v(" "),
+              _c("h3", [_vm._v("Existing updates")]),
+              _vm._v(" "),
+              _c(
+                "ul",
+                _vm._l(_vm.updates, function(update) {
+                  return _c("li", [
+                    _vm._v(
+                      "\n        " +
+                        _vm._s(update.activity_date_time) +
+                        "\n        " +
+                        _vm._s(update.subject) +
+                        "\n        " +
+                        _vm._s(update.detils) +
+                        "\n      "
+                    )
+                  ])
+                }),
+                0
+              )
             ]
           )
         : _vm._e(),

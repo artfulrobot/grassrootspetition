@@ -34,9 +34,9 @@
             <input
               required
               type="text"
-              :id="myId + 'fname'"
               name="first_name"
               ref="first_name"
+              :id="myId + 'fname'"
               :disabled="$root.submissionRunning"
               v-model="first_name"
               />

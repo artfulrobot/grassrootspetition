@@ -296,9 +296,9 @@ class CaseWrapper {
       'petitionWhatHTML' => $this->getWhat(), // html?
       'petitionWhyHTML'  => $this->getWhy(),
       'campaign'         => $this->getCampaignPublicName(),
-      'imageUrl'         => $mainImage['url'],
-      'imageAlt'         => $mainImage['alt'],
-      'updates'          => $this->getPetitionUpdates(),
+      'imageUrl'         => $mainImage['imageUrl'],
+      'imageAlt'         => $mainImage['imageAlt'],
+      'updates'          => $this->getPublicUpdates(),
       'signatureCount'   => $this->getPetitionSigsCount(),
       // @todo expose these on the Inlay Config
       'consentIntroHTML' => '<p>Get emails about this campaign and from People & Planet on our current and future projects, campaigns and appeals. There’s a link to unsubscribe at the bottom of each email update. <a href="https://peopleandplanet.org/privacy">Privacy Policy</a></p>',
@@ -379,18 +379,19 @@ class CaseWrapper {
   /**
    * Updates are activities of the 'Grassroots Petition progress' type
    */
-  public function getPetitionUpdates() {
+  public function getPublicUpdates() {
     $this->mustBeLoaded();
     $caseID = (int) $this->case['id'];
 
     $updateActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition update']['value'];
-    $validStatuses = [static::$activityStatuses['Completed']];
-    // @todo allow drafts?
+    // Currently we trust the admin to publish live updates, even though we track them as pending moderation internally.
+    $validStatuses = [static::$activityStatuses['Completed'], static::$activityStatuses['grpet_pending_moderation']];
     $validStatuses = implode(', ', $validStatuses);
 
     // Load these with SQL, as Activities and Api4 are difficult.
     $sql = "
-      SELECT a.id, a.activity_date_time, a.subject, a.details
+      SELECT a.id, a.activity_type_id, a.activity_date_time, a.subject, a.details,
+             (SELECT COUNT(*) FROM civicrm_entity_file ef WHERE entity_table='civicrm_activity' AND entity_id = a.id ORDER BY id LIMIT 1) hasImage
         FROM civicrm_activity a
         INNER JOIN civicrm_case_activity ca ON a.id = ca.activity_id AND ca.case_id = $caseID
       WHERE a.activity_type_id = $updateActivityTypeID
@@ -401,9 +402,52 @@ class CaseWrapper {
     $updates = [];
     $dao = CRM_Core_DAO::executeQuery($sql);
     while ($dao->fetch()) {
-      $updates[] = $dao->toArray();
+      $update = $dao->toArray();
+      if ($update['hasImage']) {
+        $this->addPublicImage($update);
+      }
+      // We don't need to output the type.
+      unset($update['activity_type_id']);
+      $updates[] = $update;
     }
-    // @todo images (attachments)
+
+    return $updates;
+  }
+  /**
+   * Updates are activities of the 'Grassroots Petition progress' type
+   *
+   * @todo currently this is identical to getPublicUpdates
+   */
+  public function getAdminUpdates() {
+    $this->mustBeLoaded();
+    $caseID = (int) $this->case['id'];
+
+    $updateActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition update']['value'];
+    $validStatuses = [static::$activityStatuses['Completed'], static::$activityStatuses['grpet_pending_moderation']];
+    $validStatuses = implode(', ', $validStatuses);
+
+    // Load these with SQL, as Activities and Api4 are difficult.
+    $sql = "
+      SELECT a.id, a.activity_type_id, a.activity_date_time, a.subject, a.details,
+             (SELECT COUNT(*) FROM civicrm_entity_file ef WHERE entity_table='civicrm_activity' AND entity_id = a.id ORDER BY id LIMIT 1) hasImage
+        FROM civicrm_activity a
+        INNER JOIN civicrm_case_activity ca ON a.id = ca.activity_id AND ca.case_id = $caseID
+      WHERE a.activity_type_id = $updateActivityTypeID
+        AND a.status_id IN ($validStatuses)
+      ORDER BY a.activity_date_time
+    ";
+
+    $updates = [];
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    while ($dao->fetch()) {
+      $update = $dao->toArray();
+      if ($update['hasImage']) {
+        $this->addPublicImage($update);
+      }
+      // We don't need to output the type.
+      unset($update['activity_type_id']);
+      $updates[] = $update;
+    }
 
     return $updates;
   }
@@ -693,7 +737,8 @@ class CaseWrapper {
    *
    * A URL is only returned if the file exists, however the path is always returned.
    *
-   * If $activityID is 0 then a temp file name is returned.
+   * If $activityID is 0 then a temp file name is returned. NULL means main
+   * image, not one related to an update activity.
    */
   public function getFile(string $pathOrUrl, ?int $activityID=NULL) :?string {
     $petitionHash = substr(sha1(CIVICRM_SITE_KEY . $this->case['id']), 0, 8);
@@ -799,35 +844,8 @@ class CaseWrapper {
    */
   public function getMainImage() :array {
     $openCase = $this->getPetitionCreatedActivity();
-
-    // Get first attachment for this activity.
-    $attachment = civicrm_api3('Attachment', 'get', [
-      'entity_table' => 'civicrm_activity',
-      'entity_id' => $openCase['id'],
-      'options' => ['limit' => 1, 'sort' => 'id'],
-    ]);
-
-    $filePath = $this->getFile('path');
-
-    if ($attachment['count'] == 0) {
-      // No main image.
-      if (file_exists($filePath)) {
-        unlink($filePath);
-        Civi::log()->info("GrassrootsPetition: Deleted file '$filePath' since Case {$this->case['id']} no longer has an image file attached.");
-      }
-      return ['url' => NULL, 'alt' => NULL];
-    }
-
-    if (!file_exists($filePath)) {
-      // File does not exist.
-      $tempFile = $this->createPublicImage($attachment['values'][$attachment['id']]);
-      if ($tempFile) {
-        rename($tempFile, $filePath);
-        Civi::log()->info("GrassrootsPetition: Created file '$filePath' for Case {$this->case['id']}");
-      }
-    }
-
-    return ['url' => $this->getFile('url'), 'alt' => $attachment['description']];
+    $this->addPublicImage($activity);
+    return $openCase;
   }
 
   /**
@@ -899,5 +917,47 @@ class CaseWrapper {
     if (empty($this->case)) {
       throw new \RuntimeException("CaseWrapper: no case loaded.");
     }
+  }
+  /**
+   * Adds imageUrl and imageAlt to the activity array. NULL if no image.
+   */
+  protected function addPublicImage(array &$activity) {
+
+    $updateActivityID = NULL;
+    if ($activity['activity_type_id'] == static::$activityTypesByName['Grassroots Petition update']['value']) {
+      // Is an update activity
+      $updateActivityID = $activity['id'];
+    }
+
+    // Get first attachment for this activity.
+    $attachment = civicrm_api3('Attachment', 'get', [
+      'entity_table' => 'civicrm_activity',
+      'entity_id'    => $activity['id'],
+      'options'      => ['limit' => 1, 'sort' => 'id'],
+    ]);
+
+    $filePath = $this->getFile('path', $updateActivityID);
+
+    if ($attachment['count'] == 0) {
+      // No image.
+      if (file_exists($filePath)) {
+        unlink($filePath);
+        Civi::log()->info("GrassrootsPetition: Deleted file '$filePath' since Case {$this->case['id']} no longer has an image file attached to activity $activity[id].");
+      }
+      $activity['imageUrl'] = NULL;
+      $activity['imageAlt'] = NULL;
+    }
+
+    if (!file_exists($filePath)) {
+      // File does not exist.
+      $tempFile = $this->createPublicImage($attachment['values'][$attachment['id']]);
+      if ($tempFile) {
+        rename($tempFile, $filePath);
+        Civi::log()->info("GrassrootsPetition: Created file '$filePath' for Case {$this->case['id']} on activity $activity[id]");
+      }
+    }
+
+    $activity['imageUrl'] = $this->getFile('url', $updateActivityID);
+    $activity['imageAlt'] = $attachment['description'];
   }
 }

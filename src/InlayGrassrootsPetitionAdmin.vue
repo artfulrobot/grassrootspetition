@@ -39,9 +39,11 @@
             <h1><a :href="'/petitions/' + petition.slug" target="_blank" rel="noopener" >{{ petition.title }}</a></h1>
             <span class="status" :class="petition.status" >{{getStatusMeta(petition.status).description }}</span>
             <p>Signatures: {{petition.signatureCount}} / {{petition.targetCount}}.</p>
-            <p><a href @click.prevent="editPetition(petition)" >Edit petition (texts, targets etc.)</a> |
-               <a href @click.prevent="updatePetition(petition)" >Provide updates, mark Won or Closed</a> |
-               <a href @click.prevent="createEmail(petition)" >Email signers</a></p>
+            <ul>
+              <li><a href @click.prevent="editPetition(petition)" >Edit petition (texts, targets etc.)</a></li>
+              <li><a href @click.prevent="updatePetition(petition)" >Provide updates, mark Won or Closed</a></li>
+              <li><a href @click.prevent="createEmail(petition)" >Email signers</a></li>
+            </ul>
           </article>
         </li>
       </ul>
@@ -160,6 +162,7 @@
           type="file"
           name="image"
           ref="imageFile"
+          @change="mainImageFileCount=$refs.imageFile.files.length > 0"
           :id="myId + 'petitionImage'"
           :disabled="$root.submissionRunning"
           />
@@ -169,15 +172,35 @@
           type="text"
           :id="myId + 'petitionImageAlt'"
           :disabled="$root.submissionRunning"
+          :required="mainImageFileCount"
           v-model="petitionBeingEdited.imageAlt"
           />
         <div class="field-help" >If you provide an image you are required to provide a short bit of text that describes the content of the image. e.g. "Photo of students dropping banner saying End Fossil Fuels". This way someone who uses screen reader technology won’t be excluded.</div>
       </div>
 
       <div class="field">
-        <button type="submit" >{{ editingPetition ? 'Save Petition' : 'Create Petition'}}</button>
+        <button class="secondary" type="submit" @click.prevent="stage='listPetitions';petitionBeingEdited=null;">Cancel</button>
+        <button class="primary" type="submit" >{{ editingPetition ? 'Save Petition' : 'Create Petition'}}</button>
       </div>
     </form><!-- /editingPetition -->
+
+    <form
+      class="update-petition"
+      v-if="stage === 'updatePetition'"
+      @submit.prevent="addPetitionUpdate"
+    >
+      <h2>Provide updates</h2>
+      <!-- todo list current updates -->
+      <h3>Existing updates</h3>
+      <ul>
+        <li v-for="update in updates">
+          {{update.activity_date_time}}
+          {{update.subject}}
+          {{update.detils}}
+        </li>
+      </ul>
+
+    </form>
 
     <div v-show="stage === 'loadingError'" class="grpet-error" >{{loadingError}}</div>
 
@@ -193,6 +216,7 @@
     padding: 1rem;
   }
   label {
+    font-weight: bold;
     display: block;
   }
   .edit-petition,
@@ -272,6 +296,10 @@ export default {
       campaigns: [],
 
       petitionBeingEdited: {},
+      mainImageFileCount: 0,
+
+      petitionBeingUpdated: {},
+      updateImageFileCount: 0,
     };
     return d;
   },
@@ -292,9 +320,6 @@ export default {
       if (authHash.match(/^[TS][0-9a-z]{16}$/)) {
         return authHash;
       }
-    },
-    setUnauthorised() {
-
     },
     authorisedRequest(opts) {
       if (this.authToken) {
@@ -409,6 +434,24 @@ export default {
         }
         else {
           alert("Sorry, there was an error: " + (r.publicError || 'Unknown error LP1'));
+        }
+      })
+    },
+    updatePetition(petition) {
+      // Load exsting petition.
+      this.stage = 'loading';
+      this.loadingMessage = 'Loading petition updates...';
+      const progress = this.$refs.loadingProgress;
+      progress.startTimer(5, 100, true);
+      this.authorisedRequest({ method: 'post', body: { need: 'adminLoadUpdates', petitionID: petition.id}})
+      .then(r => {
+        progress.cancelTimer();
+        if (r.responseOk && r.success == 1 && r.updates) {
+          this.updates = r.updates;
+          this.stage = 'updatePetition';
+        }
+        else {
+          alert("Sorry, there was an error: " + (r.publicError || 'Unknown error UPL1'));
         }
       })
     },
