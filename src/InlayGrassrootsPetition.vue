@@ -149,6 +149,18 @@
         </div>
       </div><!-- end .petition-form -->
     </form>
+
+    <div class="grpet-updates" v-if="publicData.updates">
+      <h2>Updates </h2>
+      <div v-for="update in publicData.updates" class="update">
+        <div class="text">
+          <p>{{update.when}}</p>
+          <div v-html="update.html"></div>
+        </div>
+        <div class="image" v-if="update.imageUrl"><img :src="update.imageUrl" :alt="update.imageAlt" /></div>
+      </div>
+    </div>
+
   </div>
 </template>
 <style lang="scss">
@@ -219,6 +231,35 @@
     padding-bottom: 2rem;
   }
   .petition-who {
+  }
+
+  .grpet-updates {
+    background-color: #f8f8f8;
+    padding: 1rem;
+    h2 {
+      margin-top: 0;
+    }
+
+    .update {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: top;
+      margin-bottom: 2rem;
+      background: white;
+
+      .text {
+        flex: 4 0 18rem;
+        padding: 1rem;
+      }
+      .image {
+        flex: 1 0 18rem;
+        img {
+          display:block;
+          width: 100%;
+          height: auto;
+        }
+      }
+    }
   }
 }
 </style>

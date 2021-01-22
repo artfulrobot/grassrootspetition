@@ -26,10 +26,11 @@ class CaseWrapper {
 
   /** @var array Status name to option value */
   public static $activityStatuses;
-  /** @var array Status name to option value */
+  /** @var array Status name to array of option details */
   public static $caseStatusesByValue;
-  /** @var array Status value to option name */
+  /** @var array Status value to array of option details */
   public static $caseStatusesByName;
+  /** @var int */
   public static $caseTypeID;
   /**
    * @var array of CaseWrapper objects keyed by Case ID. This will speed up
@@ -268,6 +269,7 @@ class CaseWrapper {
         if (!$_) {
           throw new \RuntimeException("Missing required '$requiredStatus' case status.");
         }
+        $_['value'] = (int) $_['value'];
         static::$caseStatusesByName[$_['name']] = $_;
         static::$caseStatusesByValue[$_['value']] = & static::$caseStatusesByName[$_['name']];
       }
@@ -278,7 +280,11 @@ class CaseWrapper {
    *
    * @return CaseWrapper
    */
-  public function loadFromArray($data) {
+  public function loadFromArray(array $data) :CaseWrapper {
+
+    // Ensure status_id is an int. You never know with api3...
+    $data['status_id'] = (int) $data['status_id'];
+
     $this->case = $data;
     // These get looked up later, if needed.
     $this->campaign = NULL;
@@ -394,14 +400,14 @@ class CaseWrapper {
     $this->mustBeLoaded();
     $caseID = (int) $this->case['id'];
 
-    $updateActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition update']['value'];
+    $updateActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition progress']['value'];
     // Currently we trust the admin to publish live updates, even though we track them as pending moderation internally.
     $validStatuses = [static::$activityStatuses['Completed'], static::$activityStatuses['grpet_pending_moderation']];
     $validStatuses = implode(', ', $validStatuses);
 
     // Load these with SQL, as Activities and Api4 are difficult.
     $sql = "
-      SELECT a.id, a.activity_type_id, a.activity_date_time, a.subject, a.details,
+      SELECT a.id, a.activity_type_id, a.activity_date_time `when`, a.subject, a.details,
              (SELECT COUNT(*) FROM civicrm_entity_file ef WHERE entity_table='civicrm_activity' AND entity_id = a.id ORDER BY id LIMIT 1) hasImage
         FROM civicrm_activity a
         INNER JOIN civicrm_case_activity ca ON a.id = ca.activity_id AND ca.case_id = $caseID
@@ -419,6 +425,13 @@ class CaseWrapper {
       }
       // We don't need to output the type.
       unset($update['activity_type_id']);
+
+      // Nicify the date
+      $update['when'] = date('j M Y', strtotime($update['when']));
+
+      // Clean the details. xxx todo
+      $update['html'] = $update['details'];
+
       $updates[] = $update;
     }
 
@@ -433,7 +446,7 @@ class CaseWrapper {
     $this->mustBeLoaded();
     $caseID = (int) $this->case['id'];
 
-    $updateActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition update']['value'];
+    $updateActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition progress']['value'];
     $validStatuses = [static::$activityStatuses['Completed'], static::$activityStatuses['grpet_pending_moderation']];
     $validStatuses = implode(', ', $validStatuses);
 
@@ -507,7 +520,7 @@ class CaseWrapper {
     $this->mustBeLoaded();
     $_ = static::$caseStatusesByValue[$this->case['status_id']][$field] ?? NULL;
     if (!$_) {
-      Civi::log()->error("Could not find valid case status for case {$this->case['id']}, status id is {$this->case['status_id']} and map is " . json_encode(static::$caseStatuses));
+      Civi::log()->error("Could not find valid case status for case {$this->case['id']}, status id is {$this->case['status_id']} and map is " . json_encode(static::$caseStatusesByName));
     }
     return $_;
   }
@@ -530,10 +543,11 @@ class CaseWrapper {
    */
   public function setStatus(string $caseStatus) :CaseWrapper {
     $this->mustBeLoaded();
-    if (empty(static::$caseStatuses[$caseStatus])) {
+
+    $newStatusID = static::$caseStatusesByName[$caseStatus]['value'] ?? NULL;
+    if (!$newStatusID) {
       throw new \InvalidArgumentException("'$caseStatus' is invalid case status");
     }
-    $newStatusID = static::$caseStatuses[$caseStatus];
     if ($this->case['status_id'] == $newStatusID) {
       // Nothing to do.
       return $this;
@@ -542,7 +556,8 @@ class CaseWrapper {
       'id'        => $this->case['id'],
       'status_id' => $newStatusID,
     ]);
-    $this->case['status_id'] = static::$caseStatuses[$caseStatus];
+    $this->case['status_id'] = $newStatusID;
+
     return $this;
   }
   /**
@@ -652,7 +667,7 @@ class CaseWrapper {
   public function addUpdateActivity(int $contactID, string $subject, string $text, ?string $timestamp=NULL) :int {
 
     $activityCreateParams = [
-      'activity_type_id'     => static::$activityTypesByName['Grassroots Petition update']['value'],
+      'activity_type_id'     => static::$activityTypesByName['Grassroots Petition progress']['value'],
       'target_id'            => $contactID,
       'source_contact_id'    => $contactID,
       'subject'              => $subject, /** empty ? */
@@ -663,6 +678,7 @@ class CaseWrapper {
     if (!empty($timestamp)) {
       $activityCreateParams['activity_date_time'] = $timestamp;
     }
+    Civi::log()->info("addUpdateActivity: " . json_encode($activityCreateParams + ['got' => static::$activityTypesByName]));
 
     $result = civicrm_api3('Activity', 'create', $activityCreateParams);
 
@@ -922,7 +938,7 @@ class CaseWrapper {
    */
   public function getMainImage() :array {
     $openCase = $this->getPetitionCreatedActivity();
-    $this->addPublicImage($activity);
+    $this->addPublicImage($openCase);
     return $openCase;
   }
 
@@ -1002,7 +1018,7 @@ class CaseWrapper {
   protected function addPublicImage(array &$activity) {
 
     $updateActivityID = NULL;
-    if ($activity['activity_type_id'] == static::$activityTypesByName['Grassroots Petition update']['value']) {
+    if ($activity['activity_type_id'] == static::$activityTypesByName['Grassroots Petition progress']['value']) {
       // Is an update activity
       $updateActivityID = $activity['id'];
     }

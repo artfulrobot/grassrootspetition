@@ -322,6 +322,47 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -1111,7 +1152,7 @@ __webpack_require__.r(__webpack_exports__);
         } // Unhandled.
 
 
-        throw e;
+        alert(e.publicError || e.error || 'Undocumented error. Oh no!');
       });
     },
     bootList: function bootList() {
@@ -1358,6 +1399,7 @@ __webpack_require__.r(__webpack_exports__);
       // (do any custom stuff in response to the buttonclick)
       var d = {
         need: 'adminAddUpdate',
+        petitionID: this.petitionBeingUpdated.id,
         status: this.petitionBeingUpdated.status,
         text: this.petitionBeingUpdated.text
       }; // Image?
@@ -1375,9 +1417,9 @@ __webpack_require__.r(__webpack_exports__);
           resolve(d);
         }
       });
+      var progress = this.$refs.loadingProgress;
       p.then(function (d) {
         // Got data.
-        var progress = _this8.$refs.loadingProgress;
         progress.startTimer(5, 100, true);
         _this8.$root.submissionRunning = true;
         return _this8.authorisedRequest({
@@ -1731,7 +1773,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet .petition-titles {\n  display: flex;\n  flex-direction: column;\n}\n.grpet .petition-titles h2 {\n  order: 1;\n  margin: 0;\n  text-transform: none;\n  font-size: 2rem;\n}\n.grpet .petition-titles h1 {\n  order: 2;\n  text-transform: none;\n  margin-top: 0;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-image {\n  margin-bottom: 1rem;\n}\n.grpet .petition-image img {\n  max-width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n.grpet .petition-why {\n  padding-bottom: 2rem;\n}\n.grpet .petition-what {\n  font-weight: bold;\n  padding-bottom: 2rem;\n}\n", ""]);
+exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet .petition-titles {\n  display: flex;\n  flex-direction: column;\n}\n.grpet .petition-titles h2 {\n  order: 1;\n  margin: 0;\n  text-transform: none;\n  font-size: 2rem;\n}\n.grpet .petition-titles h1 {\n  order: 2;\n  text-transform: none;\n  margin-top: 0;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-image {\n  margin-bottom: 1rem;\n}\n.grpet .petition-image img {\n  max-width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n.grpet .petition-why {\n  padding-bottom: 2rem;\n}\n.grpet .petition-what {\n  font-weight: bold;\n  padding-bottom: 2rem;\n}\n.grpet .grpet-updates {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet .grpet-updates h2 {\n  margin-top: 0;\n}\n.grpet .grpet-updates .update {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: top;\n  margin-bottom: 2rem;\n  background: white;\n}\n.grpet .grpet-updates .update .text {\n  flex: 4 0 18rem;\n  padding: 1rem;\n}\n.grpet .grpet-updates .update .image {\n  flex: 1 0 18rem;\n}\n.grpet .grpet-updates .update .image img {\n  display: block;\n  width: 100%;\n  height: auto;\n}\n", ""]);
 
 // exports
 
@@ -3538,6 +3580,35 @@ var render = function() {
             )
           ]
         )
+      : _vm._e(),
+    _vm._v(" "),
+    _vm.publicData.updates
+      ? _c(
+          "div",
+          { staticClass: "grpet-updates" },
+          [
+            _c("h2", [_vm._v("Updates ")]),
+            _vm._v(" "),
+            _vm._l(_vm.publicData.updates, function(update) {
+              return _c("div", { staticClass: "update" }, [
+                _c("div", { staticClass: "text" }, [
+                  _c("p", [_vm._v(_vm._s(update.when))]),
+                  _vm._v(" "),
+                  _c("div", { domProps: { innerHTML: _vm._s(update.html) } })
+                ]),
+                _vm._v(" "),
+                update.imageUrl
+                  ? _c("div", { staticClass: "image" }, [
+                      _c("img", {
+                        attrs: { src: update.imageUrl, alt: update.imageAlt }
+                      })
+                    ])
+                  : _vm._e()
+              ])
+            })
+          ],
+          2
+        )
       : _vm._e()
   ])
 }
@@ -4698,7 +4769,7 @@ var render = function() {
                         type: "text",
                         id: _vm.myId + "petitionImageAlt",
                         disabled: _vm.$root.submissionRunning,
-                        required: _vm.updateImageFileCount
+                        required: _vm.updateImageFileCount ? true : null
                       },
                       domProps: { value: _vm.petitionBeingUpdated.imageAlt },
                       on: {

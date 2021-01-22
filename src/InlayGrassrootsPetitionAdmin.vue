@@ -313,7 +313,7 @@
             type="text"
             :id="myId + 'petitionImageAlt'"
             :disabled="$root.submissionRunning"
-            :required="updateImageFileCount"
+            :required="updateImageFileCount ? true : null"
             v-model="petitionBeingUpdated.imageAlt"
             />
           <div class="field-help" >If you provide an image you are required to provide a short bit of text that describes the content of the image. e.g. "Photo of students dropping banner saying End Fossil Fuels". This way someone who uses screen reader technology won’t be excluded.</div>
@@ -578,7 +578,7 @@ export default {
           return { error: 'Unauthorised', responseOk: false, responseStatus: 401 };
         }
         // Unhandled.
-        throw e;
+        alert( e.publicError || e.error || 'Undocumented error. Oh no!');
       })
       ;
     },
@@ -803,6 +803,7 @@ export default {
       // (do any custom stuff in response to the buttonclick)
       const d = {
         need: 'adminAddUpdate',
+        petitionID: this.petitionBeingUpdated.id,
         status: this.petitionBeingUpdated.status,
         text: this.petitionBeingUpdated.text,
       };
@@ -824,9 +825,10 @@ export default {
         }
       });
 
+      const progress = this.$refs.loadingProgress;
+
       p.then( d => {
         // Got data.
-        const progress = this.$refs.loadingProgress;
         progress.startTimer(5, 100, true);
         this.$root.submissionRunning = true;
         return this.authorisedRequest({ method: 'post', body: d });

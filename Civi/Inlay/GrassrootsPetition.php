@@ -821,11 +821,16 @@ class GrassrootsPetition extends InlayType {
     }
 
     if (trim($body['text'])) {
-      $text = $this->requireSimpleText($body['text'] ?? '', 50000, "text");
+      // Convert to HTML
+      $text = '<p>'
+        . preg_replace('/[\r\n]+/', '</p><p>',
+        htmlspecialchars($this->requireSimpleText($body['text'] ?? '', 50000, "text")))
+        . '</p>';
+      $subject = '';
       $activityID = $case->addUpdateActivity(
         $contactID,
-        $text,
         $subject,
+        $text
       );
 
       // Image?
