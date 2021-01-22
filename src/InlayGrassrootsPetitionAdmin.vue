@@ -258,19 +258,73 @@
       </div>
     </form><!-- /editingPetition -->
 
-    <form
+    <div
       class="update-petition"
       v-if="stage === 'updatePetition'"
-      @submit.prevent="addPetitionUpdate"
     >
-      <h2>Provide updates</h2>
-      <p><a href @click.prevent="stage = 'listPetitions';petitionBeingUpdated = null;" >Back to list</a></p>
-      <p>Provide updates that will be shown on the petition page for your petition: <em>{{petitionBeingUpdated.title}}</em></p>
-      <!-- todo Change status -->
-      <!-- todo provide text -->
-      <!-- todo provide image -->
-      <!-- todo provide imageAlt -->
-      <!-- todo provide save -->
+      <form @submit.prevent="addPetitionUpdate" >
+        <h2>Provide updates</h2>
+        <p><a href @click.prevent="stage = 'listPetitions';petitionBeingUpdated = null;" >Back to list</a></p>
+        <p>Provide updates that will be shown on the petition page for your petition: <em>{{petitionBeingUpdated.title}}</em></p>
+        <div class="field" >
+          <label :for="myId + 'updateStatus'">Change Status</label>
+          <select
+            required
+            v-if="petitionBeingUpdated.status != 'grpet_Pending'"
+            :id="myId + 'updateStatus'"
+            :disabled="$root.submissionRunning"
+            v-model="petitionBeingUpdated.status"
+            >
+            <option value="Open" >Live, accepting signatures</option>
+            <option value="grpet_Won" >Won! Not accepting new signatures</option>
+            <option value="grpet_Dead" >Closed. Not accepting new signatures</option>
+          </select>
+          <div class="fixed" v-if="petitionBeingUpdated.status == 'grpet_Pending'" >
+            This petition is not live yet; it’s waiting moderation.
+          </div>
+        </div>
+
+        <div class="field" >
+          <label :for="myId + 'updateText'">What’s happened?</label>
+          <textarea
+            required
+            rows=5
+            cols=60
+            :id="myId + 'updateText'"
+            :disabled="$root.submissionRunning"
+            v-model="petitionBeingUpdated.text"
+            ></textarea>
+        </div>
+
+        <div class="field" >
+          <label :for="myId + 'updatePetitionImage'">Image (optional)</label>
+          <input
+            type="file"
+            name="imageUpdate"
+            ref="imageFileUpdate"
+            @change="updateImageFileCount=$refs.imageFileUpdate.files.length > 0"
+            :id="myId + 'updatePetitionImage'"
+            :disabled="$root.submissionRunning"
+            />
+          <div class="field-help" >Make sure you upload a <em>landscape</em> image (i.e. wider than it is tall), otherwise important parts of the image might be cropped. Ideally your image should be 16:9 ratio and over 1000px wide.</div>
+
+          <label :for="myId + 'petitionImageAlt'">Alternative text for paritally-sighted and blind people</label>
+          <input
+            type="text"
+            :id="myId + 'petitionImageAlt'"
+            :disabled="$root.submissionRunning"
+            :required="updateImageFileCount"
+            v-model="petitionBeingUpdated.imageAlt"
+            />
+          <div class="field-help" >If you provide an image you are required to provide a short bit of text that describes the content of the image. e.g. "Photo of students dropping banner saying End Fossil Fuels". This way someone who uses screen reader technology won’t be excluded.</div>
+        </div>
+
+        <div class="field">
+          <button class="secondary" type="submit" @click.prevent="stage='listPetitions';petitionBeingUpdated=null;">Cancel</button>
+          &nbsp;
+          <button class="primary" type="submit" >Publish Update</button>
+        </div>
+      </form><!-- /addPetitionUpdate form -->
 
       <template v-if="updates.length>0">
         <h3>Existing updates</h3>
@@ -289,7 +343,7 @@
         </ul>
       </template>
 
-    </form>
+    </div><!-- /addPetitionUpdate -->
 
     <div v-show="stage === 'loadingError'" class="grpet-error" >{{loadingError}}</div>
 
@@ -336,6 +390,7 @@
     width: 100%;
   }
 
+  .update-petition,
   .edit-petition,
   .grpet-list {
     background-color: #f8f8f8;
@@ -655,7 +710,13 @@ export default {
         if (r.responseOk && r.success == 1 && r.updates) {
           this.updates = r.updates;
           this.stage = 'updatePetition';
-          this.petitionBeingUpdated = petition;
+          this.petitionBeingUpdated = {
+            status: petition.status,
+            title: petition.title,
+            id: petition.id,
+            text: '',
+            imageAlt: '',
+          };
         }
         else {
           alert("Sorry, there was an error: " + (r.publicError || 'Unknown error UPL1'));
@@ -735,6 +796,55 @@ export default {
             alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
           }
         });
+      });
+    },
+    addPetitionUpdate() {
+      // The browser's checks say the fields are valid.
+      // (do any custom stuff in response to the buttonclick)
+      const d = {
+        need: 'adminAddUpdate',
+        status: this.petitionBeingUpdated.status,
+        text: this.petitionBeingUpdated.text,
+      };
+
+      // Image?
+      var p = new Promise((resolve, reject) => {
+        if (this.$refs.imageFileUpdate.files.length === 1) {
+
+          var fr = new FileReader();
+          fr.addEventListener('load', e => {
+            // File loaded.
+            d.imageData = fr.result;
+            resolve(d);
+          });
+          fr.readAsDataURL(this.$refs.imageFileUpdate.files[0]);
+        }
+        else {
+          resolve(d);
+        }
+      });
+
+      p.then( d => {
+        // Got data.
+        const progress = this.$refs.loadingProgress;
+        progress.startTimer(5, 100, true);
+        this.$root.submissionRunning = true;
+        return this.authorisedRequest({ method: 'post', body: d });
+      })
+      .then(r => {
+        // Were there any errors?
+        // We're not expecting any, so just use alert.
+        if (r.responseOk && r.success == 1) {
+          this.stage = 'listPetitions';
+          this.petitionBeingUpdated = null;
+        }
+        else {
+          alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SU1'));
+        }
+      })
+      .finally( () => {
+        this.$root.submissionRunning = false;
+        progress.cancelTimer();
       });
     },
     getStatusMeta(status) {

@@ -16,6 +16,21 @@ class GrassrootsPetition extends InlayType {
 
   public static $typeName = 'Grassroots Petition';
   public static $customFieldsMap;
+  public static $routes = [
+      'GET' => [
+        'publicData' => 'processGetPublicDataRequest',
+      ],
+      'POST' => [
+        'submitSignature'    => 'processSubmitSignatureRequest',
+        'adminAuthEmail'     => 'processAdminAuthEmail',
+        'adminPetitionsList' => 'processAdminPetitionsList',
+        'adminSavePetition'  => 'processAdminSavePetition',
+        'adminLoadPetition'  => 'processAdminLoadPetition',
+        'adminLoadUpdates'   => 'processAdminLoadUpdates',
+        'adminAddUpdate'     => 'processAdminAddUpdate',
+      ]
+    ];
+
   /**
    * Cache so that when processing a set of queued signups we don't have to
    * load the Inlay instance for each time.
@@ -156,20 +171,7 @@ class GrassrootsPetition extends InlayType {
    */
   public function processRequest(ApiRequest $request) {
 
-    $routes = [
-      'GET' => [
-        'publicData' => 'processGetPublicDataRequest',
-      ],
-      'POST' => [
-        'submitSignature'    => 'processSubmitSignatureRequest',
-        'adminAuthEmail'     => 'processAdminAuthEmail',
-        'adminPetitionsList' => 'processAdminPetitionsList',
-        'adminSavePetition'  => 'processAdminSavePetition',
-        'adminLoadPetition'  => 'processAdminLoadPetition',
-        'adminLoadUpdates'   => 'processAdminLoadUpdates',
-      ]
-    ];
-    $method = $routes[$request->getMethod()][$request->getBody()['need'] ?? ''] ?? NULL;
+    $method = static::$routes[$request->getMethod()][$request->getBody()['need'] ?? ''] ?? NULL;
     if (empty($method)) {
       throw new ApiException(400, ['publicError' => 'Invalid request. (Routing error)'],
         "GrassrootsPetition API called with invalid 'need'");
@@ -790,6 +792,58 @@ class GrassrootsPetition extends InlayType {
 
     // We return all updates except cancelled.
     return ['success' => 1, 'updates' => $updates];
+  }
+  /**
+   * Create an update activity.
+   */
+  protected function processAdminAddUpdate(ApiRequest $request) {
+    $response = [];
+    $contactID = $this->checkAuthenticated($request, $response);
+
+    $body = $request->getBody();
+
+    $caseID = (int) ($body['petitionID'] ?? 0);
+    $case = NULL;
+    if ($caseID) {
+      // Editing an existing petition.
+      // Check that it belongs to this person.
+      $case = CaseWrapper::getPetitionsOwnedByContact($contactID, $caseID)[0] ?? NULL;
+    }
+    if (!$case) {
+      // This case does not exist, or is not owned by this contact.
+      throw new ApiException(400, ['publicError' => 'Invalid request. (AA1)'], "Contact $contactID tried to add update to case $caseID which does not belong to them/does not exist.");
+    }
+
+    // Status change?
+    if ($case->getCaseStatus() !== 'grpet_Pending') {
+      // Only allow updating if it's not pending.
+      $case->setStatus($body['status']);
+    }
+
+    if (trim($body['text'])) {
+      $text = $this->requireSimpleText($body['text'] ?? '', 50000, "text");
+      $activityID = $case->addUpdateActivity(
+        $contactID,
+        $text,
+        $subject,
+      );
+
+      // Image?
+      if (preg_match('@^data:(image/(?:jpeg|png));base64(.*)$@', $body['imageData'] ?? '', $m)) {
+        // An image was sent.
+        // Not sure if this frees RAM or not.
+        unset($body['imageData']);
+        $imageData = base64_decode($m[2]);
+        $imageFileType = $m[1];
+        unset($m);
+        if ($imageData) {
+          $case->addImageToUpdateActivityFromData($activityID, $imageData, $imageFileType);
+        }
+      }
+    }
+
+    // Done.
+    return ['success' => 1, 'petitions' => $this->getListOfPetitionsForContact($contactID)];
   }
   /**
    * Returns the authenticated contactID, or throws a 401 ApiException

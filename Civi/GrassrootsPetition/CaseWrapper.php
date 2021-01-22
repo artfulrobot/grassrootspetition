@@ -215,6 +215,10 @@ class CaseWrapper {
     return $cases;
   }
   public function __construct() {
+    static::init();
+  }
+  public static function init() {
+
     static::getCaseTypeID();
 
     if (!isset(static::$activityTypesByName)) {
@@ -639,6 +643,69 @@ class CaseWrapper {
     return (int) $result['id'];
   }
   /**
+   * Add an update activity.
+   *
+   * Nb we assume some validation/filtering has been done on the input.
+   *
+   * @return int Activity ID created.
+   */
+  public function addUpdateActivity(int $contactID, string $subject, string $text, ?string $timestamp=NULL) :int {
+
+    $activityCreateParams = [
+      'activity_type_id'     => static::$activityTypesByName['Grassroots Petition update']['value'],
+      'target_id'            => $contactID,
+      'source_contact_id'    => $contactID,
+      'subject'              => $subject, /** empty ? */
+      'status_id'            => 'grpet_pending_moderation',
+      'case_id'              => $this->case['id'],
+      'details'              => $text,
+    ];
+    if (!empty($timestamp)) {
+      $activityCreateParams['activity_date_time'] = $timestamp;
+    }
+
+    $result = civicrm_api3('Activity', 'create', $activityCreateParams);
+
+    return (int) $result['id'];
+  }
+  /**
+   */
+  public function addImageToUpdateActivityFromData(int $activityID, string $imageData, string $imageFileType) {
+
+    $filename = "petition_" . $this->case['id'] . "_update_{$activityID}_image.";
+    if ($imageFileType === 'image/jpeg') {
+      $filename .= '.jpg';
+    }
+    elseif ($imageFileType === 'image/png') {
+      $filename .= '.png';
+    }
+    else {
+      throw new \InvalidArgumentException("Unsupported image type '$imageFileType'");
+    }
+
+    // Get first attachment for this activity.
+    $original = civicrm_api3('Attachment', 'get', [
+      'return' => 'id',
+      'entity_table' => 'civicrm_activity',
+      'entity_id' => $activityID,
+      'options' => ['limit' => 1, 'sort' => 'id'],
+    ]);
+    if (!empty($original['id'])) {
+      civicrm_api3('Attachment', 'delete', [
+        'id' => $original['id']
+      ]);
+    }
+
+    civicrm_api3('Attachment', 'create', [
+      'entity_table' => 'civicrm_activity',
+      'entity_id' => $activityID,
+      'name' => $filename,
+      'mime_type' => $imageFileType,
+      'content' => $imageData,
+    ]);
+
+  }
+  /**
    * Handle consent.
    *
    * This is only called if consent was actively opted in to.
@@ -746,6 +813,10 @@ class CaseWrapper {
    *
    * If $activityID is 0 then a temp file name is returned. NULL means main
    * image, not one related to an update activity.
+   *
+   * Files are named:
+   * - <petitionHash>-main.jpg
+   * - <petitionHash>-update-<activityID>.jpg
    */
   public function getFile(string $pathOrUrl, ?int $activityID=NULL) :?string {
     $petitionHash = substr(sha1(CIVICRM_SITE_KEY . $this->case['id']), 0, 8);

@@ -921,6 +921,61 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
@@ -1211,7 +1266,13 @@ __webpack_require__.r(__webpack_exports__);
         if (r.responseOk && r.success == 1 && r.updates) {
           _this6.updates = r.updates;
           _this6.stage = 'updatePetition';
-          _this6.petitionBeingUpdated = petition;
+          _this6.petitionBeingUpdated = {
+            status: petition.status,
+            title: petition.title,
+            id: petition.id,
+            text: '',
+            imageAlt: ''
+          };
         } else {
           alert("Sorry, there was an error: " + (r.publicError || 'Unknown error UPL1'));
         }
@@ -1288,6 +1349,53 @@ __webpack_require__.r(__webpack_exports__);
             alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
           }
         });
+      });
+    },
+    addPetitionUpdate: function addPetitionUpdate() {
+      var _this8 = this;
+
+      // The browser's checks say the fields are valid.
+      // (do any custom stuff in response to the buttonclick)
+      var d = {
+        need: 'adminAddUpdate',
+        status: this.petitionBeingUpdated.status,
+        text: this.petitionBeingUpdated.text
+      }; // Image?
+
+      var p = new Promise(function (resolve, reject) {
+        if (_this8.$refs.imageFileUpdate.files.length === 1) {
+          var fr = new FileReader();
+          fr.addEventListener('load', function (e) {
+            // File loaded.
+            d.imageData = fr.result;
+            resolve(d);
+          });
+          fr.readAsDataURL(_this8.$refs.imageFileUpdate.files[0]);
+        } else {
+          resolve(d);
+        }
+      });
+      p.then(function (d) {
+        // Got data.
+        var progress = _this8.$refs.loadingProgress;
+        progress.startTimer(5, 100, true);
+        _this8.$root.submissionRunning = true;
+        return _this8.authorisedRequest({
+          method: 'post',
+          body: d
+        });
+      }).then(function (r) {
+        // Were there any errors?
+        // We're not expecting any, so just use alert.
+        if (r.responseOk && r.success == 1) {
+          _this8.stage = 'listPetitions';
+          _this8.petitionBeingUpdated = null;
+        } else {
+          alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SU1'));
+        }
+      })["finally"](function () {
+        _this8.$root.submissionRunning = false;
+        progress.cancelTimer();
       });
     },
     getStatusMeta: function getStatusMeta(status) {
@@ -1642,7 +1750,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin .two-cols {\n  margin-left: -1rem;\n  margin-right: -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin .two-cols > .col {\n  flex: 1 0 18rem;\n  padding-left: 1rem;\n  padding-right: 1rem;\n}\n.grpet-admin label {\n  font-weight: bold;\n  display: block;\n}\n.grpet-admin .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin input[type=\"text\"],\n.grpet-admin textarea,\n.grpet-admin input[type=\"email\"],\n.grpet-admin select {\n  width: 100%;\n}\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin .status {\n  border-radius: 1rem;\n  padding: 0 1rem;\n  line-height: 1;\n  white-space: no-break;\n  color: white;\n}\n.grpet-admin .status.grpet_Won {\n  background: #566a4a;\n}\n.grpet-admin .status.grpet_Dead {\n  background: #a4a19e;\n}\n.grpet-admin .status.grpet_Pending {\n  background: #747707;\n}\n.grpet-admin .status.Open {\n  background: #4aa219;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n.grpet-admin ul.petition article h1 {\n  font-size: 1.4rem;\n  line-height: 1;\n  margin: 0 0 1rem;\n  padding: 0;\n}\n.grpet-admin .unauthorised {\n  padding: 1rem;\n  background: #f8f8f8;\n}\n.grpet-admin ul.grpet-updates {\n  margin: 0;\n  padding: 0;\n}\n.grpet-admin ul.grpet-updates li {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.grpet-updates li .image {\n  flex: 0 0 8rem;\n}\n.grpet-admin ul.grpet-updates li .image img {\n  width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet-admin ul.grpet-updates li .details {\n  flex: 1 0 20rem;\n  padding-left: 1rem;\n}\n", ""]);
+exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin .two-cols {\n  margin-left: -1rem;\n  margin-right: -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin .two-cols > .col {\n  flex: 1 0 18rem;\n  padding-left: 1rem;\n  padding-right: 1rem;\n}\n.grpet-admin label {\n  font-weight: bold;\n  display: block;\n}\n.grpet-admin .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin input[type=\"text\"],\n.grpet-admin textarea,\n.grpet-admin input[type=\"email\"],\n.grpet-admin select {\n  width: 100%;\n}\n.grpet-admin .update-petition,\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin .status {\n  border-radius: 1rem;\n  padding: 0 1rem;\n  line-height: 1;\n  white-space: no-break;\n  color: white;\n}\n.grpet-admin .status.grpet_Won {\n  background: #566a4a;\n}\n.grpet-admin .status.grpet_Dead {\n  background: #a4a19e;\n}\n.grpet-admin .status.grpet_Pending {\n  background: #747707;\n}\n.grpet-admin .status.Open {\n  background: #4aa219;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n.grpet-admin ul.petition article h1 {\n  font-size: 1.4rem;\n  line-height: 1;\n  margin: 0 0 1rem;\n  padding: 0;\n}\n.grpet-admin .unauthorised {\n  padding: 1rem;\n  background: #f8f8f8;\n}\n.grpet-admin ul.grpet-updates {\n  margin: 0;\n  padding: 0;\n}\n.grpet-admin ul.grpet-updates li {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.grpet-updates li .image {\n  flex: 0 0 8rem;\n}\n.grpet-admin ul.grpet-updates li .image img {\n  width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet-admin ul.grpet-updates li .details {\n  flex: 1 0 20rem;\n  padding-left: 1rem;\n}\n", ""]);
 
 // exports
 
@@ -4398,42 +4506,247 @@ var render = function() {
       _vm._v(" "),
       _vm.stage === "updatePetition"
         ? _c(
-            "form",
-            {
-              staticClass: "update-petition",
-              on: {
-                submit: function($event) {
-                  $event.preventDefault()
-                  return _vm.addPetitionUpdate($event)
-                }
-              }
-            },
+            "div",
+            { staticClass: "update-petition" },
             [
-              _c("h2", [_vm._v("Provide updates")]),
-              _vm._v(" "),
-              _c("p", [
-                _c(
-                  "a",
-                  {
-                    attrs: { href: "" },
-                    on: {
-                      click: function($event) {
-                        $event.preventDefault()
-                        _vm.stage = "listPetitions"
-                        _vm.petitionBeingUpdated = null
-                      }
+              _c(
+                "form",
+                {
+                  on: {
+                    submit: function($event) {
+                      $event.preventDefault()
+                      return _vm.addPetitionUpdate($event)
                     }
-                  },
-                  [_vm._v("Back to list")]
-                )
-              ]),
-              _vm._v(" "),
-              _c("p", [
-                _vm._v(
-                  "Provide updates that will be shown on the petition page for your petition: "
-                ),
-                _c("em", [_vm._v(_vm._s(_vm.petitionBeingUpdated.title))])
-              ]),
+                  }
+                },
+                [
+                  _c("h2", [_vm._v("Provide updates")]),
+                  _vm._v(" "),
+                  _c("p", [
+                    _c(
+                      "a",
+                      {
+                        attrs: { href: "" },
+                        on: {
+                          click: function($event) {
+                            $event.preventDefault()
+                            _vm.stage = "listPetitions"
+                            _vm.petitionBeingUpdated = null
+                          }
+                        }
+                      },
+                      [_vm._v("Back to list")]
+                    )
+                  ]),
+                  _vm._v(" "),
+                  _c("p", [
+                    _vm._v(
+                      "Provide updates that will be shown on the petition page for your petition: "
+                    ),
+                    _c("em", [_vm._v(_vm._s(_vm.petitionBeingUpdated.title))])
+                  ]),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "field" }, [
+                    _c("label", { attrs: { for: _vm.myId + "updateStatus" } }, [
+                      _vm._v("Change Status")
+                    ]),
+                    _vm._v(" "),
+                    _vm.petitionBeingUpdated.status != "grpet_Pending"
+                      ? _c(
+                          "select",
+                          {
+                            directives: [
+                              {
+                                name: "model",
+                                rawName: "v-model",
+                                value: _vm.petitionBeingUpdated.status,
+                                expression: "petitionBeingUpdated.status"
+                              }
+                            ],
+                            attrs: {
+                              required: "",
+                              id: _vm.myId + "updateStatus",
+                              disabled: _vm.$root.submissionRunning
+                            },
+                            on: {
+                              change: function($event) {
+                                var $$selectedVal = Array.prototype.filter
+                                  .call($event.target.options, function(o) {
+                                    return o.selected
+                                  })
+                                  .map(function(o) {
+                                    var val = "_value" in o ? o._value : o.value
+                                    return val
+                                  })
+                                _vm.$set(
+                                  _vm.petitionBeingUpdated,
+                                  "status",
+                                  $event.target.multiple
+                                    ? $$selectedVal
+                                    : $$selectedVal[0]
+                                )
+                              }
+                            }
+                          },
+                          [
+                            _c("option", { attrs: { value: "Open" } }, [
+                              _vm._v("Live, accepting signatures")
+                            ]),
+                            _vm._v(" "),
+                            _c("option", { attrs: { value: "grpet_Won" } }, [
+                              _vm._v("Won! Not accepting new signatures")
+                            ]),
+                            _vm._v(" "),
+                            _c("option", { attrs: { value: "grpet_Dead" } }, [
+                              _vm._v("Closed. Not accepting new signatures")
+                            ])
+                          ]
+                        )
+                      : _vm._e(),
+                    _vm._v(" "),
+                    _vm.petitionBeingUpdated.status == "grpet_Pending"
+                      ? _c("div", { staticClass: "fixed" }, [
+                          _vm._v(
+                            "\n          This petition is not live yet; it’s waiting moderation.\n        "
+                          )
+                        ])
+                      : _vm._e()
+                  ]),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "field" }, [
+                    _c("label", { attrs: { for: _vm.myId + "updateText" } }, [
+                      _vm._v("What’s happened?")
+                    ]),
+                    _vm._v(" "),
+                    _c("textarea", {
+                      directives: [
+                        {
+                          name: "model",
+                          rawName: "v-model",
+                          value: _vm.petitionBeingUpdated.text,
+                          expression: "petitionBeingUpdated.text"
+                        }
+                      ],
+                      attrs: {
+                        required: "",
+                        rows: "5",
+                        cols: "60",
+                        id: _vm.myId + "updateText",
+                        disabled: _vm.$root.submissionRunning
+                      },
+                      domProps: { value: _vm.petitionBeingUpdated.text },
+                      on: {
+                        input: function($event) {
+                          if ($event.target.composing) {
+                            return
+                          }
+                          _vm.$set(
+                            _vm.petitionBeingUpdated,
+                            "text",
+                            $event.target.value
+                          )
+                        }
+                      }
+                    })
+                  ]),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "field" }, [
+                    _c(
+                      "label",
+                      { attrs: { for: _vm.myId + "updatePetitionImage" } },
+                      [_vm._v("Image (optional)")]
+                    ),
+                    _vm._v(" "),
+                    _c("input", {
+                      ref: "imageFileUpdate",
+                      attrs: {
+                        type: "file",
+                        name: "imageUpdate",
+                        id: _vm.myId + "updatePetitionImage",
+                        disabled: _vm.$root.submissionRunning
+                      },
+                      on: {
+                        change: function($event) {
+                          _vm.updateImageFileCount =
+                            _vm.$refs.imageFileUpdate.files.length > 0
+                        }
+                      }
+                    }),
+                    _vm._v(" "),
+                    _vm._m(1),
+                    _vm._v(" "),
+                    _c(
+                      "label",
+                      { attrs: { for: _vm.myId + "petitionImageAlt" } },
+                      [
+                        _vm._v(
+                          "Alternative text for paritally-sighted and blind people"
+                        )
+                      ]
+                    ),
+                    _vm._v(" "),
+                    _c("input", {
+                      directives: [
+                        {
+                          name: "model",
+                          rawName: "v-model",
+                          value: _vm.petitionBeingUpdated.imageAlt,
+                          expression: "petitionBeingUpdated.imageAlt"
+                        }
+                      ],
+                      attrs: {
+                        type: "text",
+                        id: _vm.myId + "petitionImageAlt",
+                        disabled: _vm.$root.submissionRunning,
+                        required: _vm.updateImageFileCount
+                      },
+                      domProps: { value: _vm.petitionBeingUpdated.imageAlt },
+                      on: {
+                        input: function($event) {
+                          if ($event.target.composing) {
+                            return
+                          }
+                          _vm.$set(
+                            _vm.petitionBeingUpdated,
+                            "imageAlt",
+                            $event.target.value
+                          )
+                        }
+                      }
+                    }),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "field-help" }, [
+                      _vm._v(
+                        'If you provide an image you are required to provide a short bit of text that describes the content of the image. e.g. "Photo of students dropping banner saying End Fossil Fuels". This way someone who uses screen reader technology won’t be excluded.'
+                      )
+                    ])
+                  ]),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "field" }, [
+                    _c(
+                      "button",
+                      {
+                        staticClass: "secondary",
+                        attrs: { type: "submit" },
+                        on: {
+                          click: function($event) {
+                            $event.preventDefault()
+                            _vm.stage = "listPetitions"
+                            _vm.petitionBeingUpdated = null
+                          }
+                        }
+                      },
+                      [_vm._v("Cancel")]
+                    ),
+                    _vm._v("\n         \n        "),
+                    _c(
+                      "button",
+                      { staticClass: "primary", attrs: { type: "submit" } },
+                      [_vm._v("Publish Update")]
+                    )
+                  ])
+                ]
+              ),
               _vm._v(" "),
               _vm.updates.length > 0
                 ? [
@@ -4502,6 +4815,18 @@ var render = function() {
   )
 }
 var staticRenderFns = [
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "field-help" }, [
+      _vm._v("Make sure you upload a "),
+      _c("em", [_vm._v("landscape")]),
+      _vm._v(
+        " image (i.e. wider than it is tall), otherwise important parts of the image might be cropped. Ideally your image should be 16:9 ratio and over 1000px wide."
+      )
+    ])
+  },
   function() {
     var _vm = this
     var _h = _vm.$createElement
