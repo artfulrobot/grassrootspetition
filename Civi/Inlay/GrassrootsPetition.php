@@ -234,8 +234,6 @@ class GrassrootsPetition extends InlayType {
   /**
    * Validate and clean up input data.
    *
-   * @todo
-   *
    * @param array $data
    *
    * @return array
@@ -246,29 +244,7 @@ class GrassrootsPetition extends InlayType {
     /** @var Array Collect validated data in this array */
     $valid = [];
 
-    // Check we have what we need.
-    foreach (['first_name', 'last_name', 'email'] as $field) {
-      $val = trim($data[$field] ?? '');
-      if (empty($val)) {
-        $errors[] = str_replace('_', ' ', $field) . " required.";
-      }
-      else {
-        if ($field === 'email' && !filter_var($val, FILTER_VALIDATE_EMAIL)) {
-          $errors[] = "invalid email address";
-        }
-        else {
-          $valid[$field] = $val;
-        }
-      }
-    }
-
-    // Check we've not been fed a web address as a name
-    // (used by spammers who rely on "Dear {firstname}")
-    // We check the concat in case they rely on first-last or last-first to form a url.
-    // v1
-    if (preg_match('#(www|http|[%@:/?$])#i', "$valid[first_name]$valid[last_name]$valid[first_name]")) {
-      $errors[] = "Invalid name";
-    }
+    $this->cleanupInputNameEmailPhone($data, $valid, $errors);
 
     // Optin.
     if (preg_match('/^(yes|no)$/', $data['optin'] ?? '')) {
@@ -281,52 +257,7 @@ class GrassrootsPetition extends InlayType {
     // Location should be the URL of the page.
     $valid['location'] = $data['location'] ?? '';
 
-    // Phone is optional
-    $valid['phone'] = '';
-    if (!empty($data['phone'])) {
-      // Require at least 11 numbers.
-      if (!preg_match('/[0-9]{11,}/', preg_replace('/[^0-9]+/', '', $data['phone']))) {
-        $errors[] = "Your phone number does not look valid. (Nb. providing a phone is optional.)";
-      }
-      else {
-        // Strip out everything that looks phoney. I mean non-phoney. I mean...
-        $valid['phone'] = preg_replace('/[^0-9]+/', '', $data['phone']);
-      }
-    }
-
-    if ($errors) {
-      throw new \Civi\Inlay\ApiException(400, ['error' => implode(', ', $errors)]);
-    }
-
-    // Data is valid.
-    if (!empty($data['token'])) {
-      // There is a token, check that now.
-      try {
-        $this->checkCSRFToken($data['token'], $valid);
-        $valid['token'] = TRUE;
-      }
-      catch (\InvalidArgumentException $e) {
-        // Token failed. Issue a public friendly message, though this should
-        // never be seen by anyone legit.
-        Civi::log()->notice("Token error: " . $e->getMessage . "\n" . $e->getTraceAsString());
-        throw new \Civi\Inlay\ApiException(400,
-          ['error' => "Mysterious problem, sorry! Code " . substr($e->getMessage(), 0, 3)]);
-      }
-
-      // Validation that is more expensive, and for fields where invalid data
-      // would likely represent misuse of the form is done now - after the
-      // token check, to avoid wasting server resources on spammers trying to
-      // randomly post to the endpoint.
-
-      /*
-      if ($this->config['phoneAsk'] && !empty($data['phone'])) {
-        // Check the phone.
-        $valid['phone'] = preg_replace('/[^0-9+]/', '', $data['phone']);
-      }
-       */
-    }
-
-
+    $this->cleanupInputToken($data, $valid, $errors);
     return $valid;
   }
 
@@ -480,24 +411,172 @@ class GrassrootsPetition extends InlayType {
       ];
     }
 
-    // Look up email, and whether they have any petitions.
-    new CaseWrapper();
-    $cases = CaseWrapper::getPetitionsOwnedByEmail($body['email']);
-    \Civi::log()->info("Got " . json_encode(['email' => $body['email'], 'cases' =>$cases]));
-    if (!$cases) {
-      // Don’t give away anything.
-      return ['success' => 1];
+    $letEmIn = FALSE;
+    $petition = FALSE;
+
+    if (preg_match('/^\d{1,10}$/', $body['petitionID'] ?? '')) {
+      // Petition ID is sent.
+      // This is a quick auth
+
+      // Look up email, and whether they have any petitions.
+      new CaseWrapper();
+      $ids = CaseWrapper::getPetitionsOwnedByEmail($body['email'], (int) $body['petitionID']);
+      \Civi::log()->info("Got " . json_encode(['email' => $body['email'], 'case' =>$ids]));
+      if (!empty($ids)) {
+        $petition = $ids['caseID'];
+        $contactID = $ids['contactID'];
+        $letEmIn = TRUE;
+      }
     }
+    else {
+      // Sign up.
+      $valid = $this->cleanupSignupRequest($body);
+      if (empty($valid['token'])) {
+        // Unsigned request. Issue a token that will be valid in 5s time and lasts 2mins max.
+        return ['token' => $this->getCSRFToken(['data' => $valid, 'validFrom' => 5, 'validTo' => 120])];
+      }
+
+      // Valid request with valid token.
+      // Find/create contact
+      // @todo record why they provided data?
+      // @todo source?
+      $params = array_intersect_key($valid, array_flip(
+        ['first_name', 'last_name', 'email']
+      )) + ['contact_type' => 'Individual'];
+      // Add phone in, if given.
+      if ($valid['phone']) {
+        $params['phone'] = $valid['phone'];
+      }
+      $contactID = (int) civicrm_api3('Contact', 'getorcreate', $params)['id'] ?? 0;
+      if (!$contactID) {
+        Civi::log()->error('Failed to getorcreate contact with params: ' . json_encode($params));
+        throw new \Civi\Inlay\ApiException(500, ['error' => 'Server error: XCM1a']);
+      }
+      $letEmIn = TRUE;
+    }
+
     // Create contact hash, send auth email.
+    if ($letEmIn) {
+      // Valid for 1 hour.
+      $hash = Auth::createAuthRecord($contactID, 60*60, 'T');
+      if ($petition) {
+        $hash = "P{$petition}-$hash";
+      }
+      // xxx move to config.
+      $link = 'https://peopleandplanet.org/petitions-admin#' . $hash;
+      // Send email
+      // Find the message template ID.
+      $msgTplID = civicrm_api3('MessageTemplate', 'getsingle', ['return' => 'id', 'msg_title' => 'Grassroots Petition Admin Link'])['id'];
+      $from = civicrm_api3('OptionValue', 'getvalue', [ 'return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
+      $emailParams = [
+        'id'              => $msgTplID,
+        'template_params' => [ 'petitionLink' => $link ], /*Nb. use of template params requires Smarty (without my PR?).*/
+        'from'            => $from,
+        'to_email'        => $body['email'],
+        'contact_id'      => $contactID, // should not be used for anything.
+        // 'bcc' => "forums@artfulrobot.uk",
+      ];
+      $result = civicrm_api3('MessageTemplate', 'send', $emailParams);
+      Civi::log()->info("Email $msgTplID sent to $contactID $body[email] with link $link");
+    }
 
-    // @todo for testing, we output this to the browser ! we should email it.
-    // valid for 1 hour.
-    $hash = Auth::createAuthRecord($cases[0]['contactID'], 60*60, 'T');
-
-    return ['success' => 1,
-      'test' => $hash, // xxx remove this!
-    ];
+    // We always return successful so as not to give anything away about what data we hold.
+    return ['success' => 1 ];
   }
+
+  /**
+   * Validate and clean up input data.
+   *
+   * @param array $data
+   *
+   * @return array
+   */
+  public function cleanupSignupRequest($data) {
+    /** @var Array errors in this array, it will later be converted to a string. */
+    $errors = [];
+    /** @var Array Collect validated data in this array */
+    $valid = [];
+    $this->cleanupInputNameEmailPhone($data, $valid, $errors);
+    $this->cleanupInputToken($data, $valid, $errors);
+    return $valid;
+  }
+
+  /**
+   * DRY code.
+   *
+   * @param array $data
+   *
+   * @return array
+   */
+  public function cleanupInputNameEmailPhone(array $data, array &$valid, array &$errors):void {
+
+    // Check we have what we need.
+    foreach (['first_name', 'last_name', 'email'] as $field) {
+      $val = trim($data[$field] ?? '');
+      if (empty($val)) {
+        $errors[] = str_replace('_', ' ', $field) . " required.";
+      }
+      else {
+        if ($field === 'email' && !filter_var($val, FILTER_VALIDATE_EMAIL)) {
+          $errors[] = "invalid email address";
+        }
+        else {
+          $valid[$field] = $val;
+        }
+      }
+    }
+
+    // Check we've not been fed a web address as a name
+    // (used by spammers who rely on "Dear {firstname}")
+    // We check the concat in case they rely on first-last or last-first to form a url.
+    // v1
+    if (preg_match('#(www|http|[%@:/?$])#i', "$valid[first_name]$valid[last_name]$valid[first_name]")) {
+      $errors[] = "Invalid name";
+    }
+
+    // Phone is optional
+    $valid['phone'] = '';
+    if (!empty($data['phone'])) {
+      // Require at least 11 numbers.
+      if (!preg_match('/[0-9]{11,}/', preg_replace('/[^0-9]+/', '', $data['phone']))) {
+        $errors[] = "Your phone number does not look valid. (Nb. providing a phone is optional.)";
+      }
+      else {
+        // Strip out everything that looks phoney. I mean non-phoney. I mean...
+        $valid['phone'] = preg_replace('/[^0-9]+/', '', $data['phone']);
+      }
+    }
+
+  }
+
+  /**
+   * DRY code. Adds token, or checks token.
+   *
+   * @param array $data
+   */
+  public function cleanupInputToken(array $data, array &$valid, array &$errors):void {
+
+    if ($errors) {
+      throw new \Civi\Inlay\ApiException(400, ['publicError' => implode(', ', $errors)]);
+    }
+
+    // Data is valid.
+    if (!empty($data['token'])) {
+      // There is a token, check that now.
+      try {
+        $this->checkCSRFToken($data['token'], $valid);
+        $valid['token'] = TRUE;
+      }
+      catch (\InvalidArgumentException $e) {
+        // Token failed. Issue a public friendly message, though this should
+        // never be seen by anyone legit.
+        Civi::log()->notice("Token error: " . $e->getMessage . "\n" . $e->getTraceAsString());
+        throw new \Civi\Inlay\ApiException(400,
+          ['error' => "Mysterious problem, sorry! Code " . substr($e->getMessage(), 0, 3)]);
+      }
+    }
+  }
+
 
   /**
    * List petitions for the contact.

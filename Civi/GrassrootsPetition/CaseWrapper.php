@@ -171,9 +171,11 @@ class CaseWrapper {
 
   /**
    * Return an array of arrays with contactID and caseID that were created by the contact with the given email.
+   *
    */
-  public static function getPetitionsOwnedByEmail(string $email) :?array {
+  public static function getPetitionsOwnedByEmail(string $email, ?int $petitionID = NULL) :?array {
     $activityTypeID = (int) static::$activityTypesByName['Grassroots Petition created']['value'];
+    $petitionSql = ($petitionID > 0) ? "AND cs.id = $petitionID" : '';
     $sql = "
       SELECT e.contact_id contactID, cs.id caseID
       FROM civicrm_email e
@@ -182,8 +184,13 @@ class CaseWrapper {
       INNER JOIN civicrm_activity a ON ac.activity_id = a.id AND a.is_deleted = 0 AND a.activity_type_id = $activityTypeID
       INNER JOIN civicrm_case_activity ca ON ca.activity_id = ac.activity_id
       INNER JOIN civicrm_case cs ON cs.id = ca.case_id AND cs.is_deleted = 0
-      WHERE e.email = %1 AND e.on_hold = 0";
-    return CRM_Core_DAO::executeQuery($sql, [1 => [$email, 'String']])->fetchAll();
+      WHERE e.email = %1 AND e.on_hold = 0 $petitionSql";
+    $return = CRM_Core_DAO::executeQuery($sql, [1 => [$email, 'String']])->fetchAll();
+    if ($petitionID) {
+      // Only return one petition if one specified.
+      $return = $return ? $return[0] : NULL;
+    }
+    return $return;
   }
   /**
    * Return an array of CaseWrapper objects for the given contact (and optionally case)

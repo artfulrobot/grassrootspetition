@@ -2,13 +2,14 @@
   <div class="grpet-admin">
     <div v-show="stage === 'loading'" >{{loadingMessage}}</div>
 
-    <form v-show="stage === 'unauthorised'"
-          class="unauthorised"
-          @submit.prevent="submitAuthEmail"
+    <div v-show="stage === 'unauthorised'" class="unauthorised" >
+      <form v-if="isPetitionSpecificSignin()"
+          @submit.prevent="submitAuthEmailPetition"
       >
-      <div>
-        <h2>Unauthorised</h2>
+        <h2>Administer your petition</h2>
+
         <p class="grpet-error " v-show="getAuthHash()" >This link has expired</p>
+
         <label :for="myId + 'authEmail'" >Enter the email you registered with</label>
         <input
           type="email"
@@ -17,16 +18,89 @@
           v-model="authEmail"
           required
           />
+
         <button
           class="primary"
           type="submit"
           :disabled="$root.submissionRunning"
           >Send one-time login link</button>
-      </div>
-    </form>
+      </form>
+
+      <form v-if="!isPetitionSpecificSignin()"
+          @submit.prevent="submitAuthEmail"
+      >
+        <h2>Sign up to administer petitions</h2>
+
+        <p class="grpet-error " v-show="getAuthHash()" >This link has expired</p>
+
+        <div class="two-cols">
+          <div class="col">
+            <div class="field">
+              <label :for="myId + 'authFirstName'" >First name</label>
+              <input
+                type="text"
+                :id="myId + 'authFirstName'"
+                :disabled="$root.submissionRunning"
+                v-model="authFirstName"
+                required
+                />
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="field">
+              <label :for="myId + 'authLastName'" >last name</label>
+              <input
+                type="text"
+                :id="myId + 'authLastName'"
+                :disabled="$root.submissionRunning"
+                v-model="authLastName"
+                required
+                />
+            </div>
+          </div>
+        </div>
+
+        <div class="two-cols">
+          <div class="col">
+            <div class="field">
+              <label :for="myId + 'authEmail'" >Enter your email</label>
+              <input
+                type="email"
+                :id="myId + 'authEmail'"
+                :disabled="$root.submissionRunning"
+                v-model="authEmail"
+                required
+                />
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="field">
+              <label :for="myId + 'authEmail2'" >Enter your email again (helps prevent typos)</label>
+              <input
+                type="email"
+                ref="authEmail2"
+                :id="myId + 'authEmail2'"
+                :disabled="$root.submissionRunning"
+                v-model="authEmail2"
+                required
+                />
+            </div>
+          </div>
+        </div>
+
+        <button
+          class="primary"
+          type="submit"
+          :disabled="$root.submissionRunning"
+          @click="validateSignup"
+          >Send registration email</button>
+      </form>
+    </div>
 
     <div v-show="stage === 'authSent'" >
-      <h2>Unauthorised</h2>
+      <h2>Check your inbox</h2>
       <p>Thanks, check your inbox for an email from us which contains a link to let you in.</p>
       <p>(If you can't find it, check your spam/junk folder! And if you find it in there, be sure to click the Not Spam button so it doesn't happen with other emails from us.)</p>
     </div>
@@ -190,15 +264,30 @@
       @submit.prevent="addPetitionUpdate"
     >
       <h2>Provide updates</h2>
-      <!-- todo list current updates -->
-      <h3>Existing updates</h3>
-      <ul>
-        <li v-for="update in updates">
-          {{update.activity_date_time}}
-          {{update.subject}}
-          {{update.detils}}
-        </li>
-      </ul>
+      <p><a href @click.prevent="stage = 'listPetitions';petitionBeingUpdated = null;" >Back to list</a></p>
+      <p>Provide updates that will be shown on the petition page for your petition: <em>{{petitionBeingUpdated.title}}</em></p>
+      <!-- todo Change status -->
+      <!-- todo provide text -->
+      <!-- todo provide image -->
+      <!-- todo provide imageAlt -->
+      <!-- todo provide save -->
+
+      <template v-if="updates.length>0">
+        <h3>Existing updates</h3>
+        <ul class="grpet-updates">
+          <li v-for="update in updates">
+            <div class="image">
+              <img v-if="update.imageUrl" :src="update.imageUrl" :alt="update.imageAlt" />
+            </div>
+            <div class="details">
+              <p><strong>{{update.subject}}</strong></p>
+              <p class="smallprint">{{update.activity_date_time}}</p>
+              {{update.detils}}
+            </div>
+            <!-- @todo style this, provide Delete link -->
+          </li>
+        </ul>
+      </template>
 
     </form>
 
@@ -215,26 +304,44 @@
     color: #a00;
     padding: 1rem;
   }
+
+  .two-cols {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    &>.col {
+      flex: 1 0 18rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
   label {
     font-weight: bold;
     display: block;
   }
+  // Field is a container for a label and input. It may contain multiple elements vertically.
+  .field {
+    background: white;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  input[type="text"],
+  textarea,
+  input[type="email"],
+  select {
+    width: 100%;
+  }
+
   .edit-petition,
   .grpet-list {
     background-color: #f8f8f8;
     padding: 1rem;
   }
   .edit-petition {
-    .field {
-      background: white;
-      padding: 1rem;
-      margin-bottom: 1rem;
-    }
-    input[type="text"],
-    textarea,
-    select {
-      width: 100%;
-    }
     .fixed {
       background: #f0f0f0;
       padding: 0.25rem 1rem;
@@ -275,6 +382,33 @@
 
     }
   }
+  .unauthorised {
+    padding: 1rem;
+    background: #f8f8f8;
+  }
+  ul.grpet-updates {
+    margin:0;
+    padding:0;
+    li {
+      list-style: none;
+      margin:0;
+      padding:0;
+      display: flex;
+      flex-wrap: wrap;
+      .image {
+        flex: 0 0 8rem;
+        img {
+          width: 100%;
+          height: auto;
+          display: block;
+        }
+      }
+      .details {
+        flex: 1 0 20rem;
+        padding-left:1rem;
+      }
+    }
+  }
 }
 </style>
 <script>
@@ -290,6 +424,10 @@ export default {
       loadingMessage: 'Loading...',
 
       authEmail: '',
+      authEmail2: '',
+      authFirstName: '',
+      authLastName: '',
+      authPhone: '',
       authToken: '',
 
       petitions: [],
@@ -315,11 +453,32 @@ export default {
     this.bootList();
   },
   methods: {
-    getAuthHash() {
-      var authHash = (window.location.hash || '#').substr(1);
-      if (authHash.match(/^[TS][0-9a-z]{16}$/)) {
-        return authHash;
+    validateSignup() {
+      if (this.authEmail != this.authEmail2) {
+        this.$refs.authEmail2.setCustomValidity('Emails do not match.');
       }
+      else {
+        this.$refs.authEmail2.setCustomValidity('');
+      }
+    },
+    isPetitionSpecificSignin() {
+      return this.parseHash().petition !== null;
+    },
+    getAuthHash() {
+      return this.parseHash().auth;
+    },
+    parseHash() {
+      var authHash = (window.location.hash || '#').substr(1);
+      var m = authHash.match(/^P([0-9]{1,10})(?:-([TS][0-9a-z]{16}))?$/);
+      if (m) {
+        return { petition: m[1], auth: m[2] || null };
+      }
+      // Not petition specific.
+      var m = authHash.match(/^[TS][0-9a-z]{16}$/);
+      if (m) {
+        return { petition: null, auth: authHash };
+      }
+      return { petition: null, auth: null };
     },
     authorisedRequest(opts) {
       if (this.authToken) {
@@ -391,12 +550,17 @@ export default {
           }
         });
     },
-    submitAuthEmail() {
-      // Send request for auth email.
+    submitAuthEmailPetition() {
+      // Send petition-specific request for auth email.
       const progress = this.$refs.loadingProgress;
+
       progress.startTimer(5, 100, true);
       this.$root.submissionRunning = true;
-      this.inlay.request({method: 'post', body: { need: 'adminAuthEmail', email: this.authEmail }})
+      this.inlay.request({method: 'post', xdebug:'foo', body: {
+        need: 'adminAuthEmail',
+        email: this.authEmail,
+        petitionID: this.parseHash().petition
+      }})
         .then(r => {
           if (r.publicError) {
             alert(r.publicError);
@@ -405,8 +569,50 @@ export default {
             this.stage = 'authSent';
           }
         })
-        .catch(e => {
-          // Inlay has already chucked up an alert()
+        .finally( () => {
+          this.$root.submissionRunning = false;
+          progress.cancelTimer();
+        });
+    },
+    submitAuthEmail() {
+      // Send request for auth email.
+      const progress = this.$refs.loadingProgress;
+
+      progress.startTimer(5, 100, true);
+      this.$root.submissionRunning = true;
+      var d = {
+        need: 'adminAuthEmail',
+        email: this.authEmail,
+        first_name: this.authFirstName,
+        last_name: this.authLastName,
+      };
+      this.inlay.request({method: 'post', body: d})
+        .then(r => {
+          if (r.token) {
+            d.token = r.token;
+            progress.startTimer(6, 80);
+            // Force 5s wait for the token to become valid
+            return new Promise((resolve, reject) => {
+              window.setTimeout(resolve, 5000);
+            });
+          }
+          else {
+            console.warn("unexpected resonse", r);
+            throw (r.error || 'Unknown error');
+          }
+        })
+        .then(() => {
+          // Real submission.
+          progress.startTimer(2, 100);
+          return this.inlay.request({method: 'post', body: d});
+        })
+        .then(r => {
+          if (r.publicError) {
+            alert(r.publicError);
+          }
+          else {
+            this.stage = 'authSent';
+          }
         })
         .finally( () => {
           this.$root.submissionRunning = false;
@@ -449,6 +655,7 @@ export default {
         if (r.responseOk && r.success == 1 && r.updates) {
           this.updates = r.updates;
           this.stage = 'updatePetition';
+          this.petitionBeingUpdated = petition;
         }
         else {
           alert("Sorry, there was an error: " + (r.publicError || 'Unknown error UPL1'));

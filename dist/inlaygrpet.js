@@ -787,6 +787,140 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
@@ -800,6 +934,10 @@ __webpack_require__.r(__webpack_exports__);
       loadingError: 'There was an error loading this petition, please get in touch.',
       loadingMessage: 'Loading...',
       authEmail: '',
+      authEmail2: '',
+      authFirstName: '',
+      authLastName: '',
+      authPhone: '',
       authToken: '',
       petitions: [],
       campaigns: [],
@@ -822,12 +960,44 @@ __webpack_require__.r(__webpack_exports__);
     this.bootList();
   },
   methods: {
-    getAuthHash: function getAuthHash() {
-      var authHash = (window.location.hash || '#').substr(1);
-
-      if (authHash.match(/^[TS][0-9a-z]{16}$/)) {
-        return authHash;
+    validateSignup: function validateSignup() {
+      if (this.authEmail != this.authEmail2) {
+        this.$refs.authEmail2.setCustomValidity('Emails do not match.');
+      } else {
+        this.$refs.authEmail2.setCustomValidity('');
       }
+    },
+    isPetitionSpecificSignin: function isPetitionSpecificSignin() {
+      return this.parseHash().petition !== null;
+    },
+    getAuthHash: function getAuthHash() {
+      return this.parseHash().auth;
+    },
+    parseHash: function parseHash() {
+      var authHash = (window.location.hash || '#').substr(1);
+      var m = authHash.match(/^P([0-9]{1,10})(?:-([TS][0-9a-z]{16}))?$/);
+
+      if (m) {
+        return {
+          petition: m[1],
+          auth: m[2] || null
+        };
+      } // Not petition specific.
+
+
+      var m = authHash.match(/^[TS][0-9a-z]{16}$/);
+
+      if (m) {
+        return {
+          petition: null,
+          auth: authHash
+        };
+      }
+
+      return {
+        petition: null,
+        auth: null
+      };
     },
     authorisedRequest: function authorisedRequest(opts) {
       var _this = this;
@@ -917,18 +1087,20 @@ __webpack_require__.r(__webpack_exports__);
         }
       });
     },
-    submitAuthEmail: function submitAuthEmail() {
+    submitAuthEmailPetition: function submitAuthEmailPetition() {
       var _this3 = this;
 
-      // Send request for auth email.
+      // Send petition-specific request for auth email.
       var progress = this.$refs.loadingProgress;
       progress.startTimer(5, 100, true);
       this.$root.submissionRunning = true;
       this.inlay.request({
         method: 'post',
+        xdebug: 'foo',
         body: {
           need: 'adminAuthEmail',
-          email: this.authEmail
+          email: this.authEmail,
+          petitionID: this.parseHash().petition
         }
       }).then(function (r) {
         if (r.publicError) {
@@ -936,14 +1108,59 @@ __webpack_require__.r(__webpack_exports__);
         } else {
           _this3.stage = 'authSent';
         }
-      })["catch"](function (e) {// Inlay has already chucked up an alert()
       })["finally"](function () {
         _this3.$root.submissionRunning = false;
         progress.cancelTimer();
       });
     },
-    editPetition: function editPetition(petition) {
+    submitAuthEmail: function submitAuthEmail() {
       var _this4 = this;
+
+      // Send request for auth email.
+      var progress = this.$refs.loadingProgress;
+      progress.startTimer(5, 100, true);
+      this.$root.submissionRunning = true;
+      var d = {
+        need: 'adminAuthEmail',
+        email: this.authEmail,
+        first_name: this.authFirstName,
+        last_name: this.authLastName
+      };
+      this.inlay.request({
+        method: 'post',
+        body: d
+      }).then(function (r) {
+        if (r.token) {
+          d.token = r.token;
+          progress.startTimer(6, 80); // Force 5s wait for the token to become valid
+
+          return new Promise(function (resolve, reject) {
+            window.setTimeout(resolve, 5000);
+          });
+        } else {
+          console.warn("unexpected resonse", r);
+          throw r.error || 'Unknown error';
+        }
+      }).then(function () {
+        // Real submission.
+        progress.startTimer(2, 100);
+        return _this4.inlay.request({
+          method: 'post',
+          body: d
+        });
+      }).then(function (r) {
+        if (r.publicError) {
+          alert(r.publicError);
+        } else {
+          _this4.stage = 'authSent';
+        }
+      })["finally"](function () {
+        _this4.$root.submissionRunning = false;
+        progress.cancelTimer();
+      });
+    },
+    editPetition: function editPetition(petition) {
+      var _this5 = this;
 
       if (!petition.id) {
         // New petition, nothing to load.
@@ -967,15 +1184,15 @@ __webpack_require__.r(__webpack_exports__);
         progress.cancelTimer();
 
         if (r.responseOk && r.success == 1 && r.petition) {
-          _this4.petitionBeingEdited = r.petition;
-          _this4.stage = 'editPetition';
+          _this5.petitionBeingEdited = r.petition;
+          _this5.stage = 'editPetition';
         } else {
           alert("Sorry, there was an error: " + (r.publicError || 'Unknown error LP1'));
         }
       });
     },
     updatePetition: function updatePetition(petition) {
-      var _this5 = this;
+      var _this6 = this;
 
       // Load exsting petition.
       this.stage = 'loading';
@@ -992,8 +1209,9 @@ __webpack_require__.r(__webpack_exports__);
         progress.cancelTimer();
 
         if (r.responseOk && r.success == 1 && r.updates) {
-          _this5.updates = r.updates;
-          _this5.stage = 'updatePetition';
+          _this6.updates = r.updates;
+          _this6.stage = 'updatePetition';
+          _this6.petitionBeingUpdated = petition;
         } else {
           alert("Sorry, there was an error: " + (r.publicError || 'Unknown error UPL1'));
         }
@@ -1015,7 +1233,7 @@ __webpack_require__.r(__webpack_exports__);
       this.editPetition(petition);
     },
     savePetition: function savePetition() {
-      var _this6 = this;
+      var _this7 = this;
 
       // The browser's checks say the fields are valid.
       // (do any custom stuff in response to the buttonclick)
@@ -1024,48 +1242,48 @@ __webpack_require__.r(__webpack_exports__);
       }; // Copy our fields.
 
       ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location', 'imageAlt'].forEach(function (f) {
-        d[f] = _this6.petitionBeingEdited[f];
+        d[f] = _this7.petitionBeingEdited[f];
       });
       var p = new Promise(function (resolve, reject) {
-        if (_this6.$refs.imageFile.files.length === 1) {
+        if (_this7.$refs.imageFile.files.length === 1) {
           var fr = new FileReader();
           fr.addEventListener('load', function (e) {
             // File loaded.
             d.imageData = fr.result;
             resolve(d);
           });
-          fr.readAsDataURL(_this6.$refs.imageFile.files[0]);
+          fr.readAsDataURL(_this7.$refs.imageFile.files[0]);
         } else {
           resolve(d);
         }
       });
       p.then(function (d) {
-        if (_this6.editingPetition) {
+        if (_this7.editingPetition) {
           // send ID of existing petitions.
-          d.id = _this6.petitionBeingEdited.id;
+          d.id = _this7.petitionBeingEdited.id;
         } else {
           // new petitions need this.
-          d.campaignLabel = _this6.petitionBeingEdited.campaignLabel;
+          d.campaignLabel = _this7.petitionBeingEdited.campaignLabel;
         } // Got data.
 
 
-        var progress = _this6.$refs.loadingProgress;
+        var progress = _this7.$refs.loadingProgress;
         progress.startTimer(5, 100, true);
-        _this6.$root.submissionRunning = true;
+        _this7.$root.submissionRunning = true;
 
-        _this6.authorisedRequest({
+        _this7.authorisedRequest({
           method: 'post',
           body: d
         }).then(function (r) {
-          _this6.$root.submissionRunning = false;
+          _this7.$root.submissionRunning = false;
           progress.cancelTimer(); // Were there any errors?
           // We're not expecting any, so just use alert.
 
           if (r.responseOk && r.success == 1) {
             // The result of saving successfully is an updated set of petitions.
-            _this6.petitions = r.petitions;
-            _this6.stage = 'listPetitions';
-            _this6.petitionBeingEdited = null;
+            _this7.petitions = r.petitions;
+            _this7.stage = 'listPetitions';
+            _this7.petitionBeingEdited = null;
           } else {
             alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
           }
@@ -1424,7 +1642,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin label {\n  font-weight: bold;\n  display: block;\n}\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin .edit-petition input[type=\"text\"],\n.grpet-admin .edit-petition textarea,\n.grpet-admin .edit-petition select {\n  width: 100%;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin .status {\n  border-radius: 1rem;\n  padding: 0 1rem;\n  line-height: 1;\n  white-space: no-break;\n  color: white;\n}\n.grpet-admin .status.grpet_Won {\n  background: #566a4a;\n}\n.grpet-admin .status.grpet_Dead {\n  background: #a4a19e;\n}\n.grpet-admin .status.grpet_Pending {\n  background: #747707;\n}\n.grpet-admin .status.Open {\n  background: #4aa219;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n.grpet-admin ul.petition article h1 {\n  font-size: 1.4rem;\n  line-height: 1;\n  margin: 0 0 1rem;\n  padding: 0;\n}\n", ""]);
+exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin .two-cols {\n  margin-left: -1rem;\n  margin-right: -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin .two-cols > .col {\n  flex: 1 0 18rem;\n  padding-left: 1rem;\n  padding-right: 1rem;\n}\n.grpet-admin label {\n  font-weight: bold;\n  display: block;\n}\n.grpet-admin .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin input[type=\"text\"],\n.grpet-admin textarea,\n.grpet-admin input[type=\"email\"],\n.grpet-admin select {\n  width: 100%;\n}\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin .status {\n  border-radius: 1rem;\n  padding: 0 1rem;\n  line-height: 1;\n  white-space: no-break;\n  color: white;\n}\n.grpet-admin .status.grpet_Won {\n  background: #566a4a;\n}\n.grpet-admin .status.grpet_Dead {\n  background: #a4a19e;\n}\n.grpet-admin .status.grpet_Pending {\n  background: #747707;\n}\n.grpet-admin .status.Open {\n  background: #4aa219;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n.grpet-admin ul.petition article h1 {\n  font-size: 1.4rem;\n  line-height: 1;\n  margin: 0 0 1rem;\n  padding: 0;\n}\n.grpet-admin .unauthorised {\n  padding: 1rem;\n  background: #f8f8f8;\n}\n.grpet-admin ul.grpet-updates {\n  margin: 0;\n  padding: 0;\n}\n.grpet-admin ul.grpet-updates li {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.grpet-updates li .image {\n  flex: 0 0 8rem;\n}\n.grpet-admin ul.grpet-updates li .image img {\n  width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet-admin ul.grpet-updates li .details {\n  flex: 1 0 20rem;\n  padding-left: 1rem;\n}\n", ""]);
 
 // exports
 
@@ -3257,7 +3475,7 @@ var render = function() {
       ),
       _vm._v(" "),
       _c(
-        "form",
+        "div",
         {
           directives: [
             {
@@ -3267,73 +3485,282 @@ var render = function() {
               expression: "stage === 'unauthorised'"
             }
           ],
-          staticClass: "unauthorised",
-          on: {
-            submit: function($event) {
-              $event.preventDefault()
-              return _vm.submitAuthEmail($event)
-            }
-          }
+          staticClass: "unauthorised"
         },
         [
-          _c("div", [
-            _c("h2", [_vm._v("Unauthorised")]),
-            _vm._v(" "),
-            _c(
-              "p",
-              {
-                directives: [
-                  {
-                    name: "show",
-                    rawName: "v-show",
-                    value: _vm.getAuthHash(),
-                    expression: "getAuthHash()"
-                  }
-                ],
-                staticClass: "grpet-error "
-              },
-              [_vm._v("This link has expired")]
-            ),
-            _vm._v(" "),
-            _c("label", { attrs: { for: _vm.myId + "authEmail" } }, [
-              _vm._v("Enter the email you registered with")
-            ]),
-            _vm._v(" "),
-            _c("input", {
-              directives: [
+          _vm.isPetitionSpecificSignin()
+            ? _c(
+                "form",
                 {
-                  name: "model",
-                  rawName: "v-model",
-                  value: _vm.authEmail,
-                  expression: "authEmail"
-                }
-              ],
-              attrs: {
-                type: "email",
-                id: _vm.myId + "authEmail",
-                disabled: _vm.$root.submissionRunning,
-                required: ""
-              },
-              domProps: { value: _vm.authEmail },
-              on: {
-                input: function($event) {
-                  if ($event.target.composing) {
-                    return
+                  on: {
+                    submit: function($event) {
+                      $event.preventDefault()
+                      return _vm.submitAuthEmailPetition($event)
+                    }
                   }
-                  _vm.authEmail = $event.target.value
-                }
-              }
-            }),
-            _vm._v(" "),
-            _c(
-              "button",
-              {
-                staticClass: "primary",
-                attrs: { type: "submit", disabled: _vm.$root.submissionRunning }
-              },
-              [_vm._v("Send one-time login link")]
-            )
-          ])
+                },
+                [
+                  _c("h2", [_vm._v("Administer your petition")]),
+                  _vm._v(" "),
+                  _c(
+                    "p",
+                    {
+                      directives: [
+                        {
+                          name: "show",
+                          rawName: "v-show",
+                          value: _vm.getAuthHash(),
+                          expression: "getAuthHash()"
+                        }
+                      ],
+                      staticClass: "grpet-error "
+                    },
+                    [_vm._v("This link has expired")]
+                  ),
+                  _vm._v(" "),
+                  _c("label", { attrs: { for: _vm.myId + "authEmail" } }, [
+                    _vm._v("Enter the email you registered with")
+                  ]),
+                  _vm._v(" "),
+                  _c("input", {
+                    directives: [
+                      {
+                        name: "model",
+                        rawName: "v-model",
+                        value: _vm.authEmail,
+                        expression: "authEmail"
+                      }
+                    ],
+                    attrs: {
+                      type: "email",
+                      id: _vm.myId + "authEmail",
+                      disabled: _vm.$root.submissionRunning,
+                      required: ""
+                    },
+                    domProps: { value: _vm.authEmail },
+                    on: {
+                      input: function($event) {
+                        if ($event.target.composing) {
+                          return
+                        }
+                        _vm.authEmail = $event.target.value
+                      }
+                    }
+                  }),
+                  _vm._v(" "),
+                  _c(
+                    "button",
+                    {
+                      staticClass: "primary",
+                      attrs: {
+                        type: "submit",
+                        disabled: _vm.$root.submissionRunning
+                      }
+                    },
+                    [_vm._v("Send one-time login link")]
+                  )
+                ]
+              )
+            : _vm._e(),
+          _vm._v(" "),
+          !_vm.isPetitionSpecificSignin()
+            ? _c(
+                "form",
+                {
+                  on: {
+                    submit: function($event) {
+                      $event.preventDefault()
+                      return _vm.submitAuthEmail($event)
+                    }
+                  }
+                },
+                [
+                  _c("h2", [_vm._v("Sign up to administer petitions")]),
+                  _vm._v(" "),
+                  _c(
+                    "p",
+                    {
+                      directives: [
+                        {
+                          name: "show",
+                          rawName: "v-show",
+                          value: _vm.getAuthHash(),
+                          expression: "getAuthHash()"
+                        }
+                      ],
+                      staticClass: "grpet-error "
+                    },
+                    [_vm._v("This link has expired")]
+                  ),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "two-cols" }, [
+                    _c("div", { staticClass: "col" }, [
+                      _c("div", { staticClass: "field" }, [
+                        _c(
+                          "label",
+                          { attrs: { for: _vm.myId + "authFirstName" } },
+                          [_vm._v("First name")]
+                        ),
+                        _vm._v(" "),
+                        _c("input", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: _vm.authFirstName,
+                              expression: "authFirstName"
+                            }
+                          ],
+                          attrs: {
+                            type: "text",
+                            id: _vm.myId + "authFirstName",
+                            disabled: _vm.$root.submissionRunning,
+                            required: ""
+                          },
+                          domProps: { value: _vm.authFirstName },
+                          on: {
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.authFirstName = $event.target.value
+                            }
+                          }
+                        })
+                      ])
+                    ]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "col" }, [
+                      _c("div", { staticClass: "field" }, [
+                        _c(
+                          "label",
+                          { attrs: { for: _vm.myId + "authLastName" } },
+                          [_vm._v("last name")]
+                        ),
+                        _vm._v(" "),
+                        _c("input", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: _vm.authLastName,
+                              expression: "authLastName"
+                            }
+                          ],
+                          attrs: {
+                            type: "text",
+                            id: _vm.myId + "authLastName",
+                            disabled: _vm.$root.submissionRunning,
+                            required: ""
+                          },
+                          domProps: { value: _vm.authLastName },
+                          on: {
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.authLastName = $event.target.value
+                            }
+                          }
+                        })
+                      ])
+                    ])
+                  ]),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "two-cols" }, [
+                    _c("div", { staticClass: "col" }, [
+                      _c("div", { staticClass: "field" }, [
+                        _c(
+                          "label",
+                          { attrs: { for: _vm.myId + "authEmail" } },
+                          [_vm._v("Enter your email")]
+                        ),
+                        _vm._v(" "),
+                        _c("input", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: _vm.authEmail,
+                              expression: "authEmail"
+                            }
+                          ],
+                          attrs: {
+                            type: "email",
+                            id: _vm.myId + "authEmail",
+                            disabled: _vm.$root.submissionRunning,
+                            required: ""
+                          },
+                          domProps: { value: _vm.authEmail },
+                          on: {
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.authEmail = $event.target.value
+                            }
+                          }
+                        })
+                      ])
+                    ]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "col" }, [
+                      _c("div", { staticClass: "field" }, [
+                        _c(
+                          "label",
+                          { attrs: { for: _vm.myId + "authEmail2" } },
+                          [
+                            _vm._v(
+                              "Enter your email again (helps prevent typos)"
+                            )
+                          ]
+                        ),
+                        _vm._v(" "),
+                        _c("input", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: _vm.authEmail2,
+                              expression: "authEmail2"
+                            }
+                          ],
+                          ref: "authEmail2",
+                          attrs: {
+                            type: "email",
+                            id: _vm.myId + "authEmail2",
+                            disabled: _vm.$root.submissionRunning,
+                            required: ""
+                          },
+                          domProps: { value: _vm.authEmail2 },
+                          on: {
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.authEmail2 = $event.target.value
+                            }
+                          }
+                        })
+                      ])
+                    ])
+                  ]),
+                  _vm._v(" "),
+                  _c(
+                    "button",
+                    {
+                      staticClass: "primary",
+                      attrs: {
+                        type: "submit",
+                        disabled: _vm.$root.submissionRunning
+                      },
+                      on: { click: _vm.validateSignup }
+                    },
+                    [_vm._v("Send registration email")]
+                  )
+                ]
+              )
+            : _vm._e()
         ]
       ),
       _vm._v(" "),
@@ -3350,7 +3777,7 @@ var render = function() {
           ]
         },
         [
-          _c("h2", [_vm._v("Unauthorised")]),
+          _c("h2", [_vm._v("Check your inbox")]),
           _vm._v(" "),
           _c("p", [
             _vm._v(
@@ -3984,26 +4411,72 @@ var render = function() {
             [
               _c("h2", [_vm._v("Provide updates")]),
               _vm._v(" "),
-              _c("h3", [_vm._v("Existing updates")]),
+              _c("p", [
+                _c(
+                  "a",
+                  {
+                    attrs: { href: "" },
+                    on: {
+                      click: function($event) {
+                        $event.preventDefault()
+                        _vm.stage = "listPetitions"
+                        _vm.petitionBeingUpdated = null
+                      }
+                    }
+                  },
+                  [_vm._v("Back to list")]
+                )
+              ]),
               _vm._v(" "),
-              _c(
-                "ul",
-                _vm._l(_vm.updates, function(update) {
-                  return _c("li", [
-                    _vm._v(
-                      "\n        " +
-                        _vm._s(update.activity_date_time) +
-                        "\n        " +
-                        _vm._s(update.subject) +
-                        "\n        " +
-                        _vm._s(update.detils) +
-                        "\n      "
+              _c("p", [
+                _vm._v(
+                  "Provide updates that will be shown on the petition page for your petition: "
+                ),
+                _c("em", [_vm._v(_vm._s(_vm.petitionBeingUpdated.title))])
+              ]),
+              _vm._v(" "),
+              _vm.updates.length > 0
+                ? [
+                    _c("h3", [_vm._v("Existing updates")]),
+                    _vm._v(" "),
+                    _c(
+                      "ul",
+                      { staticClass: "grpet-updates" },
+                      _vm._l(_vm.updates, function(update) {
+                        return _c("li", [
+                          _c("div", { staticClass: "image" }, [
+                            update.imageUrl
+                              ? _c("img", {
+                                  attrs: {
+                                    src: update.imageUrl,
+                                    alt: update.imageAlt
+                                  }
+                                })
+                              : _vm._e()
+                          ]),
+                          _vm._v(" "),
+                          _c("div", { staticClass: "details" }, [
+                            _c("p", [
+                              _c("strong", [_vm._v(_vm._s(update.subject))])
+                            ]),
+                            _vm._v(" "),
+                            _c("p", { staticClass: "smallprint" }, [
+                              _vm._v(_vm._s(update.activity_date_time))
+                            ]),
+                            _vm._v(
+                              "\n            " +
+                                _vm._s(update.detils) +
+                                "\n          "
+                            )
+                          ])
+                        ])
+                      }),
+                      0
                     )
-                  ])
-                }),
-                0
-              )
-            ]
+                  ]
+                : _vm._e()
+            ],
+            2
           )
         : _vm._e(),
       _vm._v(" "),
