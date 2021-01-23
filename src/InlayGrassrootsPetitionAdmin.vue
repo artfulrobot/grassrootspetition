@@ -116,7 +116,7 @@
             <ul>
               <li><a href @click.prevent="editPetition(petition)" >Edit petition (texts, targets etc.)</a></li>
               <li><a href @click.prevent="updatePetition(petition)" >Provide updates, mark Won or Closed</a></li>
-              <li><a href @click.prevent="createEmail(petition)" >Email signers</a></li>
+              <!-- Unimplemented <li><a href @click.prevent="createEmail(petition)" >Email signers</a></li> -->
             </ul>
           </article>
         </li>
@@ -129,11 +129,13 @@
           @submit.prevent="submitAuthEmail"
     >
       <h2>Create new petition: choose type</h2>
-      <ul v-for="campaign in campaigns" >
-        <li>
-          <p><strong>{{campaign.label}}</strong></p>
-          <p>{{campaign.description}}</p>
-          <p><a href @click.prevent="createNewPetitionFromType(campaign)" >Create local petition for this campaign</a></p>
+      <ul>
+        <li v-for="campaign in campaigns" >
+          <div class="grpet-card">
+            <h3>{{campaign.label}}</h3>
+            <div class="description">{{campaign.description}}</div>
+            <div class="button"><button class="primary" @click.prevent="createNewPetitionFromType(campaign)" >Create local petition for this campaign</button></div>
+          </div>
         </li>
       </ul>
     </div><!-- /createNewPetition -->
@@ -369,6 +371,37 @@
       flex: 1 0 18rem;
       padding-left: 1rem;
       padding-right: 1rem;
+    }
+  }
+
+  // Create new campaign
+  .new-petition {
+    ul {
+      background-color: #f8f8f8;
+      margin:0 0 2rem;
+      padding: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+    }
+    li {
+      list-style: none;
+      flex: 1 0 18rem;
+      padding: 0.5rem;
+    }
+    div.grpet-card {
+      height: 100%;
+      background: white;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      h3 { flex: 0 0 auto; }
+      .description { flex: 1 0 auto; }
+      .button { flex: 0 0 auto; }
+    }
+    h3 {
+      margin: 0 0 1rem;
+      font-size: 1.5rem;
+      line-height: 1.2;
     }
   }
 

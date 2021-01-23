@@ -90,8 +90,7 @@ class CaseWrapper {
     string $campaignLabel,
     string $location,
     string $targetName,
-    string $who,
-    ?string $slug=NULL
+    string $who
   ) :?CaseWrapper {
 
     $campaign = GrassrootsPetitionCampaign::get(FALSE)
@@ -103,13 +102,12 @@ class CaseWrapper {
       throw new \RuntimeException("Campaign not found '$campaignLabel' in GrassrootsPetition CaseWrapper::newFromCampaign");
     }
 
+    //
     // Create the slug.
-    if ($slug) {
-      $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($slug)), '-');
-    }
-    else {
-      $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($title)), '-');
-    }
+    //
+    // This is created from the title and the slug of the campaign.
+    //
+    $slug = $campaign['slug'] . '/' . trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($title)), '-');
     if (!$slug) {
       throw new \RuntimeException("Invalid slug");
     }

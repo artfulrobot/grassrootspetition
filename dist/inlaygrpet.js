@@ -1017,6 +1017,39 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
@@ -1792,7 +1825,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin .two-cols {\n  margin-left: -1rem;\n  margin-right: -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin .two-cols > .col {\n  flex: 1 0 18rem;\n  padding-left: 1rem;\n  padding-right: 1rem;\n}\n.grpet-admin label {\n  font-weight: bold;\n  display: block;\n}\n.grpet-admin .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin input[type=\"text\"],\n.grpet-admin textarea,\n.grpet-admin input[type=\"email\"],\n.grpet-admin select {\n  width: 100%;\n}\n.grpet-admin .update-petition,\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin .status {\n  border-radius: 1rem;\n  padding: 0 1rem;\n  line-height: 1;\n  white-space: no-break;\n  color: white;\n}\n.grpet-admin .status.grpet_Won {\n  background: #566a4a;\n}\n.grpet-admin .status.grpet_Dead {\n  background: #a4a19e;\n}\n.grpet-admin .status.grpet_Pending {\n  background: #747707;\n}\n.grpet-admin .status.Open {\n  background: #4aa219;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n.grpet-admin ul.petition article h1 {\n  font-size: 1.4rem;\n  line-height: 1;\n  margin: 0 0 1rem;\n  padding: 0;\n}\n.grpet-admin .unauthorised {\n  padding: 1rem;\n  background: #f8f8f8;\n}\n.grpet-admin ul.grpet-updates {\n  margin: 0;\n  padding: 0;\n}\n.grpet-admin ul.grpet-updates li {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.grpet-updates li .image {\n  flex: 0 0 8rem;\n}\n.grpet-admin ul.grpet-updates li .image img {\n  width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet-admin ul.grpet-updates li .details {\n  flex: 1 0 20rem;\n  padding-left: 1rem;\n}\n", ""]);
+exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin .two-cols {\n  margin-left: -1rem;\n  margin-right: -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin .two-cols > .col {\n  flex: 1 0 18rem;\n  padding-left: 1rem;\n  padding-right: 1rem;\n}\n.grpet-admin .new-petition ul {\n  background-color: #f8f8f8;\n  margin: 0 0 2rem;\n  padding: 0.5rem;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin .new-petition li {\n  list-style: none;\n  flex: 1 0 18rem;\n  padding: 0.5rem;\n}\n.grpet-admin .new-petition div.grpet-card {\n  height: 100%;\n  background: white;\n  padding: 1rem;\n  display: flex;\n  flex-direction: column;\n}\n.grpet-admin .new-petition div.grpet-card h3 {\n  flex: 0 0 auto;\n}\n.grpet-admin .new-petition div.grpet-card .description {\n  flex: 1 0 auto;\n}\n.grpet-admin .new-petition div.grpet-card .button {\n  flex: 0 0 auto;\n}\n.grpet-admin .new-petition h3 {\n  margin: 0 0 1rem;\n  font-size: 1.5rem;\n  line-height: 1.2;\n}\n.grpet-admin label {\n  font-weight: bold;\n  display: block;\n}\n.grpet-admin .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin input[type=\"text\"],\n.grpet-admin textarea,\n.grpet-admin input[type=\"email\"],\n.grpet-admin select {\n  width: 100%;\n}\n.grpet-admin .update-petition,\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin .status {\n  border-radius: 1rem;\n  padding: 0 1rem;\n  line-height: 1;\n  white-space: no-break;\n  color: white;\n}\n.grpet-admin .status.grpet_Won {\n  background: #566a4a;\n}\n.grpet-admin .status.grpet_Dead {\n  background: #a4a19e;\n}\n.grpet-admin .status.grpet_Pending {\n  background: #747707;\n}\n.grpet-admin .status.Open {\n  background: #4aa219;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n.grpet-admin ul.petition article h1 {\n  font-size: 1.4rem;\n  line-height: 1;\n  margin: 0 0 1rem;\n  padding: 0;\n}\n.grpet-admin .unauthorised {\n  padding: 1rem;\n  background: #f8f8f8;\n}\n.grpet-admin ul.grpet-updates {\n  margin: 0;\n  padding: 0;\n}\n.grpet-admin ul.grpet-updates li {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.grpet-updates li .image {\n  flex: 0 0 8rem;\n}\n.grpet-admin ul.grpet-updates li .image img {\n  width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet-admin ul.grpet-updates li .details {\n  flex: 1 0 20rem;\n  padding-left: 1rem;\n}\n", ""]);
 
 // exports
 
@@ -4047,22 +4080,6 @@ var render = function() {
                           },
                           [_vm._v("Provide updates, mark Won or Closed")]
                         )
-                      ]),
-                      _vm._v(" "),
-                      _c("li", [
-                        _c(
-                          "a",
-                          {
-                            attrs: { href: "" },
-                            on: {
-                              click: function($event) {
-                                $event.preventDefault()
-                                return _vm.createEmail(petition)
-                              }
-                            }
-                          },
-                          [_vm._v("Email signers")]
-                        )
                       ])
                     ])
                   ])
@@ -4104,33 +4121,38 @@ var render = function() {
             [
               _c("h2", [_vm._v("Create new petition: choose type")]),
               _vm._v(" "),
-              _vm._l(_vm.campaigns, function(campaign) {
-                return _c("ul", [
-                  _c("li", [
-                    _c("p", [_c("strong", [_vm._v(_vm._s(campaign.label))])]),
-                    _vm._v(" "),
-                    _c("p", [_vm._v(_vm._s(campaign.description))]),
-                    _vm._v(" "),
-                    _c("p", [
-                      _c(
-                        "a",
-                        {
-                          attrs: { href: "" },
-                          on: {
-                            click: function($event) {
-                              $event.preventDefault()
-                              return _vm.createNewPetitionFromType(campaign)
+              _c(
+                "ul",
+                _vm._l(_vm.campaigns, function(campaign) {
+                  return _c("li", [
+                    _c("div", { staticClass: "grpet-card" }, [
+                      _c("h3", [_vm._v(_vm._s(campaign.label))]),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "description" }, [
+                        _vm._v(_vm._s(campaign.description))
+                      ]),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "button" }, [
+                        _c(
+                          "button",
+                          {
+                            staticClass: "primary",
+                            on: {
+                              click: function($event) {
+                                $event.preventDefault()
+                                return _vm.createNewPetitionFromType(campaign)
+                              }
                             }
-                          }
-                        },
-                        [_vm._v("Create local petition for this campaign")]
-                      )
+                          },
+                          [_vm._v("Create local petition for this campaign")]
+                        )
+                      ])
                     ])
                   ])
-                ])
-              })
-            ],
-            2
+                }),
+                0
+              )
+            ]
           )
         : _vm._e(),
       _vm._v(" "),

@@ -46,15 +46,24 @@
   </field>
 
   <field>
+    <name>slug</name>
+    <type>varchar</type>
+    <length>255</length>
+    <comment>URL path component shared by this campaign's petitions</comment>
+  </field>
+
+  <field>
     <name>template_what</name>
     <type>longtext</type>
     <comment>HTML template for the 'What' of new petitions</comment>
   </field>
+
   <field>
     <name>template_why</name>
     <type>longtext</type>
     <comment>HTML template for the 'Why' of new petitions</comment>
   </field>
+
   <field>
     <name>template_title</name>
     <type>varchar</type>

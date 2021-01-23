@@ -1,0 +1,126 @@
+<div class="crm-container">
+  <h1 crm-page-title>{{ ts('Grassroots Petition Campaigns')}}</h1>
+
+  <div ng-show="stage=='listCampaigns'">
+    <p>{{ ts('Petitions are organsied around "campaigns". Here a campaign provides a grouping for petitions that all contribute to the same aim and template content for that campaign.')}}</p>
+
+    <table>
+      <thead>
+        <tr><th>Campaign</th><th>Active?</th><th>Actions</td></tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="campaign in campaigns" >
+          <td>{{campaign.name}}</td>
+          <td>{{campaign.is_active ? ts('Yes') : ts('No')}}</td>
+          <td>
+            <a href ng-click="editCampaign(campaign)" >{{ts('Edit')}}</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <a href ng-click="editCampaign()" >{{ts('Create new campaign')}}</a>
+    <!-- name -->
+    <!-- label -->
+    <!-- is_active -->
+  </div>
+
+  <div ng-show="stage=='editCampaign' && campaignBeingEdited">
+    <h2>{{ts(campaignBeingEdited.id > 0 ? 'Edit campaign' : 'Create new campaign')}}</h2>
+
+    <form name="camp" crm-ui-id-scope>
+      <div crm-ui-field="{name: 'camp.name', title: ts('Name (internal)') }">
+        <input
+          crm-ui-id="camp.name"
+          name="name"
+          ng-model="campaignBeingEdited.name"
+          class="crm-form-text"
+          required
+          />
+      </div>
+
+      <div crm-ui-field="{name: 'camp.label', title: ts('Public name') }">
+        <input
+          crm-ui-id="camp.label"
+          name="label"
+          ng-model="campaignBeingEdited.label"
+          class="crm-form-text"
+          required
+          />
+      </div>
+
+      <div crm-ui-field="{name: 'camp.is_active', title: ts('Active')}">
+        <select
+          crm-ui-select="{allowClear:false, dropdownAutoWidth: true}"
+          ng-model="campaignBeingEdited.is_active"
+          name="is_active"
+          >
+          <option value="1">{{ts('Yes')}}</option>
+          <option value="0">{{ts('No')}}</option>
+        </select>
+      </div>
+
+      <div crm-ui-field="{name: 'camp.description', title: ts('Description (public)') }">
+        <textarea
+          crm-ui-id="camp.description"
+          name="description"
+          ng-model="campaignBeingEdited.description"
+          class="crm-form-text"
+          required
+          ></textarea>
+      </div>
+
+      <div crm-ui-field="{name: 'camp.template_title', title: ts('Title template') }">
+        <input
+          crm-ui-id="camp.template_title"
+          name="template_title"
+          ng-model="campaignBeingEdited.template_title"
+          class="crm-form-text"
+          required
+          />
+      </div>
+
+      <div crm-ui-field="{label: 'camp.template_why', title: ts('template_why (public)') }">
+        <textarea
+          crm-ui-id="camp.template_why"
+          name="template_why"
+          ng-model="campaignBeingEdited.template_why"
+          class="crm-form-text"
+          required
+          ></textarea>
+      </div>
+
+      <div crm-ui-field="{label: 'camp.template_what', title: ts('template_what (public)') }">
+        <textarea
+          crm-ui-id="camp.template_what"
+          name="template_what"
+          ng-model="campaignBeingEdited.template_what"
+          class="crm-form-text"
+          required
+          ></textarea>
+      </div>
+
+      <div crm-ui-field="{name: 'camp.slug', title: ts('URL path component (“slug”)') }">
+        <input
+          crm-ui-id="camp.slug"
+          name="slug"
+          ng-model="campaignBeingEdited.slug"
+          class="crm-form-text"
+          required
+          placeholder="decolonising-tech"
+          />
+        <p>This forms part of petitions' URLs. For example if you had a campaign called <em>Decolonising Tech</em> and you gave it a slug of <em>decolonising-tech</em>, and someone created a petition called <em>Ditch Master-Slave Terminology in Databases</em> then their petition would be available at <em>www.example.org/petitinos/decolonising-tech/ditch-master-slave-terminology-in-databases</em>. It’s suggested that you use all lower case letters, hyphens to separate words, since this is easiest to read and type.</p>
+      </div>
+
+      <div>
+        <button ng-click="campaignBeingEdited = null; stage='listCampaigns';">{{ts('Cancel')}}</button>
+        &nbsp;
+        <button ng-click="save()">{{ts('Save')}}</button>
+      </div>
+
+    </form>
+
+  </div>
+
+
+  </form>
+</div>
