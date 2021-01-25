@@ -19,6 +19,7 @@ class GrassrootsPetition extends InlayType {
   public static $routes = [
       'GET' => [
         'publicData' => 'processGetPublicDataRequest',
+        'publicPetitionList' => 'processGetPublicPetitionList',
       ],
       'POST' => [
         'submitSignature'    => 'processSubmitSignatureRequest',
@@ -178,6 +179,46 @@ class GrassrootsPetition extends InlayType {
     }
 
     return $this->$method($request);
+  }
+  /**
+   *
+   * @return array
+   */
+  public function processGetPublicPetitionList(ApiRequest $request) {
+
+    CaseWrapper::init();
+    $petitions = CaseWrapper::getPetitionsForPublic();
+    $output = ['petitions' => [], 'campaigns' => []];
+
+    foreach ($petitions as $petition) {
+      $mainImage = $petition->getMainImage();
+      $public = [
+        'id'             => $petition->getID(),
+        'petitionTitle'  => $petition->getPetitionTitle(),
+        'location'       => $petition->getCustomData('grpet_location'),
+        'slug'           => $petition->getCustomData('grpet_slug'),
+        'signatureCount' => $petition->getPetitionSigsCount(),
+        'campaignID'     => (int) $petition->getCustomData('grpet_campaign'),
+        'imageUrl'       => $mainImage['imageUrl'],
+        'imageAlt'       => $mainImage['imageAlt'],
+      ];
+      if (!isset($output['campaigns'][$public['campaignID']])) {
+        $output['campaigns'][$public['campaignID']] = $petition->getCampaign();
+      }
+
+
+      $output['petitions'][] = $public;
+    }
+    // Simplify/reduce campaigns output.
+    foreach ($output['campaigns'] as &$campaign) {
+      $campaign = [
+        'id' => $campaign['id'],
+        'label' => $campaign['label'],
+      ];
+    }
+
+
+    return $output;
   }
   /**
    * Finds the petition and returns its definition, counts etc.

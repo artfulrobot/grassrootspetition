@@ -363,6 +363,80 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -378,7 +452,16 @@ __webpack_require__.r(__webpack_exports__);
       stage: 'loading',
       myId: this.$root.getNextId(),
       loadingError: 'There was an error loading this petition, please get in touch.',
+      // Array of petitions from publicPetitionList
+      petitions: [],
+      campaigns: {},
+      filters: {
+        campaignID: null,
+        text: ''
+      },
+      // Object of data of current petition from its publicData
       publicData: {},
+      // Petition slug (if poss) from the url.
       petitionSlug: (window.location.pathname.match(/^\/petitions\/([^/#?]+)/) || [null, null])[1],
       location: window.location.href,
       // Form data
@@ -392,6 +475,27 @@ __webpack_require__.r(__webpack_exports__);
     return d;
   },
   computed: {
+    filteredPetitions: function filteredPetitions() {
+      var _this = this;
+
+      return this.petitions.filter(function (p) {
+        if (_this.filters.campaignID && p.campaignID != _this.filters.campaignID) {
+          return false;
+        }
+
+        if (!_this.filters.text) return true; // Does text filter match?
+
+        var parts = _this.filters.text.toLowerCase().split(/\s+/);
+
+        var m = true;
+        parts.forEach(function (part) {
+          if ((p.location + p.petitionTitle).toLowerCase().indexOf(part) === -1) {
+            m = false;
+          }
+        });
+        return m;
+      });
+    },
     stretchTarget: function stretchTarget() {
       if (this.publicData.signatureCount > this.publicData.targetCount) {
         // We need to do a stretch target.
@@ -419,18 +523,41 @@ __webpack_require__.r(__webpack_exports__);
     }
   },
   mounted: function mounted() {
-    var _this = this;
+    var _this2 = this;
 
-    // We need to send a request to load our petition.
+    var progress = this.$refs.loadingProgress; // We need to send a request to load our petition.
     // First, identify which petition.
+
     if (!this.petitionSlug) {
-      this.stage = 'loadingError';
-      this.loadingError = 'There was an error loading this petition (invalid URL). Please check your link.';
+      // We'll be presenting the list of petitions.
+      progress.startTimer(5, 100, true);
+      this.inlay.request({
+        method: 'get',
+        body: {
+          need: 'publicPetitionList'
+        }
+      }).then(function (r) {
+        console.log(r);
+
+        if (r.petitions) {
+          _this2.stage = 'petitionsList';
+          _this2.petitions = r.petitions;
+          _this2.campaigns = r.campaigns;
+        } else {
+          throw r;
+        }
+      })["catch"](function (e) {
+        var _e$publicError;
+
+        _this2.loadingError = (_e$publicError = e.publicError) !== null && _e$publicError !== void 0 ? _e$publicError : 'There was an error loading this petition.';
+        _this2.stage = 'loadingError';
+      })["finally"](function () {
+        progress.cancelTimer();
+      });
       return;
     } // Submit a request for the petition.
 
 
-    var progress = this.$refs.loadingProgress;
     progress.startTimer(5, 100, true);
     this.inlay.request({
       method: 'get',
@@ -442,21 +569,26 @@ __webpack_require__.r(__webpack_exports__);
       console.log(r);
 
       if (r.publicData) {
-        _this.stage = 'form';
-        _this.publicData = r.publicData;
+        _this2.stage = 'form';
+        _this2.publicData = r.publicData;
       } else {
         throw r;
       }
     })["catch"](function (e) {
-      var _e$publicError;
+      var _e$publicError2;
 
-      _this.loadingError = (_e$publicError = e.publicError) !== null && _e$publicError !== void 0 ? _e$publicError : 'There was an error loading this petition.';
-      _this.stage = 'loadingError';
+      _this2.loadingError = (_e$publicError2 = e.publicError) !== null && _e$publicError2 !== void 0 ? _e$publicError2 : 'There was an error loading this petition.';
+      _this2.stage = 'loadingError';
     }).then(function () {
       progress.cancelTimer();
     });
   },
   methods: {
+    campaignNameFromID: function campaignNameFromID(campaignID) {
+      return (this.campaigns[campaignID] || {
+        label: ''
+      }).label;
+    },
     leftEmailField: function leftEmailField() {
       // Focus the email2 field after leaving email field, unless it's already OK.
       if (this.email2 !== this.email) {
@@ -473,7 +605,7 @@ __webpack_require__.r(__webpack_exports__);
     wantsToSubmit: function wantsToSubmit() {// validate all fields.
     },
     submitForm: function submitForm() {
-      var _this2 = this;
+      var _this3 = this;
 
       // Form is valid according to browser.
       this.$root.submissionRunning = true; // Collect data to send.
@@ -509,7 +641,7 @@ __webpack_require__.r(__webpack_exports__);
         }
       }).then(function () {
         progress.startTimer(2, 100);
-        return _this2.inlay.request({
+        return _this3.inlay.request({
           method: 'post',
           body: d
         });
@@ -519,8 +651,8 @@ __webpack_require__.r(__webpack_exports__);
         } // update signature count
 
 
-        _this2.publicData.signatureCount++;
-        _this2.stage = 'thanksShareAsk';
+        _this3.publicData.signatureCount++;
+        _this3.stage = 'thanksShareAsk';
       })["catch"](function (e) {
         console.error(e);
 
@@ -531,7 +663,7 @@ __webpack_require__.r(__webpack_exports__);
         }
       }).then(function () {
         progress.cancelTimer();
-        _this2.$root.submissionRunning = false;
+        _this3.$root.submissionRunning = false;
       });
     }
   }
@@ -1806,7 +1938,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet .petition-titles {\n  display: flex;\n  flex-direction: column;\n}\n.grpet .petition-titles h2 {\n  order: 1;\n  margin: 0;\n  text-transform: none;\n  font-size: 2rem;\n}\n.grpet .petition-titles h1 {\n  order: 2;\n  text-transform: none;\n  margin-top: 0;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-image {\n  margin-bottom: 1rem;\n}\n.grpet .petition-image img {\n  max-width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n.grpet .petition-why {\n  padding-bottom: 2rem;\n}\n.grpet .petition-what {\n  font-weight: bold;\n  padding-bottom: 2rem;\n}\n.grpet .grpet-updates {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet .grpet-updates h2 {\n  margin-top: 0;\n}\n.grpet .grpet-updates .update {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: top;\n  margin-bottom: 2rem;\n  background: white;\n}\n.grpet .grpet-updates .update .text {\n  flex: 4 0 18rem;\n  padding: 1rem;\n}\n.grpet .grpet-updates .update .image {\n  flex: 1 0 18rem;\n}\n.grpet .grpet-updates .update .image img {\n  display: block;\n  width: 100%;\n  height: auto;\n}\n", ""]);
+exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet ul.grpet-petitions-list {\n  margin: 0 0 2rem;\n  padding: 0;\n}\n.grpet ul.grpet-petitions-list > li {\n  list-style: none;\n  padding: 0;\n  margin: 1rem 0;\n  padding: 1rem;\n  background: #f8f8f8;\n}\n.grpet ul.grpet-petitions-list article {\n  margin: 0;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet ul.grpet-petitions-list .image {\n  flex: 1 0 16rem;\n}\n.grpet ul.grpet-petitions-list .image img {\n  display: block;\n  width: 100%;\n  height: auto;\n}\n.grpet ul.grpet-petitions-list .texts {\n  flex: 4 0 16rem;\n  padding-left: 1rem;\n  /* todo */\n}\n.grpet ul.grpet-petitions-list h1 {\n  margin: 0 0 1rem;\n  font-size: 2rem;\n  line-height: 1.2;\n}\n.grpet .petition-titles {\n  display: flex;\n  flex-direction: column;\n}\n.grpet .petition-titles h2 {\n  order: 1;\n  margin: 0;\n  text-transform: none;\n  font-size: 2rem;\n}\n.grpet .petition-titles h1 {\n  order: 2;\n  text-transform: none;\n  margin-top: 0;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-image {\n  margin-bottom: 1rem;\n}\n.grpet .petition-image img {\n  max-width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n.grpet .petition-why {\n  padding-bottom: 2rem;\n}\n.grpet .petition-what {\n  font-weight: bold;\n  padding-bottom: 2rem;\n}\n.grpet .grpet-updates {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet .grpet-updates h2 {\n  margin-top: 0;\n}\n.grpet .grpet-updates .update {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: top;\n  margin-bottom: 2rem;\n  background: white;\n}\n.grpet .grpet-updates .update .text {\n  flex: 4 0 18rem;\n  padding: 1rem;\n}\n.grpet .grpet-updates .update .image {\n  flex: 1 0 18rem;\n}\n.grpet .grpet-updates .update .image img {\n  display: block;\n  width: 100%;\n  height: auto;\n}\n", ""]);
 
 // exports
 
@@ -3153,6 +3285,58 @@ var render = function() {
       },
       [_vm._v(_vm._s(_vm.loadingError))]
     ),
+    _vm._v(" "),
+    _vm.stage === "petitionsList"
+      ? _c("div", [
+          _c("h2", [_vm._v("Petitions")]),
+          _vm._v(" "),
+          _c(
+            "ul",
+            { staticClass: "grpet-petitions-list" },
+            _vm._l(_vm.filteredPetitions, function(petition) {
+              return _c("li", { key: _vm.petitions.id }, [
+                _c("article", [
+                  _c("div", { staticClass: "image" }, [
+                    _c("img", {
+                      attrs: { src: petition.imageUrl, alt: petition.imageAlt }
+                    })
+                  ]),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "texts" }, [
+                    _c("h1", [_vm._v(_vm._s(petition.petitionTitle))]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "campaign" }, [
+                      _vm._v(
+                        _vm._s(_vm.campaignNameFromID(petition.campaignID))
+                      )
+                    ]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "location" }, [
+                      _vm._v(_vm._s(petition.location))
+                    ]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "signatures" }, [
+                      _vm._v(_vm._s(petition.signatureCount))
+                    ]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "buttons" }, [
+                      _c(
+                        "a",
+                        {
+                          staticClass: "button primary",
+                          attrs: { href: "/petitions/" + petition.slug }
+                        },
+                        [_vm._v("Read / Sign")]
+                      )
+                    ])
+                  ])
+                ])
+              ])
+            }),
+            0
+          )
+        ])
+      : _vm._e(),
     _vm._v(" "),
     _vm.showTheForm
       ? _c(

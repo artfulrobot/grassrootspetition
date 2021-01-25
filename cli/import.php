@@ -132,7 +132,6 @@ class Importer {
 
       $this->importImage($petition, $petitionCase);
       $this->migrateSignatures((int) $petition->id, $petitionCase);
-      break;
     }
   }
 

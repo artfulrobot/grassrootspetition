@@ -5,6 +5,29 @@
     </div>
     <div v-show="stage === 'loadingError'" class="grpet-error" >{{loadingError}}</div>
 
+    <div v-if="stage === 'petitionsList'" >
+      <h2>Petitions</h2>
+      <!-- todo campaign filter -->
+      <!-- todo location/text search -->
+
+      <ul class="grpet-petitions-list">
+        <li v-for="petition in filteredPetitions" :key="petitions.id">
+          <article>
+            <div class="image">
+              <img :src="petition.imageUrl" :alt="petition.imageAlt" />
+            </div>
+            <div class="texts">
+              <h1>{{petition.petitionTitle}}</h1>
+              <div class="campaign">{{campaignNameFromID(petition.campaignID)}}</div>
+              <div class="location">{{petition.location}}</div>
+              <div class="signatures">{{petition.signatureCount}}</div>
+              <div class="buttons"><a class="button primary" :href="'/petitions/' + petition.slug">Read / Sign</a></div>
+            </div>
+          </article>
+        </li>
+      </ul>
+    </div>
+
     <form action='#' @submit.prevent="submitForm" v-if="showTheForm">
       <div class="petition-info">
         <div class="petition-titles">
@@ -170,6 +193,57 @@
     text-align: center;
     padding: 1rem;
   }
+
+  // Petitions list page
+  ul.grpet-petitions-list {
+    margin:0 0 2rem;
+    padding: 0;
+    &>li {
+      list-style: none;
+      padding:0;
+      margin: 1rem 0;
+      padding: 1rem;
+      background: #f8f8f8;
+    }
+    article {
+      margin:0;
+      padding:0;
+      display:flex;
+      flex-wrap: wrap;
+    }
+    .image {
+      flex: 1 0 16rem;
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+    }
+    .texts {
+      flex: 4 0 16rem;
+      padding-left: 1rem; /* todo */
+    }
+    h1 {
+      margin: 0 0 1rem;
+      font-size: 2rem;
+      line-height: 1.2;
+    }
+    .campaign {
+      
+    }
+    .location {
+
+    }
+    .signatures {
+
+    }
+    .buttons {
+
+    }
+  }
+
+  // Petition form page
+
   $colgap: 2rem;
   $flexgap: ($colgap/2);
   // Accessibly swap presentation order of titles.
@@ -275,8 +349,16 @@ export default {
       stage: 'loading',
       myId: this.$root.getNextId(),
       loadingError: 'There was an error loading this petition, please get in touch.',
+
+      // Array of petitions from publicPetitionList
+      petitions: [],
+      campaigns: {},
+      filters: {campaignID: null, text: ''},
+      // Object of data of current petition from its publicData
       publicData: {},
+      // Petition slug (if poss) from the url.
       petitionSlug: (window.location.pathname.match(/^\/petitions\/([^/#?]+)/) || [null, null])[1],
+
       location: window.location.href,
       // Form data
       first_name: '',
@@ -289,6 +371,23 @@ export default {
     return d;
   },
   computed: {
+    filteredPetitions() {
+      return this.petitions.filter(p => {
+        if (this.filters.campaignID && p.campaignID != this.filters.campaignID) {
+          return false;
+        }
+        if (!this.filters.text) return true;
+        // Does text filter match?
+        const parts = this.filters.text.toLowerCase().split(/\s+/);
+        var m = true;
+        parts.forEach(part => {
+          if ((p.location + p.petitionTitle).toLowerCase().indexOf(part) === -1) {
+            m = false;
+          }
+        });
+        return m;
+      });
+    },
     stretchTarget() {
       if (this.publicData.signatureCount > this.publicData.targetCount) {
         // We need to do a stretch target.
@@ -321,15 +420,38 @@ export default {
     }
   },
   mounted() {
+    const progress = this.$refs.loadingProgress;
+
     // We need to send a request to load our petition.
     // First, identify which petition.
+
     if (!this.petitionSlug) {
-      this.stage = 'loadingError';
-      this.loadingError = 'There was an error loading this petition (invalid URL). Please check your link.';
+      // We'll be presenting the list of petitions.
+      progress.startTimer(5, 100, true);
+      this.inlay.request({method: 'get', body: { need: 'publicPetitionList' }})
+      .then(r => {
+        console.log(r);
+        if (r.petitions) {
+          this.stage = 'petitionsList';
+          this.petitions = r.petitions;
+          this.campaigns = r.campaigns;
+        }
+        else {
+          throw r;
+        }
+      })
+      .catch(e => {
+        this.loadingError = e.publicError ?? 'There was an error loading this petition.';
+        this.stage = 'loadingError';
+      })
+      .finally( () => {
+        progress.cancelTimer();
+      });
+
       return;
     }
+
     // Submit a request for the petition.
-    const progress = this.$refs.loadingProgress;
     progress.startTimer(5, 100, true);
     this.inlay.request({method: 'get', body: { need: 'publicData', petitionSlug: this.petitionSlug }})
     .then(r => {
@@ -351,6 +473,9 @@ export default {
     });
   },
   methods: {
+    campaignNameFromID(campaignID) {
+      return (this.campaigns[campaignID] || {label: ''}).label;
+    },
     leftEmailField() {
       // Focus the email2 field after leaving email field, unless it's already OK.
       if (this.email2 !== this.email) {

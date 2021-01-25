@@ -213,6 +213,36 @@ class CaseWrapper {
 
     return $cases;
   }
+  /**
+   * Return an array of CaseWrapper objects for publicly-available petitions.
+   *
+   * Nb. this is a partial load of data.
+   */
+  public static function getPetitionsForPublic() :array {
+
+    $customSlug = GrassrootsPetition::getCustomFields('grpet_slug');
+    $customCampaign = GrassrootsPetition::getCustomFields('grpet_campaign');
+
+    $params = [
+      'case_type_id' => 'grassrootspetition',
+      'status_id' => ['IN' => [
+        static::$caseStatusesByName['grpet_Pending']['value'],
+        static::$caseStatusesByName['Open']['value'],
+      ]],
+      'options' => ['limit' => 0],
+      'return' => ['id', 'status_id', 'case_type_id', 'subject', $customSlug, $customCampaign ],
+    ];
+    $result = civicrm_api3('Case', 'get', $params)['values'] ?? [];
+
+    $cases = [];
+    foreach ($result as $caseData) {
+      $case = new static();
+      $case->loadFromArray($caseData);
+      $cases[] = $case;
+    }
+
+    return $cases;
+  }
   public function __construct() {
     static::init();
   }
@@ -340,7 +370,6 @@ class CaseWrapper {
    *
    */
   public function getCustomData(string $field) {
-    $inlay = new GrassrootsPetition();
     return $this->case[GrassrootsPetition::getCustomFields($field)] ?? NULL;
   }
 
@@ -1016,6 +1045,10 @@ class CaseWrapper {
   }
   /**
    * Adds imageUrl and imageAlt to the activity array. NULL if no image.
+   *
+   * Uses the following in $activity:
+   * - activity_type_id
+   * - id
    */
   protected function addPublicImage(array &$activity) {
 
