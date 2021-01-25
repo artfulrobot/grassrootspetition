@@ -1,4 +1,4 @@
-<div class="crm-container">
+<div class="crm-container grpet-admin">
   <h1 crm-page-title>{{ ts('Grassroots Petition Campaigns')}}</h1>
 
   <div ng-show="stage=='listCampaigns'">
@@ -6,14 +6,24 @@
 
     <table>
       <thead>
-        <tr><th>Campaign</th><th>Active?</th><th>Actions</td></tr>
+        <tr><th>Campaign</th>
+          <th>Signatures</th>
+          <th>Moderation</th>
+          <th>Active?</th>
+          <th>Actions</td></tr>
       </thead>
       <tbody>
         <tr ng-repeat="campaign in campaigns" >
           <td>{{campaign.name}}</td>
+          <td>{{campaign.stats.total.toLocaleString()}}</td>
+          <td>
+            <span class="mod-petitions" ng-show="campaign.stats.petitionsToMod > 0" title="Unpublished petitions awaiting moderation"><i class="fa-exclamation-triangle crm-icon crm-i"></i>&nbsp;{{campaign.stats.petitionsToMod}}</span>
+            <span class="mod-updates" ng-show="campaign.stats.updatesToMod > 0" title="Published admin-supplied updates need moderation checks"><i class="fa-quote-left crm-icon crm-i"></i>&nbsp;{{campaign.stats.updatesToMod}}</span>
+          </td>
           <td>{{campaign.is_active ? ts('Yes') : ts('No')}}</td>
           <td>
-            <a href ng-click="editCampaign(campaign)" >{{ts('Edit')}}</a>
+            <a href ng-click="editCampaign(campaign)" >{{ts('Edit')}}</a> &nbsp;|&nbsp;
+            <a href ng-click="viewPetitions(campaign)" >{{ts('%1 petitions', {1: campaign.stats.petitionCount || 0})}}</a>
           </td>
         </tr>
       </tbody>
@@ -108,7 +118,7 @@
           required
           placeholder="decolonising-tech"
           />
-        <p>This forms part of petitions' URLs. For example if you had a campaign called <em>Decolonising Tech</em> and you gave it a slug of <em>decolonising-tech</em>, and someone created a petition called <em>Ditch Master-Slave Terminology in Databases</em> then their petition would be available at <em>www.example.org/petitinos/decolonising-tech/ditch-master-slave-terminology-in-databases</em>. It’s suggested that you use all lower case letters, hyphens to separate words, since this is easiest to read and type.</p>
+        <p>This forms part of petitions' URLs. For example if you had a campaign called <em>Decolonising Tech</em> and you gave it a slug of <em>decolonising-tech</em>, and someone created a petition called <em>Ditch Master-Slave Terminology in Databases</em> then their petition would be available at <em>www.example.org/petitions/decolonising-tech/ditch-master-slave-terminology-in-databases</em>. It’s suggested that you use all lower case letters, hyphens to separate words, since this is easiest to read and type.</p>
       </div>
 
       <div>
@@ -118,9 +128,42 @@
       </div>
 
     </form>
-
   </div>
 
-
-  </form>
+  <div ng-show="stage=='viewPetitions' && selectedCampaign" >
+    <h2>Petitions in: {{selectedCampaign.name}}</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Petiton</th>
+          <th>Status</th>
+          <th>Signatures</th>
+          <th>Unmoderated Updates</th>
+          <th>Manage</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="petition in selectedCampaign.stats.petitions" >
+          <td>{{petition.petitionTitle}}</td>
+          <td>
+            <span class="mod-petitions" ng-show="petition.petitionNeedsMod == 1" >
+              <i class="fa-exclamation-triangle crm-icon crm-i"></i> 
+             {{petition.caseStatus}}</span>
+            <span ng-show="petition.petitionNeedsMod == 0" >
+             {{petition.caseStatus}}</span>
+          </td>
+          <td>{{petition.signatures.toLocaleString()}}</td>
+          <td>
+            <span class="mod-updates" ng-show="petition.updatesToMod >0" >
+              <i class="fa-quote-left crm-icon crm-i"></i> 
+            {{petition.updatesToMod}}</span></td>
+          <td><a href="{{ CRM.url('civicrm/contact/view/case', {
+            reset:1,
+            cid: petition.contactID,
+            id: petition.caseID
+            }) }}" >Manage</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>

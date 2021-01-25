@@ -237,6 +237,14 @@ class CaseWrapper {
 
     if (!isset(static::$activityStatuses)) {
       // Create map activity status name => option value (status_id)
+      //
+      // These are used for the 'Grassroots Petition progress' activity types:
+      //
+      // - grpet_pending_moderation  is live, but has not been checked by moderator.
+      // - Completed  is live, and has been checked by moderator.
+      // - Cancelled  update was removed by someone.
+      // - Scheduled  N/A - reserved?
+      //
       static::$activityStatuses = [];
       $r = OptionValue::get(FALSE)
           ->setCheckPermissions(FALSE)
@@ -249,7 +257,7 @@ class CaseWrapper {
         if (!$_) {
           throw new \RuntimeException("Missing required '$requiredStatus' activity status.");
         }
-        static::$activityStatuses[$_['name']] = $_['value'];
+        static::$activityStatuses[$_['name']] = (int) $_['value'];
       }
     }
 

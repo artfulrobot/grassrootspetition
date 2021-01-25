@@ -12,8 +12,10 @@
           various: function($route, crmApi4) {
             const params = {
               campaigns: ['GrassrootsPetitionCampaign', 'get', {
+                withStats: true,
                 orderBy: {is_active: 'DESC', name: 'ASC'}
               }],
+              /*
               messageTpls: [ 'MessageTemplate', 'get', {
                 select: ["id", "msg_title", "msg_subject"],
                 where: [
@@ -22,6 +24,7 @@
                 ],
                 orderBy: {msg_title: 'ASC'}},
                 'id']
+                */
             };
             return crmApi4(params);
           },
@@ -43,6 +46,7 @@
     $scope.campaigns = various.campaigns;
     $scope.stage = 'listCampaigns';
     $scope.campaignBeingEdited = null;
+    $scope.CRM = CRM;
 
     $scope.editCampaign = function(campaign) {
       if (campaign) {
@@ -64,6 +68,11 @@
         };
       }
       $scope.stage = 'editCampaign';
+    };
+    $scope.viewPetitions = function(campaign) {
+      // New campaign
+      $scope.selectedCampaign = campaign;
+      $scope.stage = 'viewPetitions';
     };
 
     $scope.save = function() {

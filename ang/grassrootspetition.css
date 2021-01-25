@@ -1,1 +1,9 @@
 /* Add any CSS rules for Angular module "grassrootspetition" */
+.grpet-admin .mod-petitions {
+  color: #930;
+  font-weight: bold;
+}
+.grpet-admin .mod-updates {
+  color: #950;
+  font-weight: bold;
+}
