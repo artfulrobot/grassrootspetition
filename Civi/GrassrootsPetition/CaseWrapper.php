@@ -328,8 +328,8 @@ class CaseWrapper {
       'consentYesText'   => 'Yes please',
       'consentNoText'    => 'No, don’t add me',
       'consentNoWarning' => 'If you’re not already subscribed you won’t hear about the success (or otherwise!) of this campaign. Sure?',
-      'thanksShareAsk'   => '<h2>Thanks, please share this petition</h2><p>Thanks for signing. Can you share to help amplify your voice?</p>',
-      'thanksDonateAsk'  => '<h2>Thanks, can you donate?</h2><p>Can you chip in to help People &amp; Planet’s campaigns?</p><p><a class="button primary" href="/donate">Donate</a></p>',
+      'thanksShareAskHTML'   => '<h2>Thanks, please share this petition</h2><p>Thanks for signing. Can you share to help amplify your voice?</p>',
+      'thanksDonateAskHTML'  => '<h2>Thanks, can you donate?</h2><p>Can you chip in to help People &amp; Planet’s campaigns?</p><p><a class="button primary" href="/donate">Donate</a></p>',
     ];
 
     return $public;
@@ -446,7 +446,6 @@ class CaseWrapper {
   /**
    * Updates are activities of the 'Grassroots Petition progress' type
    *
-   * @todo currently this is identical to getPublicUpdates
    */
   public function getAdminUpdates() {
     $this->mustBeLoaded();
@@ -510,7 +509,6 @@ class CaseWrapper {
     ";
     $count = (int) CRM_Core_DAO::singleValueQuery($sql);
 
-    // $count+= rand(23,76); // xxx todo
     return $count;
   }
   /**
@@ -659,8 +657,6 @@ class CaseWrapper {
 
     $result = civicrm_api3('Activity', 'create', $activityCreateParams);
 
-    // @todo moderation?
-
     return (int) $result['id'];
   }
   /**
@@ -779,7 +775,9 @@ class CaseWrapper {
         list($total, $added, $notAdded) = \CRM_Contact_BAO_GroupContact::addContactsToGroup([$contactID], $phoneConsentGroup, 'Web', 'Added');
       }
     }
+
     // Add them to the group for this petition
+    // todo
 
   }
   /**
@@ -952,8 +950,6 @@ class CaseWrapper {
    */
   public function setMainImageFromImageData($imageData, $imageFileType) {
     $activity = $this->getPetitionCreatedActivity();
-
-    // Delete existing images. todo
 
     $filename = "petition_" . $this->case['id'] . "_main_image.";
     if ($imageFileType === 'image/jpeg') {

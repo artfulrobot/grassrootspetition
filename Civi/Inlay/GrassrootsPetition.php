@@ -257,7 +257,7 @@ class GrassrootsPetition extends InlayType {
     }
 
     // Location should be the URL of the page.
-    $valid['location'] = $data['location'] ?? '';
+    $valid['location'] = preg_replace('/[<>]+/', '', $data['location'] ?? '');
 
     $this->cleanupInputToken($data, $valid, $errors);
     return $valid;
@@ -512,20 +512,23 @@ class GrassrootsPetition extends InlayType {
    */
   public function cleanupInputNameEmailPhone(array $data, array &$valid, array &$errors):void {
 
-    // Check we have what we need.
-    foreach (['first_name', 'last_name', 'email'] as $field) {
-      $val = trim($data[$field] ?? '');
-      if (empty($val)) {
-        $errors[] = str_replace('_', ' ', $field) . " required.";
+    // Names
+    foreach (['first_name', 'last_name'] as $field) {
+      try {
+        $valid[$field] = static::requireSimpleText($data[$field], 50, $field);
       }
-      else {
-        if ($field === 'email' && !filter_var($val, FILTER_VALIDATE_EMAIL)) {
-          $errors[] = "invalid email address";
-        }
-        else {
-          $valid[$field] = $val;
-        }
+      catch (ApiException $e) {
+        $errors[] = $e->responseObject['publicError'] ?? "Error on $field";
       }
+    }
+
+    // Email
+    $_ = trim($data['email']) ?? '';
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      $errors[] = "invalid email address";
+    }
+    else {
+      $valid['email'] = $data['email'];
     }
 
     // Check we've not been fed a web address as a name
