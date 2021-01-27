@@ -145,7 +145,7 @@
       </thead>
       <tbody>
         <tr ng-repeat="petition in selectedCampaign.stats.petitions" >
-          <td>{{petition|json}}</td>
+          <td>{{petition.petitionTitle}}</td>
           <td>
             <span class="mod-petitions" ng-show="petition.petitionNeedsMod == 1" >
               <i class="fa-exclamation-triangle crm-icon crm-i"></i> 
