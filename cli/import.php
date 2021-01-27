@@ -178,7 +178,7 @@ class Importer {
       'jpg' => 'image/jpeg',
       'jpeg' => 'image/jpeg',
       'png' => 'image/png',
-    ][strtolower($petition->image_file_name)];
+    ][strtolower($m[1])];
 
     // image_file_name:                                                        Sheffield-Barclays-Boycott-640x400.jpg
     // https://d8s293fyljwh4.cloudfront.net/petitions/images/202824/horizontal/Sheffield-Barclays-Boycott-640x400.jpg?1504786097
