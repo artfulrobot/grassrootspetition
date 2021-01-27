@@ -75,9 +75,9 @@ class CampaignGetAction extends DAOGetAction {
     $signedActivityTypeID = (int) CaseWrapper::$activityTypesByName['Grassroots Petition signed']['value'];
     $progressUpdateTypeID = (int) CaseWrapper::$activityTypesByName['Grassroots Petition progress']['value'];
     $updateNeedsModeration = (int) CaseWrapper::$activityStatuses['grpet_pending_moderation'];
-    $petitionNeedsModerationStatus = (int) CaseWrapper::$caseStatusesByName['Pending'];
+    $petitionNeedsModerationStatus = (int) CaseWrapper::$caseStatusesByName['grpet_Pending']['value'];
+    $grpetCaseTypeID = (int) CaseWrapper::$caseTypeID;
 
-    // Count signed activities on this case from live contacts (i.e. exclude deleted contacts).
     $sql = "
       WITH progressToModByCampaign AS (
         SELECT progressCa.case_id, COUNT(*) c
@@ -86,28 +86,48 @@ class CampaignGetAction extends DAOGetAction {
         WHERE progressA.activity_type_id = $progressUpdateTypeID
           AND progressA.status_id = $updateNeedsModeration
         GROUP BY case_id
+      ),
+
+      signerCounts AS (
+        SELECT ca.case_id, COUNT(*) signatures
+        FROM civicrm_activity a
+
+        /* We need the Case ID, which is what the signature belongs to */
+        INNER JOIN civicrm_case_activity ca ON a.id = ca.activity_id
+
+        /* Join to the contact table to exclude deleted people */
+        INNER JOIN civicrm_activity_contact ac ON ac.activity_id = a.id AND ac.record_type_id = 3 /* target */
+        INNER JOIN civicrm_contact c ON ac.contact_id = c.id AND c.is_deleted = 0
+
+        /* We want to count signed petition activitites */
+        WHERE a.activity_type_id = $signedActivityTypeID
+          AND a.is_deleted = 0
+        GROUP BY case_id
       )
 
-      SELECT pet.campaign_id campaignID,  ca.case_id caseID, COUNT(*) signatures,
-        cs.subject petitionTitle, cs.status_id caseStatus,
+      SELECT
+        pet.campaign_id campaignID,
         pet.slug,
+        cs.id caseID,
+        SUM(COALESCE(signerCounts.signatures, 0)) signatures,
+        cs.subject petitionTitle,
+        cs.status_id caseStatus,
         SUM(cs.status_id = $petitionNeedsModerationStatus) petitionNeedsMod,
         MIN(ccon.contact_id) contactID, /* possibly there are multiple */
         SUM(COALESCE(progressToModByCampaign.c, 0)) updatesToMod
 
-      FROM civicrm_activity a
-      INNER JOIN civicrm_case_activity ca ON a.id = ca.activity_id
-      INNER JOIN civicrm_case cs ON ca.case_id = cs.id AND cs.is_deleted = 0
+      FROM civicrm_case cs
       INNER JOIN civicrm_case_contact ccon ON ccon.case_id = cs.id
-      INNER JOIN civicrm_activity_contact ac ON ac.activity_id = a.id AND ac.record_type_id = 3 /* target */
-      INNER JOIN civicrm_contact c ON ac.contact_id = c.id AND c.is_deleted = 0
-      INNER JOIN civicrm_grpet_petition pet ON pet.entity_id = ca.case_id AND pet.campaign_id IN ($campaignIDs)
-      LEFT JOIN progressToModByCampaign ON progressToModByCampaign.case_id = ca.case_id
-      WHERE a.activity_type_id = $signedActivityTypeID
-        AND a.is_deleted = 0
+      INNER JOIN civicrm_contact c ON ccon.contact_id = c.id AND c.is_deleted = 0
+      INNER JOIN civicrm_grpet_petition pet ON pet.entity_id = cs.id AND pet.campaign_id IN ($campaignIDs)
+      LEFT JOIN progressToModByCampaign ON progressToModByCampaign.case_id = cs.id
+      LEFT JOIN signerCounts ON signerCounts.case_id = cs.id
+
+      WHERE cs.case_type_id = $grpetCaseTypeID AND cs.is_deleted = 0
+
       GROUP BY campaignID, caseID WITH ROLLUP;
     ";
-    Civi::log()->info($sql);
+    //Civi::log()->info($sql);
     $results = CRM_Core_DAO::executeQuery($sql);
     while ($results->fetch()) {
       $camp = $results->campaignID;

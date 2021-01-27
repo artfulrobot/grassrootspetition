@@ -110,14 +110,17 @@
       <ul class="petition">
         <li v-for="petition in petitions" :key="petition.id">
           <article>
-            <h1><a :href="'/petitions/' + petition.slug" target="_blank" rel="noopener" >{{ petition.title }}</a></h1>
-            <span class="status" :class="petition.status" >{{getStatusMeta(petition.status).description }}</span>
-            <p>Signatures: {{petition.signatureCount}} / {{petition.targetCount}}.</p>
-            <ul>
-              <li><a href @click.prevent="editPetition(petition)" >Edit petition (texts, targets etc.)</a></li>
-              <li><a href @click.prevent="updatePetition(petition)" >Provide updates, mark Won or Closed</a></li>
-              <!-- Unimplemented <li><a href @click.prevent="createEmail(petition)" >Email signers</a></li> -->
-            </ul>
+            <div class="image"><img :src="petition.imageUrl" :alt="petition.imageAlt" /></div>
+            <div class="text">
+              <h1><a :href="'/petitions/' + petition.slug" target="_blank" rel="noopener" >{{ petition.title }}</a></h1>
+              <span class="status" :class="petition.status" >{{getStatusMeta(petition.status).description }}</span>
+              <p>Signatures: {{petition.signatureCount}} / {{petition.targetCount}}.</p>
+              <ul>
+                <li><a href @click.prevent="editPetition(petition)" >Edit petition (texts, targets etc.)</a></li>
+                <li><a href @click.prevent="updatePetition(petition)" >Provide updates, mark Won or Closed</a></li>
+                <!-- Unimplemented <li><a href @click.prevent="createEmail(petition)" >Email signers</a></li> -->
+              </ul>
+            </div>
           </article>
         </li>
       </ul>
@@ -238,7 +241,7 @@
           type="file"
           name="image"
           ref="imageFile"
-          @change="mainImageFileCount=$refs.imageFile.files.length > 0"
+          @change="mainImageFileCount=($refs.imageFile.files.length > 0) ? true : null"
           :id="myId + 'petitionImage'"
           :disabled="$root.submissionRunning"
           />
@@ -256,6 +259,7 @@
 
       <div class="field">
         <button class="secondary" type="submit" @click.prevent="stage='listPetitions';petitionBeingEdited=null;">Cancel</button>
+        &nbsp;
         <button class="primary" type="submit" >{{ editingPetition ? 'Save Petition' : 'Create Petition'}}</button>
       </div>
     </form><!-- /editingPetition -->
@@ -415,6 +419,10 @@
     padding: 1rem;
     margin-bottom: 1rem;
   }
+  .field-help {
+    font-size: (14rem/16);
+    margin-bottom: 1rem;
+  }
 
   input[type="text"],
   textarea,
@@ -448,26 +456,40 @@
     &.grpet_Pending { background: #747707; }
     &.Open { background: #4aa219; }
   }
+  // the petitions list.
   ul.petition {
-    margin: 2rem -1rem;
+    margin: 0;
     padding:0;
-    display:flex;
-    flex-wrap: wrap;
+
     &>li {
-      flex: 1 0 18rem;
       margin: 0 0 2rem;
-      padding: 0 1rem;
+      padding: 0;
     }
+
     article {
       background: white;
       padding: 1rem;
-      h1 {
-        font-size: 1.4rem;
-        line-height: 1;
-        margin: 0 0 1rem;
-        padding:0;
+      display: flex;
+      .image {
+        flex: 1 0 16rem;
       }
+      .text {
+        flex: 4 0 18rem;
+        padding-left: 2rem;
+      }
+    }
 
+    h1 {
+      font-size: 1.4rem;
+      line-height: 1;
+      margin: 0 0 1rem;
+      padding:0;
+    }
+
+    img {
+      width: 100%;
+      height: auto;
+      display: block;
     }
   }
   .unauthorised {
@@ -522,7 +544,7 @@ export default {
       campaigns: [],
 
       petitionBeingEdited: {},
-      mainImageFileCount: 0,
+      mainImageFileCount: null,
 
       petitionBeingUpdated: {},
       updateImageFileCount: 0,

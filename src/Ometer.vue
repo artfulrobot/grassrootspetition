@@ -1,5 +1,5 @@
 <template>
-  <div class="ipetometer" ref="ometer">
+  <div class="ipetometer primary-light-background" ref="ometer">
     <div class="ipetometer__domain" >
       <div class="ipetometer__bar" :style="barStyle"></div>
     </div>
@@ -24,12 +24,26 @@ export default {
     };
   },
   computed:{
+    targetInUse() {
+      console.log("OMETER ", {target:this.target});
+      if (!this.target) {
+        // No target?
+        var m = (this.count > 10000)
+          ? 10000
+          : ((this.count > 1000)
+            ? 1000
+            : 100);
+        return Math.ceil((this.count / 0.75) / m) * m;
+      }
+      else {
+        return (this.stretchTarget && this.stretchTarget>this.target) ? this.stretchTarget : this.target;
+      }
+    },
     barStyle() {
       var s = this.step;
       s = s*s;
-      var t = (this.stretchTarget && this.stretchTarget>this.target) ? this.stretchTarget : this.target;
       return {
-        width: (s * this.count / t * 100) + '%'
+        width: (s * this.count / this.targetInUse * 100) + '%'
       };
     },
   },
@@ -78,11 +92,10 @@ export default {
   margin-bottom: 1rem;
   font-weight: bold;
 
-  background: #eee; // todo
-
   .ipetometer__domain {
     flex: 0 0 100%;
     background: white;
+    overflow: hidden;
   }
   .ipetometer__bar {
     background: #fc0;
@@ -92,6 +105,7 @@ export default {
   .ipetometer__bignum {
     flex: 0 0 auto;
     padding-right: 1rem;
+    line-height: 1.5;
     font-size:3rem;
   }
   .ipetometer__words {

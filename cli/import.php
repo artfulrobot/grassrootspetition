@@ -66,6 +66,7 @@ class Importer {
   public $efforts = [];
 
   public function __construct() {
+    // Load existant campaigns
     static::$campaigns = GrassrootsPetitionCampaign::get(FALSE)
       ->execute()
       ->indexBy('name')
@@ -84,23 +85,31 @@ class Importer {
       $active = $petitionToImport[3] ?? 'YES';
       $slug = preg_replace('@^https.*\.org/petitions/([^/?#]+).*$@', '$1', $oldUrl);
 
-      $this->log("Doing $slug ($campaignName: $petitionTitle)");
+      $this->log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\nDoing $slug ($campaignName: $petitionTitle)");
 
       // Find the petition
       $petition = CRM_Core_DAO::executeQuery(
         "SELECT p.*, u.first_name, u.last_name, u.email, l.venue, t.name targetName
         FROM csl.petitions p
         INNER JOIN csl.users u ON p.user_id = u.id
-        INNER JOIN csl.locations l on p.location_id = l.id
-        INNER JOIN csl.targets t on p.target_id = t.id
+        LEFT JOIN csl.locations l on p.location_id = l.id
+        LEFT JOIN csl.targets t on p.target_id = t.id
         WHERE p.slug = %1", [1 => [$slug, 'String']]);
       if (!$petition->fetch()) {
-        $this->log("xxx CSL slug not found: '$slug'");
+        $this->log("xxx CSL slug not found: '$slug' (could also be missing user), stopping import");
+        break;
       }
       else {
-        $this->log("CSL slug found: '$slug'");
+        $this->log("CSL slug found: '$slug' (expected)");
         $campaign = $this->ensureCampaign((int) $petition->effort_id);
         $this->log("CSL campaign $campaign[id]");
+      }
+
+      // Check if we have imported already.
+      $petitionCase = CaseWrapper::fromSlug($slug);
+      if ($petitionCase) {
+        $this->log("<<<<<<<<<< CSL '$slug' already found, skipping import.");
+        continue;
       }
 
       // We need to find the petition owner.
@@ -116,8 +125,8 @@ class Importer {
         $contactID,
         $petition->title,
         $campaign['label'],
-        $petition->venue, // location
-        $petition->targetName,
+        $petition->venue ?? '', // location
+        $petition->targetName ?? '',
         $petition->who,
         $slug
       );
@@ -140,11 +149,37 @@ class Importer {
     while ($efforts->fetch()) {
       $this->ensureCampaign((int) ($efforts->id), $efforts);
     }
+
+    // Create an Other Campaigns campaign.
+    if (!isset(static::$effortsToCampaignID[0])) {
+      $this->log("Creating 'Other campaign'");
+      // Missing the 'Other campaign' campaign.
+      $campaign = GrassrootsPetitionCampaign::create(FALSE)
+        ->addValue('name', 'Other campaigns')
+        ->addValue('label', 'Other campaigns')
+        ->addValue('template_what', '')
+        ->addValue('template_why', '')
+        ->addValue('template_title', '')
+        ->addValue('is_active', 1)
+        ->execute()->first();
+      static::$campaigns['Other campaigns'] = $campaign;
+      static::$effortsToCampaignID[0] = $campaign;
+    }
   }
   public function importImage(CRM_Core_DAO $petition, CaseWrapper $petitionCase) {
     if (!$petition->image_file_name && $petition->image_file_size > 10240) {
       return;
     }
+
+    if (!preg_match('/\.(jpe?g|png)$/i', $petition->image_file_name, $m)) {
+      $this->log("Image $petition->image_file_name rejected as not jpg/png");
+    }
+    $mimeType = [
+      'jpg' => 'image/jpeg',
+      'jpeg' => 'image/jpeg',
+      'png' => 'image/png',
+    ][strtolower($petition->image_file_name)];
+
     // image_file_name:                                                        Sheffield-Barclays-Boycott-640x400.jpg
     // https://d8s293fyljwh4.cloudfront.net/petitions/images/202824/horizontal/Sheffield-Barclays-Boycott-640x400.jpg?1504786097
     //                                                       petID
@@ -167,7 +202,7 @@ class Importer {
       'entity_table' => 'civicrm_activity',
       'entity_id'    => $activity['id'],
       'name'         => $petition->image_file_name,
-      'mime_type'    => 'image/jpeg',
+      'mime_type'    => $mimeType,
       'content'      => $imageContent,
     ));
     $attachment = $result['values'][$result['id']];
@@ -177,6 +212,9 @@ class Importer {
    * Import 'efforts' as 'campaigns'
    */
   public function ensureCampaign(int $effortID, ?CRM_Core_DAO $effort=NULL) :array {
+    if (!$effortID) {
+
+    }
     if (!isset(static::$effortsToCampaignID[$effortID])) {
       $this->log("Effort $effortID not in cache");
 

@@ -38,14 +38,14 @@ class Auth {
     CRM_Core_DAO::executeQuery("DELETE FROM civicrm_grpet_auth WHERE validTo < CURRENT_TIMESTAMP;");
 
     // Now check.
-    $sql = "SELECT * FROM civicrm_grpet_auth WHERE id = %1";
+    $sql = "SELECT a1.*, a2.id upgradedToExists FROM civicrm_grpet_auth a1 LEFT JOIN civicrm_grpet_auth a2 ON a1.upgradedTo = a2.id WHERE a1.id = %1 GROUP BY a1.id";
     $dao = CRM_Core_DAO::executeQuery($sql, [ 1 => [$hash, 'String'] ]);
     if ($dao->fetch()) {
       $return['contactID'] = (int) $dao->contact_id;
 
       // If this is a temporary token, replace it with a session one.
       if (substr($hash, 0, 1) === 'T') {
-        if ($dao->upgradedTo) {
+        if ($dao->upgradedToExists) {
           // There's already a record. Look this up.
           $return['token'] = $dao->upgradedTo;
         }

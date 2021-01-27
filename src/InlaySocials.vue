@@ -1,4 +1,4 @@
-<!-- InlaySocials v1.2
+<!-- InlaySocials v1.2.1
 
   Props:
   - socials: ordered array of social items. Each has a name, and may require extra metadata. e.g.
@@ -58,7 +58,7 @@ export default {
       email: {
         label: 'Email',
         url(sn) {
-          return `mailto:?subject=${encodeURIComponent(sn.subject)}&body=${urlEncoded}`;
+          return `mailto:?subject=${encodeURIComponent(sn.subject || '')}&body=${urlEncoded}`;
         },
       },
       linkedin: {

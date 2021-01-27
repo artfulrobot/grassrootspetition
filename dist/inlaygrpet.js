@@ -437,6 +437,101 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -462,7 +557,7 @@ __webpack_require__.r(__webpack_exports__);
       // Object of data of current petition from its publicData
       publicData: {},
       // Petition slug (if poss) from the url.
-      petitionSlug: (window.location.pathname.match(/^\/petitions\/([^/#?]+)/) || [null, null])[1],
+      petitionSlug: (window.location.pathname.match(/^\/petitions\/([^#?]+)/) || [null, null])[1],
       location: window.location.href,
       // Form data
       first_name: '',
@@ -500,7 +595,7 @@ __webpack_require__.r(__webpack_exports__);
       if (this.publicData.signatureCount > this.publicData.targetCount) {
         // We need to do a stretch target.
         var m = this.publicData.signatureCount > 10000 ? 10000 : this.publicData.signatureCount > 1000 ? 1000 : 100;
-        return Math.floor(this.publicData.signatureCount / 0.75 / m) * m;
+        return Math.ceil(this.publicData.signatureCount / 0.75 / m) * m;
       } else {
         return this.publicData.targetCount;
       }
@@ -530,7 +625,9 @@ __webpack_require__.r(__webpack_exports__);
 
     if (!this.petitionSlug) {
       // We'll be presenting the list of petitions.
-      progress.startTimer(5, 100, true);
+      progress.startTimer(5, 100, {
+        reset: 1
+      });
       this.inlay.request({
         method: 'get',
         body: {
@@ -558,7 +655,9 @@ __webpack_require__.r(__webpack_exports__);
     } // Submit a request for the petition.
 
 
-    progress.startTimer(5, 100, true);
+    progress.startTimer(5, 100, {
+      reset: 1
+    });
     this.inlay.request({
       method: 'get',
       body: {
@@ -623,14 +722,18 @@ __webpack_require__.r(__webpack_exports__);
       };
       console.log("submitting ", d);
       var progress = this.$refs.submitProgress;
-      progress.startTimer(5, 20, 1);
+      progress.startTimer(5, 20, {
+        reset: 1
+      });
       this.inlay.request({
         method: 'post',
         body: d
       }).then(function (r) {
         if (r.token) {
           d.token = r.token;
-          progress.startTimer(6, 80); // Force 5s wait for the token to become valid
+          progress.startTimer(6, 80, {
+            easing: false
+          }); // Force 5s wait for the token to become valid
 
           return new Promise(function (resolve, reject) {
             window.setTimeout(resolve, 5000);
@@ -1182,6 +1285,28 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: ['inlay'],
@@ -1203,7 +1328,7 @@ __webpack_require__.r(__webpack_exports__);
       petitions: [],
       campaigns: [],
       petitionBeingEdited: {},
-      mainImageFileCount: 0,
+      mainImageFileCount: null,
       petitionBeingUpdated: {},
       updateImageFileCount: 0
     };
@@ -1810,7 +1935,7 @@ __webpack_require__.r(__webpack_exports__);
       email: {
         label: 'Email',
         url: function url(sn) {
-          return "mailto:?subject=".concat(encodeURIComponent(sn.subject), "&body=").concat(urlEncoded);
+          return "mailto:?subject=".concat(encodeURIComponent(sn.subject || ''), "&body=").concat(urlEncoded);
         }
       },
       linkedin: {
@@ -1878,12 +2003,24 @@ __webpack_require__.r(__webpack_exports__);
     };
   },
   computed: {
+    targetInUse: function targetInUse() {
+      console.log("OMETER ", {
+        target: this.target
+      });
+
+      if (!this.target) {
+        // No target?
+        var m = this.count > 10000 ? 10000 : this.count > 1000 ? 1000 : 100;
+        return Math.ceil(this.count / 0.75 / m) * m;
+      } else {
+        return this.stretchTarget && this.stretchTarget > this.target ? this.stretchTarget : this.target;
+      }
+    },
     barStyle: function barStyle() {
       var s = this.step;
       s = s * s;
-      var t = this.stretchTarget && this.stretchTarget > this.target ? this.stretchTarget : this.target;
       return {
-        width: s * this.count / t * 100 + '%'
+        width: s * this.count / this.targetInUse * 100 + '%'
       };
     }
   },
@@ -1938,7 +2075,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet .error {\n  color: #a00;\n  text-align: center;\n  padding: 1rem;\n}\n.grpet ul.grpet-petitions-list {\n  margin: 0 0 2rem;\n  padding: 0;\n}\n.grpet ul.grpet-petitions-list > li {\n  list-style: none;\n  padding: 0;\n  margin: 1rem 0;\n  padding: 1rem;\n  background: #f8f8f8;\n}\n.grpet ul.grpet-petitions-list article {\n  margin: 0;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet ul.grpet-petitions-list .image {\n  flex: 1 0 16rem;\n}\n.grpet ul.grpet-petitions-list .image img {\n  display: block;\n  width: 100%;\n  height: auto;\n}\n.grpet ul.grpet-petitions-list .texts {\n  flex: 4 0 16rem;\n  padding-left: 1rem;\n  /* todo */\n}\n.grpet ul.grpet-petitions-list h1 {\n  margin: 0 0 1rem;\n  font-size: 2rem;\n  line-height: 1.2;\n}\n.grpet .petition-titles {\n  display: flex;\n  flex-direction: column;\n}\n.grpet .petition-titles h2 {\n  order: 1;\n  margin: 0;\n  text-transform: none;\n  font-size: 2rem;\n}\n.grpet .petition-titles h1 {\n  order: 2;\n  text-transform: none;\n  margin-top: 0;\n}\n.grpet form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-image {\n  margin-bottom: 1rem;\n}\n.grpet .petition-image img {\n  max-width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n.grpet .petition-why {\n  padding-bottom: 2rem;\n}\n.grpet .petition-what {\n  font-weight: bold;\n  padding-bottom: 2rem;\n}\n.grpet .grpet-updates {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet .grpet-updates h2 {\n  margin-top: 0;\n}\n.grpet .grpet-updates .update {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: top;\n  margin-bottom: 2rem;\n  background: white;\n}\n.grpet .grpet-updates .update .text {\n  flex: 4 0 18rem;\n  padding: 1rem;\n}\n.grpet .grpet-updates .update .image {\n  flex: 1 0 18rem;\n}\n.grpet .grpet-updates .update .image img {\n  display: block;\n  width: 100%;\n  height: auto;\n}\n", ""]);
+exports.push([module.i, ".grpet {\n  padding-top: 2rem;\n  min-height: 70vh;\n}\n.grpet .error {\n  color: #a00;\n}\n.grpet .visually-hidden {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  overflow: hidden;\n  text-indent: 2px;\n}\n.grpet svg {\n  display: inline-block;\n  margin-right: 0.5rem;\n  vertical-align: baseline;\n}\n.grpet form.filters {\n  display: flex;\n  align-items: center;\n  margin-bottom: 2rem;\n}\n.grpet form.filters label {\n  display: block;\n  line-height: 2;\n}\n.grpet form.filters .text-filter {\n  flex: 1 0 15rem;\n  padding-right: 2rem;\n}\n.grpet form.filters .campaign-filter {\n  flex: 0 0 auto;\n}\n.grpet ul.grpet-petitions-list {\n  margin: 0 0 2rem;\n  padding: 0;\n}\n.grpet ul.grpet-petitions-list > li {\n  list-style: none;\n  padding: 0;\n  margin: 1rem 0;\n  padding: 1rem;\n  background: #f8f8f8;\n}\n.grpet ul.grpet-petitions-list article {\n  margin: 0;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet ul.grpet-petitions-list .image {\n  flex: 1 0 16rem;\n}\n.grpet ul.grpet-petitions-list .image img {\n  display: block;\n  width: 100%;\n  height: auto;\n}\n.grpet ul.grpet-petitions-list .texts {\n  flex: 4 0 16rem;\n  padding-left: 2rem;\n}\n.grpet ul.grpet-petitions-list h1 {\n  margin: 0 0 0.5rem;\n  font-size: 2rem;\n  line-height: 1.2;\n}\n.grpet ul.grpet-petitions-list .sigs-sign {\n  display: flex;\n  align-items: baseline;\n}\n.grpet ul.grpet-petitions-list .signatures {\n  flex: 1 0 8rem;\n  padding-right: 2rem;\n  font-weight: bold;\n}\n.grpet ul.grpet-petitions-list .buttons {\n  flex: 0 0 auto;\n}\n.grpet ul.grpet-petitions-list .buttons a {\n  margin: 0;\n}\n.grpet .petition-titles {\n  display: flex;\n  flex-direction: column;\n}\n.grpet .petition-titles h2 {\n  order: 1;\n  margin: 0 0 1rem;\n  line-height: 1.2;\n  text-transform: none;\n  font-size: 2rem;\n}\n.grpet .petition-titles h1 {\n  order: 2;\n  text-transform: none;\n  margin-top: 0;\n  line-height: 1.2;\n}\n.grpet form.petition-form {\n  display: flex;\n  flex-wrap: wrap;\n  padding: 0;\n  margin: 0 -1rem 2rem;\n}\n.grpet .petition-image {\n  margin-bottom: 1rem;\n}\n.grpet .petition-image img {\n  max-width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet .petition-info {\n  padding: 0 1rem;\n  flex: 2 0 20rem;\n}\n.grpet .petition-form {\n  padding: 0 1rem;\n  flex: 1 0 20rem;\n}\n.grpet label {\n  display: block;\n}\n.grpet input[type=\"text\"],\n.grpet input[type=\"email\"] {\n  width: 100%;\n}\n.grpet button {\n  width: 100%;\n}\n.grpet .grpet-consent-intro {\n  margin-top: 1rem;\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-radio-wrapper {\n  margin-bottom: 0.5rem;\n}\n.grpet .grpet-consent-no-warning {\n  color: #933202;\n  font-style: italic;\n  padding-left: 36px;\n}\n.grpet .petition-why {\n  padding-bottom: 2rem;\n}\n.grpet .petition-what {\n  font-weight: bold;\n  padding-bottom: 2rem;\n}\n.grpet .grpet-updates {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet .grpet-updates h2 {\n  margin-top: 0;\n}\n.grpet .grpet-updates .update {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: top;\n  margin-bottom: 2rem;\n  background: white;\n}\n.grpet .grpet-updates .update .text {\n  flex: 4 0 18rem;\n  padding: 1rem;\n}\n.grpet .grpet-updates .update .image {\n  flex: 1 0 18rem;\n}\n.grpet .grpet-updates .update .image img {\n  display: block;\n  width: 100%;\n  height: auto;\n}\n", ""]);
 
 // exports
 
@@ -1957,7 +2094,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin .two-cols {\n  margin-left: -1rem;\n  margin-right: -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin .two-cols > .col {\n  flex: 1 0 18rem;\n  padding-left: 1rem;\n  padding-right: 1rem;\n}\n.grpet-admin .new-petition ul {\n  background-color: #f8f8f8;\n  margin: 0 0 2rem;\n  padding: 0.5rem;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin .new-petition li {\n  list-style: none;\n  flex: 1 0 18rem;\n  padding: 0.5rem;\n}\n.grpet-admin .new-petition div.grpet-card {\n  height: 100%;\n  background: white;\n  padding: 1rem;\n  display: flex;\n  flex-direction: column;\n}\n.grpet-admin .new-petition div.grpet-card h3 {\n  flex: 0 0 auto;\n}\n.grpet-admin .new-petition div.grpet-card .description {\n  flex: 1 0 auto;\n}\n.grpet-admin .new-petition div.grpet-card .button {\n  flex: 0 0 auto;\n}\n.grpet-admin .new-petition h3 {\n  margin: 0 0 1rem;\n  font-size: 1.5rem;\n  line-height: 1.2;\n}\n.grpet-admin label {\n  font-weight: bold;\n  display: block;\n}\n.grpet-admin .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin input[type=\"text\"],\n.grpet-admin textarea,\n.grpet-admin input[type=\"email\"],\n.grpet-admin select {\n  width: 100%;\n}\n.grpet-admin .update-petition,\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin .status {\n  border-radius: 1rem;\n  padding: 0 1rem;\n  line-height: 1;\n  white-space: no-break;\n  color: white;\n}\n.grpet-admin .status.grpet_Won {\n  background: #566a4a;\n}\n.grpet-admin .status.grpet_Dead {\n  background: #a4a19e;\n}\n.grpet-admin .status.grpet_Pending {\n  background: #747707;\n}\n.grpet-admin .status.Open {\n  background: #4aa219;\n}\n.grpet-admin ul.petition {\n  margin: 2rem -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.petition > li {\n  flex: 1 0 18rem;\n  margin: 0 0 2rem;\n  padding: 0 1rem;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n}\n.grpet-admin ul.petition article h1 {\n  font-size: 1.4rem;\n  line-height: 1;\n  margin: 0 0 1rem;\n  padding: 0;\n}\n.grpet-admin .unauthorised {\n  padding: 1rem;\n  background: #f8f8f8;\n}\n.grpet-admin ul.grpet-updates {\n  margin: 0;\n  padding: 0;\n}\n.grpet-admin ul.grpet-updates li {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.grpet-updates li .image {\n  flex: 0 0 8rem;\n}\n.grpet-admin ul.grpet-updates li .image img {\n  width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet-admin ul.grpet-updates li .details {\n  flex: 1 0 20rem;\n  padding-left: 1rem;\n}\n", ""]);
+exports.push([module.i, ".grpet-admin {\n  box-sizing: border-box;\n}\n.grpet-admin .grpet-error {\n  color: #a00;\n  padding: 1rem;\n}\n.grpet-admin .two-cols {\n  margin-left: -1rem;\n  margin-right: -1rem;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin .two-cols > .col {\n  flex: 1 0 18rem;\n  padding-left: 1rem;\n  padding-right: 1rem;\n}\n.grpet-admin .new-petition ul {\n  background-color: #f8f8f8;\n  margin: 0 0 2rem;\n  padding: 0.5rem;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin .new-petition li {\n  list-style: none;\n  flex: 1 0 18rem;\n  padding: 0.5rem;\n}\n.grpet-admin .new-petition div.grpet-card {\n  height: 100%;\n  background: white;\n  padding: 1rem;\n  display: flex;\n  flex-direction: column;\n}\n.grpet-admin .new-petition div.grpet-card h3 {\n  flex: 0 0 auto;\n}\n.grpet-admin .new-petition div.grpet-card .description {\n  flex: 1 0 auto;\n}\n.grpet-admin .new-petition div.grpet-card .button {\n  flex: 0 0 auto;\n}\n.grpet-admin .new-petition h3 {\n  margin: 0 0 1rem;\n  font-size: 1.5rem;\n  line-height: 1.2;\n}\n.grpet-admin label {\n  font-weight: bold;\n  display: block;\n}\n.grpet-admin .field {\n  background: white;\n  padding: 1rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin .field-help {\n  font-size: 0.875rem;\n  margin-bottom: 1rem;\n}\n.grpet-admin input[type=\"text\"],\n.grpet-admin textarea,\n.grpet-admin input[type=\"email\"],\n.grpet-admin select {\n  width: 100%;\n}\n.grpet-admin .update-petition,\n.grpet-admin .edit-petition,\n.grpet-admin .grpet-list {\n  background-color: #f8f8f8;\n  padding: 1rem;\n}\n.grpet-admin .edit-petition .fixed {\n  background: #f0f0f0;\n  padding: 0.25rem 1rem;\n  color: #555;\n  font-size: 0.875rem;\n}\n.grpet-admin .status {\n  border-radius: 1rem;\n  padding: 0 1rem;\n  line-height: 1;\n  white-space: no-break;\n  color: white;\n}\n.grpet-admin .status.grpet_Won {\n  background: #566a4a;\n}\n.grpet-admin .status.grpet_Dead {\n  background: #a4a19e;\n}\n.grpet-admin .status.grpet_Pending {\n  background: #747707;\n}\n.grpet-admin .status.Open {\n  background: #4aa219;\n}\n.grpet-admin ul.petition {\n  margin: 0;\n  padding: 0;\n}\n.grpet-admin ul.petition > li {\n  margin: 0 0 2rem;\n  padding: 0;\n}\n.grpet-admin ul.petition article {\n  background: white;\n  padding: 1rem;\n  display: flex;\n}\n.grpet-admin ul.petition article .image {\n  flex: 1 0 16rem;\n}\n.grpet-admin ul.petition article .text {\n  flex: 4 0 18rem;\n  padding-left: 2rem;\n}\n.grpet-admin ul.petition h1 {\n  font-size: 1.4rem;\n  line-height: 1;\n  margin: 0 0 1rem;\n  padding: 0;\n}\n.grpet-admin ul.petition img {\n  width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet-admin .unauthorised {\n  padding: 1rem;\n  background: #f8f8f8;\n}\n.grpet-admin ul.grpet-updates {\n  margin: 0;\n  padding: 0;\n}\n.grpet-admin ul.grpet-updates li {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n  display: flex;\n  flex-wrap: wrap;\n}\n.grpet-admin ul.grpet-updates li .image {\n  flex: 0 0 8rem;\n}\n.grpet-admin ul.grpet-updates li .image img {\n  width: 100%;\n  height: auto;\n  display: block;\n}\n.grpet-admin ul.grpet-updates li .details {\n  flex: 1 0 20rem;\n  padding-left: 1rem;\n}\n", ""]);
 
 // exports
 
@@ -2014,7 +2151,7 @@ exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/li
 
 
 // module
-exports.push([module.i, ".ipetometer {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  justify-content: space-between;\n  line-height: 1;\n  padding: 1rem;\n  margin-bottom: 1rem;\n  font-weight: bold;\n  background: #eee;\n}\n.ipetometer .ipetometer__domain {\n  flex: 0 0 100%;\n  background: white;\n}\n.ipetometer .ipetometer__bar {\n  background: #fc0;\n  height: 1rem;\n}\n.ipetometer .ipetometer__bignum {\n  flex: 0 0 auto;\n  padding-right: 1rem;\n  font-size: 3rem;\n}\n.ipetometer .ipetometer__words {\n  flex: 1 1 auto;\n  font-size: 1rem;\n}\n.ipetometer .ipetometer__target {\n  flex: 0 0 auto;\n  font-size: 1rem;\n}\n", ""]);
+exports.push([module.i, ".ipetometer {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  justify-content: space-between;\n  line-height: 1;\n  padding: 1rem;\n  margin-bottom: 1rem;\n  font-weight: bold;\n}\n.ipetometer .ipetometer__domain {\n  flex: 0 0 100%;\n  background: white;\n  overflow: hidden;\n}\n.ipetometer .ipetometer__bar {\n  background: #fc0;\n  height: 1rem;\n}\n.ipetometer .ipetometer__bignum {\n  flex: 0 0 auto;\n  padding-right: 1rem;\n  line-height: 1.5;\n  font-size: 3rem;\n}\n.ipetometer .ipetometer__words {\n  flex: 1 1 auto;\n  font-size: 1rem;\n}\n.ipetometer .ipetometer__target {\n  flex: 0 0 auto;\n  font-size: 1rem;\n}\n", ""]);
 
 // exports
 
@@ -3281,14 +3418,159 @@ var render = function() {
             expression: "stage === 'loadingError'"
           }
         ],
-        staticClass: "grpet-error"
+        staticClass: "error"
       },
-      [_vm._v(_vm._s(_vm.loadingError))]
+      [
+        _c("p", { staticClass: "error" }, [_vm._v(_vm._s(_vm.loadingError))]),
+        _vm._v(" "),
+        _vm._m(0)
+      ]
     ),
     _vm._v(" "),
     _vm.stage === "petitionsList"
       ? _c("div", [
           _c("h2", [_vm._v("Petitions")]),
+          _vm._v(" "),
+          _c("form", { staticClass: "filters" }, [
+            _c("div", { staticClass: "text-filter" }, [
+              _c("label", { attrs: { for: "grpet-filter-text" } }, [
+                _c(
+                  "svg",
+                  {
+                    attrs: {
+                      viewBox: "0 0 15 15",
+                      fill: "none",
+                      xmlns: "http://www.w3.org/2000/svg",
+                      width: "18",
+                      height: "18"
+                    }
+                  },
+                  [
+                    _c("path", {
+                      attrs: {
+                        d: "M14.5 14.5l-4-4m-4 2a6 6 0 110-12 6 6 0 010 12z",
+                        stroke: "currentColor"
+                      }
+                    })
+                  ]
+                ),
+                _vm._v("\n          Search")
+              ]),
+              _vm._v(" "),
+              _c("input", {
+                directives: [
+                  {
+                    name: "model",
+                    rawName: "v-model",
+                    value: _vm.filters.text,
+                    expression: "filters.text"
+                  }
+                ],
+                attrs: {
+                  id: "grpet-filter-text",
+                  type: "text",
+                  title: "Search",
+                  placeholder: " e.g. Sheffield"
+                },
+                domProps: { value: _vm.filters.text },
+                on: {
+                  input: function($event) {
+                    if ($event.target.composing) {
+                      return
+                    }
+                    _vm.$set(_vm.filters, "text", $event.target.value)
+                  }
+                }
+              })
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "campaign-filter" }, [
+              _c("label", { attrs: { for: "grpet-filter-campaign" } }, [
+                _c(
+                  "svg",
+                  {
+                    attrs: {
+                      viewBox: "0 0 15 15",
+                      fill: "none",
+                      xmlns: "http://www.w3.org/2000/svg",
+                      width: "18",
+                      height: "18"
+                    }
+                  },
+                  [
+                    _c("path", {
+                      attrs: {
+                        d:
+                          "M4.076 6.47l.495.07-.495-.07zm-.01.07l-.495-.07.495.07zm6.858-.07l.495-.07-.495.07zm.01.07l-.495.07.495-.07zM9.5 12.5v.5a.5.5 0 00.5-.5h-.5zm-4 0H5a.5.5 0 00.5.5v-.5zm-.745-3.347l.396-.306-.396.306zm5.49 0l-.396-.306.396.306zM6 15h3v-1H6v1zM3.58 6.4l-.01.07.99.14.01-.07-.99-.14zM7.5 3a3.959 3.959 0 00-3.92 3.4l.99.14A2.959 2.959 0 017.5 4V3zm3.92 3.4A3.959 3.959 0 007.5 3v1a2.96 2.96 0 012.93 2.54l.99-.14zm.01.07l-.01-.07-.99.14.01.07.99-.14zm-.79 2.989c.63-.814.948-1.875.79-2.99l-.99.142a2.951 2.951 0 01-.59 2.236l.79.612zM9 10.9v1.6h1v-1.599H9zm.5 1.1h-4v1h4v-1zm-3.5.5v-1.599H5V12.5h1zM3.57 6.47a3.951 3.951 0 00.79 2.989l.79-.612a2.951 2.951 0 01-.59-2.236l-.99-.142zM6 10.9c0-.823-.438-1.523-.85-2.054l-.79.612c.383.495.64.968.64 1.442h1zm3.85-2.054C9.437 9.378 9 10.077 9 10.9h1c0-.474.257-.947.64-1.442l-.79-.612zM7 0v2h1V0H7zM0 8h2V7H0v1zm13 0h2V7h-2v1zM3.354 3.646l-1.5-1.5-.708.708 1.5 1.5.708-.708zm9 .708l1.5-1.5-.708-.708-1.5 1.5.708.708z",
+                        fill: "currentColor"
+                      }
+                    })
+                  ]
+                ),
+                _vm._v("\n          Campaign")
+              ]),
+              _vm._v(" "),
+              _c(
+                "select",
+                {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.filters.campaignID,
+                      expression: "filters.campaignID"
+                    }
+                  ],
+                  attrs: {
+                    id: "grpet-filter-campaign",
+                    title: "Filter by campaign"
+                  },
+                  on: {
+                    change: function($event) {
+                      var $$selectedVal = Array.prototype.filter
+                        .call($event.target.options, function(o) {
+                          return o.selected
+                        })
+                        .map(function(o) {
+                          var val = "_value" in o ? o._value : o.value
+                          return val
+                        })
+                      _vm.$set(
+                        _vm.filters,
+                        "campaignID",
+                        $event.target.multiple
+                          ? $$selectedVal
+                          : $$selectedVal[0]
+                      )
+                    }
+                  }
+                },
+                [
+                  _c("option", { attrs: { value: "" } }, [
+                    _vm._v("All campaigns")
+                  ]),
+                  _vm._v(" "),
+                  _vm._l(_vm.campaigns, function(campaign) {
+                    return _c(
+                      "option",
+                      { key: campaign.id, domProps: { value: campaign.id } },
+                      [_vm._v(_vm._s(campaign.label))]
+                    )
+                  })
+                ],
+                2
+              )
+            ])
+          ]),
+          _vm._v(" "),
+          _c("p", [
+            _vm._v(
+              "Showing " + _vm._s(_vm.filteredPetitions.length) + " petitions. "
+            ),
+            _c("a", { attrs: { href: "/petitions-admin" } }, [
+              _vm._v("Start your own petition")
+            ])
+          ]),
           _vm._v(" "),
           _c(
             "ul",
@@ -3297,37 +3579,130 @@ var render = function() {
               return _c("li", { key: _vm.petitions.id }, [
                 _c("article", [
                   _c("div", { staticClass: "image" }, [
-                    _c("img", {
-                      attrs: { src: petition.imageUrl, alt: petition.imageAlt }
-                    })
+                    _c(
+                      "a",
+                      { attrs: { href: "/petitions/" + petition.slug } },
+                      [
+                        _c("img", {
+                          attrs: {
+                            src: petition.imageUrl,
+                            alt: petition.imageAlt
+                          }
+                        })
+                      ]
+                    )
                   ]),
                   _vm._v(" "),
                   _c("div", { staticClass: "texts" }, [
-                    _c("h1", [_vm._v(_vm._s(petition.petitionTitle))]),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "campaign" }, [
-                      _vm._v(
-                        _vm._s(_vm.campaignNameFromID(petition.campaignID))
-                      )
-                    ]),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "location" }, [
-                      _vm._v(_vm._s(petition.location))
-                    ]),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "signatures" }, [
-                      _vm._v(_vm._s(petition.signatureCount))
-                    ]),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "buttons" }, [
+                    _c("h1", [
                       _c(
                         "a",
-                        {
-                          staticClass: "button primary",
-                          attrs: { href: "/petitions/" + petition.slug }
-                        },
-                        [_vm._v("Read / Sign")]
+                        { attrs: { href: "/petitions/" + petition.slug } },
+                        [_vm._v(_vm._s(petition.petitionTitle))]
                       )
+                    ]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "campaign" }, [
+                      _c(
+                        "svg",
+                        {
+                          attrs: {
+                            viewBox: "0 0 15 15",
+                            fill: "none",
+                            xmlns: "http://www.w3.org/2000/svg",
+                            width: "18",
+                            height: "18"
+                          }
+                        },
+                        [
+                          _c("path", {
+                            attrs: {
+                              d:
+                                "M4.076 6.47l.495.07-.495-.07zm-.01.07l-.495-.07.495.07zm6.858-.07l.495-.07-.495.07zm.01.07l-.495.07.495-.07zM9.5 12.5v.5a.5.5 0 00.5-.5h-.5zm-4 0H5a.5.5 0 00.5.5v-.5zm-.745-3.347l.396-.306-.396.306zm5.49 0l-.396-.306.396.306zM6 15h3v-1H6v1zM3.58 6.4l-.01.07.99.14.01-.07-.99-.14zM7.5 3a3.959 3.959 0 00-3.92 3.4l.99.14A2.959 2.959 0 017.5 4V3zm3.92 3.4A3.959 3.959 0 007.5 3v1a2.96 2.96 0 012.93 2.54l.99-.14zm.01.07l-.01-.07-.99.14.01.07.99-.14zm-.79 2.989c.63-.814.948-1.875.79-2.99l-.99.142a2.951 2.951 0 01-.59 2.236l.79.612zM9 10.9v1.6h1v-1.599H9zm.5 1.1h-4v1h4v-1zm-3.5.5v-1.599H5V12.5h1zM3.57 6.47a3.951 3.951 0 00.79 2.989l.79-.612a2.951 2.951 0 01-.59-2.236l-.99-.142zM6 10.9c0-.823-.438-1.523-.85-2.054l-.79.612c.383.495.64.968.64 1.442h1zm3.85-2.054C9.437 9.378 9 10.077 9 10.9h1c0-.474.257-.947.64-1.442l-.79-.612zM7 0v2h1V0H7zM0 8h2V7H0v1zm13 0h2V7h-2v1zM3.354 3.646l-1.5-1.5-.708.708 1.5 1.5.708-.708zm9 .708l1.5-1.5-.708-.708-1.5 1.5.708.708z",
+                              fill: "currentColor"
+                            }
+                          })
+                        ]
+                      ),
+                      _vm._v(
+                        "\n              Campaign: " +
+                          _vm._s(_vm.campaignNameFromID(petition.campaignID))
+                      )
+                    ]),
+                    _vm._v(" "),
+                    petition.location
+                      ? _c("div", { staticClass: "location" }, [
+                          _c(
+                            "svg",
+                            {
+                              attrs: {
+                                viewBox: "0 0 15 15",
+                                fill: "none",
+                                xmlns: "http://www.w3.org/2000/svg",
+                                width: "16",
+                                height: "16"
+                              }
+                            },
+                            [
+                              _c("path", {
+                                attrs: {
+                                  d:
+                                    "M7.5.5v14m7-7.005H.5m13 0a6.006 6.006 0 01-6 6.005c-3.313 0-6-2.694-6-6.005a5.999 5.999 0 016-5.996 6 6 0 016 5.996z",
+                                  stroke: "currentColor",
+                                  "stroke-linecap": "square"
+                                }
+                              })
+                            ]
+                          ),
+                          _vm._v("\n              " + _vm._s(petition.location))
+                        ])
+                      : _vm._e(),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "sigs-sign" }, [
+                      _c("div", { staticClass: "signatures" }, [
+                        _c(
+                          "svg",
+                          {
+                            attrs: {
+                              viewBox: "0 0 15 15",
+                              fill: "none",
+                              xmlns: "http://www.w3.org/2000/svg",
+                              width: "19",
+                              height: "19"
+                            }
+                          },
+                          [
+                            _c("path", {
+                              attrs: {
+                                d:
+                                  "M10.5 14.49v.5h.5v-.5h-.5zm-10 0H0v.5h.5v-.5zm14 .01v.5h.5v-.5h-.5zM8 3.498a2.499 2.499 0 01-2.5 2.498v1C7.433 6.996 9 5.43 9 3.498H8zM5.5 5.996A2.499 2.499 0 013 3.498H2a3.499 3.499 0 003.5 3.498v-1zM3 3.498A2.499 2.499 0 015.5 1V0A3.499 3.499 0 002 3.498h1zM5.5 1A2.5 2.5 0 018 3.498h1A3.499 3.499 0 005.5 0v1zm5 12.99H.5v1h10v-1zm-9.5.5v-1.996H0v1.996h1zm2.5-4.496h4v-1h-4v1zm6.5 2.5v1.996h1v-1.997h-1zm-2.5-2.5a2.5 2.5 0 012.5 2.5h1a3.5 3.5 0 00-3.5-3.5v1zm-6.5 2.5a2.5 2.5 0 012.5-2.5v-1a3.5 3.5 0 00-3.5 3.5h1zM14 13v1.5h1V13h-1zm.5 1H12v1h2.5v-1zM12 11a2 2 0 012 2h1a3 3 0 00-3-3v1zm-.5-3A1.5 1.5 0 0110 6.5H9A2.5 2.5 0 0011.5 9V8zM13 6.5A1.5 1.5 0 0111.5 8v1A2.5 2.5 0 0014 6.5h-1zM11.5 5A1.5 1.5 0 0113 6.5h1A2.5 2.5 0 0011.5 4v1zm0-1A2.5 2.5 0 009 6.5h1A1.5 1.5 0 0111.5 5V4z",
+                                fill: "currentColor"
+                              }
+                            })
+                          ]
+                        ),
+                        _vm._v(
+                          "\n                " +
+                            _vm._s(petition.signatureCount.toLocaleString()) +
+                            " signatures"
+                        )
+                      ]),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "buttons" }, [
+                        _c(
+                          "a",
+                          {
+                            staticClass: "button primary",
+                            attrs: { href: "/petitions/" + petition.slug }
+                          },
+                          [
+                            _vm._v("Read / Sign"),
+                            _c("span", { staticClass: "visually-hidden" }, [
+                              _vm._v(" " + _vm._s(petition.petitionTitle))
+                            ])
+                          ]
+                        )
+                      ])
                     ])
                   ])
                 ])
@@ -3342,6 +3717,7 @@ var render = function() {
       ? _c(
           "form",
           {
+            staticClass: "petition-form",
             attrs: { action: "#" },
             on: {
               submit: function($event) {
@@ -3799,12 +4175,12 @@ var render = function() {
         )
       : _vm._e(),
     _vm._v(" "),
-    _vm.publicData.updates
+    (_vm.publicData.updates || { length: 0 }).length > 0
       ? _c(
           "div",
           { staticClass: "grpet-updates" },
           [
-            _c("h2", [_vm._v("Updates ")]),
+            _c("h2", [_vm._v("Updates")]),
             _vm._v(" "),
             _vm._l(_vm.publicData.updates, function(update) {
               return _c("div", { staticClass: "update" }, [
@@ -3826,10 +4202,38 @@ var render = function() {
           ],
           2
         )
+      : _vm._e(),
+    _vm._v(" "),
+    _vm.showTheForm
+      ? _c(
+          "div",
+          { staticClass: "grpet-social" },
+          [
+            _c("h2", [_vm._v("Share this petition")]),
+            _vm._v(" "),
+            _c("inlay-socials", {
+              attrs: {
+                icons: "1",
+                socials: _vm.inlay.initData.socials,
+                "button-style": _vm.inlay.initData.socialStyle
+              }
+            })
+          ],
+          1
+        )
       : _vm._e()
   ])
 }
-var staticRenderFns = []
+var staticRenderFns = [
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("p", [
+      _c("a", { attrs: { href: "/petitions" } }, [_vm._v("View all petitions")])
+    ])
+  }
+]
 render._withStripped = true
 
 
@@ -4199,71 +4603,84 @@ var render = function() {
               _vm._l(_vm.petitions, function(petition) {
                 return _c("li", { key: petition.id }, [
                   _c("article", [
-                    _c("h1", [
-                      _c(
-                        "a",
-                        {
-                          attrs: {
-                            href: "/petitions/" + petition.slug,
-                            target: "_blank",
-                            rel: "noopener"
-                          }
-                        },
-                        [_vm._v(_vm._s(petition.title))]
-                      )
+                    _c("div", { staticClass: "image" }, [
+                      _c("img", {
+                        attrs: {
+                          src: petition.imageUrl,
+                          alt: petition.imageAlt
+                        }
+                      })
                     ]),
                     _vm._v(" "),
-                    _c(
-                      "span",
-                      { staticClass: "status", class: petition.status },
-                      [
-                        _vm._v(
-                          _vm._s(_vm.getStatusMeta(petition.status).description)
-                        )
-                      ]
-                    ),
-                    _vm._v(" "),
-                    _c("p", [
-                      _vm._v(
-                        "Signatures: " +
-                          _vm._s(petition.signatureCount) +
-                          " / " +
-                          _vm._s(petition.targetCount) +
-                          "."
-                      )
-                    ]),
-                    _vm._v(" "),
-                    _c("ul", [
-                      _c("li", [
+                    _c("div", { staticClass: "text" }, [
+                      _c("h1", [
                         _c(
                           "a",
                           {
-                            attrs: { href: "" },
-                            on: {
-                              click: function($event) {
-                                $event.preventDefault()
-                                return _vm.editPetition(petition)
-                              }
+                            attrs: {
+                              href: "/petitions/" + petition.slug,
+                              target: "_blank",
+                              rel: "noopener"
                             }
                           },
-                          [_vm._v("Edit petition (texts, targets etc.)")]
+                          [_vm._v(_vm._s(petition.title))]
                         )
                       ]),
                       _vm._v(" "),
-                      _c("li", [
-                        _c(
-                          "a",
-                          {
-                            attrs: { href: "" },
-                            on: {
-                              click: function($event) {
-                                $event.preventDefault()
-                                return _vm.updatePetition(petition)
-                              }
-                            }
-                          },
-                          [_vm._v("Provide updates, mark Won or Closed")]
+                      _c(
+                        "span",
+                        { staticClass: "status", class: petition.status },
+                        [
+                          _vm._v(
+                            _vm._s(
+                              _vm.getStatusMeta(petition.status).description
+                            )
+                          )
+                        ]
+                      ),
+                      _vm._v(" "),
+                      _c("p", [
+                        _vm._v(
+                          "Signatures: " +
+                            _vm._s(petition.signatureCount) +
+                            " / " +
+                            _vm._s(petition.targetCount) +
+                            "."
                         )
+                      ]),
+                      _vm._v(" "),
+                      _c("ul", [
+                        _c("li", [
+                          _c(
+                            "a",
+                            {
+                              attrs: { href: "" },
+                              on: {
+                                click: function($event) {
+                                  $event.preventDefault()
+                                  return _vm.editPetition(petition)
+                                }
+                              }
+                            },
+                            [_vm._v("Edit petition (texts, targets etc.)")]
+                          )
+                        ]),
+                        _vm._v(" "),
+                        _c("li", [
+                          _c(
+                            "a",
+                            {
+                              attrs: { href: "" },
+                              on: {
+                                click: function($event) {
+                                  $event.preventDefault()
+                                  return _vm.updatePetition(petition)
+                                }
+                              }
+                            },
+                            [_vm._v("Provide updates, mark Won or Closed")]
+                          )
+                        ])
                       ])
                     ])
                   ])
@@ -4696,7 +5113,7 @@ var render = function() {
                   on: {
                     change: function($event) {
                       _vm.mainImageFileCount =
-                        _vm.$refs.imageFile.files.length > 0
+                        _vm.$refs.imageFile.files.length > 0 ? true : null
                     }
                   }
                 }),
@@ -4762,7 +5179,7 @@ var render = function() {
                   },
                   [_vm._v("Cancel")]
                 ),
-                _vm._v(" "),
+                _vm._v("\n       \n      "),
                 _c(
                   "button",
                   { staticClass: "primary", attrs: { type: "submit" } },
@@ -5345,60 +5762,64 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c("div", { ref: "ometer", staticClass: "ipetometer" }, [
-    _c("div", { staticClass: "ipetometer__domain" }, [
-      _c("div", { staticClass: "ipetometer__bar", style: _vm.barStyle })
-    ]),
-    _vm._v(" "),
-    _c("span", { staticClass: "ipetometer__bignum" }, [
-      _vm._v(_vm._s(_vm.count.toLocaleString()))
-    ]),
-    _vm._v(" "),
-    _c("span", { staticClass: "ipetometer__words" }, [
-      _vm._v(_vm._s(_vm.stmt))
-    ]),
-    _vm._v(" "),
-    _c("span", { staticClass: "ipetometer__target" }, [
-      _c(
-        "span",
-        {
-          directives: [
-            {
-              name: "show",
-              rawName: "v-show",
-              value: _vm.stretchTarget && _vm.stretchTarget > _vm.target,
-              expression: "stretchTarget && stretchTarget > target"
-            }
-          ],
-          staticClass: "stretch"
-        },
-        [
-          _vm._v(
-            "Original target (" +
-              _vm._s(_vm.target.toLocaleString()) +
-              ") exceeded! Let’s go for " +
-              _vm._s(_vm.stretchTarget.toLocaleString())
-          )
-        ]
-      ),
+  return _c(
+    "div",
+    { ref: "ometer", staticClass: "ipetometer primary-light-background" },
+    [
+      _c("div", { staticClass: "ipetometer__domain" }, [
+        _c("div", { staticClass: "ipetometer__bar", style: _vm.barStyle })
+      ]),
       _vm._v(" "),
-      _c(
-        "span",
-        {
-          directives: [
-            {
-              name: "show",
-              rawName: "v-show",
-              value: !_vm.stretchTarget || _vm.stretchTarget < _vm.target,
-              expression: "!stretchTarget || stretchTarget < target"
-            }
-          ],
-          staticClass: "original"
-        },
-        [_vm._v("Target " + _vm._s(_vm.target.toLocaleString()))]
-      )
-    ])
-  ])
+      _c("span", { staticClass: "ipetometer__bignum" }, [
+        _vm._v(_vm._s(_vm.count.toLocaleString()))
+      ]),
+      _vm._v(" "),
+      _c("span", { staticClass: "ipetometer__words" }, [
+        _vm._v(_vm._s(_vm.stmt))
+      ]),
+      _vm._v(" "),
+      _c("span", { staticClass: "ipetometer__target" }, [
+        _c(
+          "span",
+          {
+            directives: [
+              {
+                name: "show",
+                rawName: "v-show",
+                value: _vm.stretchTarget && _vm.stretchTarget > _vm.target,
+                expression: "stretchTarget && stretchTarget > target"
+              }
+            ],
+            staticClass: "stretch"
+          },
+          [
+            _vm._v(
+              "Original target (" +
+                _vm._s(_vm.target.toLocaleString()) +
+                ") exceeded! Let’s go for " +
+                _vm._s(_vm.stretchTarget.toLocaleString())
+            )
+          ]
+        ),
+        _vm._v(" "),
+        _c(
+          "span",
+          {
+            directives: [
+              {
+                name: "show",
+                rawName: "v-show",
+                value: !_vm.stretchTarget || _vm.stretchTarget < _vm.target,
+                expression: "!stretchTarget || stretchTarget < target"
+              }
+            ],
+            staticClass: "original"
+          },
+          [_vm._v("Target " + _vm._s(_vm.target.toLocaleString()))]
+        )
+      ])
+    ]
+  )
 }
 var staticRenderFns = []
 render._withStripped = true

@@ -44,7 +44,12 @@ class CaseWrapper {
    * @return CaseWrapper
    */
   public static function fromSlug(string $slug) :?CaseWrapper {
-    $params = [ GrassrootsPetition::getCustomFields('grpet_slug') => $slug, 'sequential' => 1 ];
+    $params = [
+      'case_type_id' => 'grassrootspetition',
+      'is_deleted'   => 0,
+      'sequential'   => 1,
+      GrassrootsPetition::getCustomFields('grpet_slug') => $slug,
+    ];
     $cases = civicrm_api3('Case', 'get', $params);
     if ($cases['count'] == 1) {
       $case = new static();
@@ -90,7 +95,8 @@ class CaseWrapper {
     string $campaignLabel,
     string $location,
     string $targetName,
-    string $who
+    string $who,
+    ?string $slug=NULL /* for import only */
   ) :?CaseWrapper {
 
     $campaign = GrassrootsPetitionCampaign::get(FALSE)
@@ -102,35 +108,44 @@ class CaseWrapper {
       throw new \RuntimeException("Campaign not found '$campaignLabel' in GrassrootsPetition CaseWrapper::newFromCampaign");
     }
 
-    //
-    // Create the slug.
-    //
-    // This is created from the title and the slug of the campaign.
-    //
-    $slug = $campaign['slug'] . '/' . trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($title)), '-');
-    if (!$slug) {
-      throw new \RuntimeException("Invalid slug");
-    }
-
-    // Check slug does not exist.
     $sql = "SELECT slug FROM civicrm_grpet_petition WHERE slug like %1 ORDER BY slug DESC LIMIT 1";
-    $dao = CRM_Core_DAO::executeQuery($sql, [1 => ["$slug%", 'String']]);
-    $maxN = NULL;
-    while ($dao->fetch()) {
-      if ($dao->slug === $slug) {
-        $maxN = 1;
+    if ($slug) {
+      // Check slug does not exist and throw error if so.
+      $dao = CRM_Core_DAO::executeQuery($sql, [1 => ["$slug", 'String']]);
+      if ($dao->fetch()) {
+        throw new \RuntimeException("Slug '$slug' exists: cannot import it.");
       }
-      else {
-        $suffix = substr($dao->slug, strlen($slug));
-        if (preg_match('/-(\d+)$/', $suffix, $matches)) {
-          $maxN = $matches[1] + 1;
+    }
+    else {
+      //
+      // Create the slug.
+      //
+      // This is created from the title and the slug of the campaign.
+      //
+      $slug = ($campaign['slug'] ? $campaign['slug'] . '/' : '') . trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($title)), '-');
+      if (!$slug) {
+        throw new \RuntimeException("Invalid slug");
+      }
+
+      // Check slug does not exist.
+      $dao = CRM_Core_DAO::executeQuery($sql, [1 => ["$slug%", 'String']]);
+      $maxN = NULL;
+      while ($dao->fetch()) {
+        if ($dao->slug === $slug) {
+          $maxN = 1;
         }
         else {
-          // could be another petition - skip it.
+          $suffix = substr($dao->slug, strlen($slug));
+          if (preg_match('/-(\d+)$/', $suffix, $matches)) {
+            $maxN = $matches[1] + 1;
+          }
+          else {
+            // could be another petition - skip it.
+          }
         }
-      }
-    };
-    $slug .= ($maxN ? "-$maxN" : '');
+      };
+      $slug .= ($maxN ? "-$maxN" : '');
+    }
 
     // Create the case.
     $campaignApiField = GrassrootsPetition::getCustomFields('grpet_campaign');
@@ -154,8 +169,17 @@ class CaseWrapper {
       $slugApiField        => $slug,
     ];
     $case = civicrm_api3('Case', 'create', $caseParams);
+    $case = static::fromID($case['id']);
 
-    return static::fromID($case['id']);
+    // Fix the date on the open case activity. I don't know why Case truncates it to midnight.
+    $activity = $case->getPetitionCreatedActivity();
+    civicrm_api3('Activity', 'create', [
+      'id' => $activity['id'],
+      'activity_type_id' => $activity['activity_type_id'],
+      'activity_date_time' => date('Y-m-d H:i:s'),
+    ]);
+
+    return $case;
   }
 
   /**
@@ -198,6 +222,7 @@ class CaseWrapper {
     $params = [
       'contact_id'   => $contactID,
       'case_type_id' => 'grassrootspetition',
+      'is_deleted'   => 0,
     ];
     if ($caseID) {
       $params['id'] = $caseID;
@@ -222,6 +247,7 @@ class CaseWrapper {
 
     $customSlug = GrassrootsPetition::getCustomFields('grpet_slug');
     $customCampaign = GrassrootsPetition::getCustomFields('grpet_campaign');
+    $customLocation = GrassrootsPetition::getCustomFields('grpet_location');
 
     $params = [
       'case_type_id' => 'grassrootspetition',
@@ -229,8 +255,9 @@ class CaseWrapper {
         static::$caseStatusesByName['grpet_Pending']['value'],
         static::$caseStatusesByName['Open']['value'],
       ]],
+      'is_deleted' => 0,
       'options' => ['limit' => 0],
-      'return' => ['id', 'status_id', 'case_type_id', 'subject', $customSlug, $customCampaign ],
+      'return' => ['id', 'status_id', 'case_type_id', 'subject', $customSlug, $customCampaign, $customLocation ],
     ];
     $result = civicrm_api3('Case', 'get', $params)['values'] ?? [];
 
@@ -341,7 +368,7 @@ class CaseWrapper {
       'status'           => $this->getCaseStatus(),
       'location'         => $this->getCustomData('grpet_location'),
       'slug'             => $this->getCustomData('grpet_slug'),
-      'targetCount'      => $this->getCustomData('grpet_target_count'),
+      'targetCount'      => (int) $this->getCustomData('grpet_target_count'),
       'targetName'       => $this->getCustomData('grpet_target_name'),
       'tweet'            => $this->getCustomData('grpet_tweet_text'),
       'petitionTitle'    => $this->getPetitionTitle(),
@@ -719,7 +746,7 @@ class CaseWrapper {
    */
   public function addImageToUpdateActivityFromData(int $activityID, string $imageData, string $imageFileType) {
 
-    $filename = "petition_" . $this->case['id'] . "_update_{$activityID}_image.";
+    $filename = "petition_" . $this->case['id'] . "_update_{$activityID}_image";
     if ($imageFileType === 'image/jpeg') {
       $filename .= '.jpg';
     }
@@ -810,41 +837,6 @@ class CaseWrapper {
 
   }
   /**
-   * Send the thank you email to the person who signed up.
-   *
-   * @param int $contactID
-   * @param array $data
-   *    The validated input data.
-   */
-  public function sendThankYouEmail(int $contactID, array $data, int $thanksMsgTplID) {
-
-    $from = civicrm_api3('OptionValue', 'getvalue', [ 'return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
-
-    // We use the email send in the data, as that's what they'd expect.
-    $params = [
-      'id'             => $thanksMsgTplID,
-      'from'           => $from,
-      'to_email'       => $data['email'],
-      // 'bcc'            => "forums@artfulrobot.uk",
-      'contact_id'     => $contactID,
-      'disable_smarty' => 1,
-      /*
-      'template_params' =>
-      [ 'foo' => 'hello',
-      // {$foo} in templates 'bar' => '123',
-      // {$bar} in templates ],
-      */
-      ];
-
-    try {
-      civicrm_api3('MessageTemplate', 'send', $params);
-    }
-    catch (\Exception $e) {
-      // Log silently.
-      Civi::log()->error("Failed to send MessageTemplate with params: " . json_encode($params, JSON_PRETTY_PRINT) . " Caught " . get_class($e) . ": " . $e->getMessage());
-    }
-  }
-  /**
    */
   public function syncImages() {
     if ($this->getCaseStatus() === 'grpet_Pending') {
@@ -906,14 +898,29 @@ class CaseWrapper {
    */
   public function createPublicImage(array $attachment) :?string {
     $attachmentID = ((int) $attachment['id'] ?? 0) ?: '<missing ID!>';
-    if (!in_array(($attachment['mime_type'] ?? ''), ['image/jpeg'])) {
-      // File is not of correct type.
-      throw new \RuntimeException("Attachment $attachmentID is not image/jpeg");
+
+    switch ($attachment['mime_type'] ?? '') {
+      case 'image/jpeg':
+        $expectedExtensionRegex = '/\.jpe?g$/';
+        $imageLoadFunction = 'imagecreatefromjpeg';
+        $expectedImageType = IMAGETYPE_JPEG;
+        break;
+
+      case 'image/png':
+        $expectedExtensionRegex = '/\.png$/';
+        $imageLoadFunction = 'imagecreatefrompng';
+        $expectedImageType = IMAGETYPE_PNG;
+        break;
+
+      default:
+        throw new \RuntimeException("Attachment $attachmentID is not image/jpeg or image/png type.");
     }
-    if (!preg_match('/\.jpe?g$/', $attachment['name'] ?? '')) {
+
+    if (!preg_match($expectedExtensionRegex, $attachment['name'] ?? '')) {
       // File is not of correct extension.
-      throw new \RuntimeException("Attachment $attachmentID does not have jpeg/jpg extension.");
+      throw new \RuntimeException("Attachment $attachmentID does not have expected file extension for a $attachment[mime_type] file.");
     }
+
     $src = $attachment['path'] ?? '';
     if (!$src || !file_exists($src) || !is_readable($src)) {
       throw new \RuntimeException("Attachment $attachmentID file $src is unreadable/non-existent.");
@@ -929,10 +936,10 @@ class CaseWrapper {
 
     $tempFile = $this->getFile('path', 0);
     $imgProperties = getimagesize($src);
-    if($imgProperties[2] !== IMAGETYPE_JPEG) {
-      throw new \RuntimeException("Attachment $attachmentID file $src is not a jpeg file according to GD");
+    if($imgProperties[2] !== $expectedImageType) {
+      throw new \RuntimeException("Attachment $attachmentID file $src is not a $attachment[mime_type] file according to GD");
     }
-    $srcImage = imagecreatefromjpeg($src);
+    $srcImage = $imageLoadFunction($src);
     // Calculate new size.
     // We need images that are 1000px wide.
     $newW = 1000;
@@ -958,7 +965,7 @@ class CaseWrapper {
       0, $offsetY, /* src x, y */
       $newW, $newH, /* dest w, h */
       $imgProperties[0], $copyH);
-    // Save file.
+    // Save file: always using jpeg.
     imagejpeg($destImg, $tempFile);
     // move_uploaded_file($image, $pathToImages.$imageName);
     return $tempFile;
@@ -982,10 +989,10 @@ class CaseWrapper {
 
     $filename = "petition_" . $this->case['id'] . "_main_image.";
     if ($imageFileType === 'image/jpeg') {
-      $filename .= '.jpg';
+      $filename .= 'jpg';
     }
     elseif ($imageFileType === 'image/png') {
-      $filename .= '.png';
+      $filename .= 'png';
     }
     else {
       throw new \InvalidArgumentException("Unsupported image type '$imageFileType'");
@@ -1022,15 +1029,16 @@ class CaseWrapper {
     if (!isset($this->createdActivity)) {
       // Get open case activity.
       $openCase = civicrm_api3('Activity', 'get', [
+        'sequential'   => 1,
         'case_id' => $this->case['id'],
         'activity_type_id' => static::$activityTypesByName['Grassroots Petition created']['value'],
-        'return' => ['id', 'status_id']
+        'return' => ['id', 'status_id', 'activity_type_id']
       ]);
       if (empty($openCase['id'])) {
         // This is an error!
         throw new \RuntimeException("Case {$this->case['id']} has no Grassroots Petition created activity.");
       }
-      $this->createdActivity = $openCase;
+      $this->createdActivity = $openCase['values'][0];
     }
     return $this->createdActivity;
   }
@@ -1053,6 +1061,12 @@ class CaseWrapper {
   protected function addPublicImage(array &$activity) {
 
     $updateActivityID = NULL;
+    if (empty($activity['activity_type_id'])) {
+      Civi::log()->error("Case #" . ($this->case['id'] ?? '??') . " called addPublicImage with an array that's missing activity_type_id: " . json_encode($activity));
+      $activity['imageUrl'] = NULL;
+      $activity['imageAlt'] = NULL;
+      return;
+    }
     if ($activity['activity_type_id'] == static::$activityTypesByName['Grassroots Petition progress']['value']) {
       // Is an update activity
       $updateActivityID = $activity['id'];
@@ -1075,10 +1089,12 @@ class CaseWrapper {
       }
       $activity['imageUrl'] = NULL;
       $activity['imageAlt'] = NULL;
+      return;
     }
 
     if (!file_exists($filePath)) {
       // File does not exist.
+      Civi::log()->info("trying to create public image for " . json_encode($attachment, JSON_PRETTY_PRINT));
       $tempFile = $this->createPublicImage($attachment['values'][$attachment['id']]);
       if ($tempFile) {
         rename($tempFile, $filePath);
@@ -1087,6 +1103,6 @@ class CaseWrapper {
     }
 
     $activity['imageUrl'] = $this->getFile('url', $updateActivityID);
-    $activity['imageAlt'] = $attachment['description'];
+    $activity['imageAlt'] = $attachment['description'] ?? '';
   }
 }

@@ -3,32 +3,75 @@
     <div v-show="stage === 'loading'" >Petition Loading...
       <inlay-progress ref="loadingProgress"></inlay-progress>
     </div>
-    <div v-show="stage === 'loadingError'" class="grpet-error" >{{loadingError}}</div>
+    <div v-show="stage === 'loadingError'" class="error" >
+      <p class="error">{{loadingError}}</p>
+      <p><a href="/petitions" >View all petitions</a></p>
+    </div>
 
     <div v-if="stage === 'petitionsList'" >
       <h2>Petitions</h2>
-      <!-- todo campaign filter -->
-      <!-- todo location/text search -->
 
+      <form class="filters">
+        <div class="text-filter">
+          <label for="grpet-filter-text">
+            <svg viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="18"><path d="M14.5 14.5l-4-4m-4 2a6 6 0 110-12 6 6 0 010 12z" stroke="currentColor"></path></svg>
+            Search</label>
+          <input
+            id="grpet-filter-text"
+            type="text"
+            v-model="filters.text"
+            title="Search"
+            placeholder=" e.g. Sheffield"
+            />
+        </div>
+        <div class="campaign-filter">
+          <label
+            for="grpet-filter-campaign"
+            ><svg viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="18"><path d="M4.076 6.47l.495.07-.495-.07zm-.01.07l-.495-.07.495.07zm6.858-.07l.495-.07-.495.07zm.01.07l-.495.07.495-.07zM9.5 12.5v.5a.5.5 0 00.5-.5h-.5zm-4 0H5a.5.5 0 00.5.5v-.5zm-.745-3.347l.396-.306-.396.306zm5.49 0l-.396-.306.396.306zM6 15h3v-1H6v1zM3.58 6.4l-.01.07.99.14.01-.07-.99-.14zM7.5 3a3.959 3.959 0 00-3.92 3.4l.99.14A2.959 2.959 0 017.5 4V3zm3.92 3.4A3.959 3.959 0 007.5 3v1a2.96 2.96 0 012.93 2.54l.99-.14zm.01.07l-.01-.07-.99.14.01.07.99-.14zm-.79 2.989c.63-.814.948-1.875.79-2.99l-.99.142a2.951 2.951 0 01-.59 2.236l.79.612zM9 10.9v1.6h1v-1.599H9zm.5 1.1h-4v1h4v-1zm-3.5.5v-1.599H5V12.5h1zM3.57 6.47a3.951 3.951 0 00.79 2.989l.79-.612a2.951 2.951 0 01-.59-2.236l-.99-.142zM6 10.9c0-.823-.438-1.523-.85-2.054l-.79.612c.383.495.64.968.64 1.442h1zm3.85-2.054C9.437 9.378 9 10.077 9 10.9h1c0-.474.257-.947.64-1.442l-.79-.612zM7 0v2h1V0H7zM0 8h2V7H0v1zm13 0h2V7h-2v1zM3.354 3.646l-1.5-1.5-.708.708 1.5 1.5.708-.708zm9 .708l1.5-1.5-.708-.708-1.5 1.5.708.708z" fill="currentColor"></path></svg>
+            Campaign</label>
+          <select
+            id="grpet-filter-campaign"
+            v-model="filters.campaignID"
+            title="Filter by campaign"
+            >
+            <option value="">All campaigns</option>
+            <option
+              v-for="campaign in campaigns"
+              :value="campaign.id"
+              :key="campaign.id"
+              >{{campaign.label}}</option>
+          </select>
+        </div>
+      </form>
+
+      <p>Showing {{filteredPetitions.length}} petitions. <a href="/petitions-admin">Start your own petition</a></p>
       <ul class="grpet-petitions-list">
         <li v-for="petition in filteredPetitions" :key="petitions.id">
           <article>
             <div class="image">
-              <img :src="petition.imageUrl" :alt="petition.imageAlt" />
+              <a :href="'/petitions/' + petition.slug"><img :src="petition.imageUrl" :alt="petition.imageAlt" /></a>
             </div>
             <div class="texts">
-              <h1>{{petition.petitionTitle}}</h1>
-              <div class="campaign">{{campaignNameFromID(petition.campaignID)}}</div>
-              <div class="location">{{petition.location}}</div>
-              <div class="signatures">{{petition.signatureCount}}</div>
-              <div class="buttons"><a class="button primary" :href="'/petitions/' + petition.slug">Read / Sign</a></div>
+              <h1><a :href="'/petitions/' + petition.slug">{{petition.petitionTitle}}</a></h1>
+              <div class="campaign">
+                <svg viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="18"><path d="M4.076 6.47l.495.07-.495-.07zm-.01.07l-.495-.07.495.07zm6.858-.07l.495-.07-.495.07zm.01.07l-.495.07.495-.07zM9.5 12.5v.5a.5.5 0 00.5-.5h-.5zm-4 0H5a.5.5 0 00.5.5v-.5zm-.745-3.347l.396-.306-.396.306zm5.49 0l-.396-.306.396.306zM6 15h3v-1H6v1zM3.58 6.4l-.01.07.99.14.01-.07-.99-.14zM7.5 3a3.959 3.959 0 00-3.92 3.4l.99.14A2.959 2.959 0 017.5 4V3zm3.92 3.4A3.959 3.959 0 007.5 3v1a2.96 2.96 0 012.93 2.54l.99-.14zm.01.07l-.01-.07-.99.14.01.07.99-.14zm-.79 2.989c.63-.814.948-1.875.79-2.99l-.99.142a2.951 2.951 0 01-.59 2.236l.79.612zM9 10.9v1.6h1v-1.599H9zm.5 1.1h-4v1h4v-1zm-3.5.5v-1.599H5V12.5h1zM3.57 6.47a3.951 3.951 0 00.79 2.989l.79-.612a2.951 2.951 0 01-.59-2.236l-.99-.142zM6 10.9c0-.823-.438-1.523-.85-2.054l-.79.612c.383.495.64.968.64 1.442h1zm3.85-2.054C9.437 9.378 9 10.077 9 10.9h1c0-.474.257-.947.64-1.442l-.79-.612zM7 0v2h1V0H7zM0 8h2V7H0v1zm13 0h2V7h-2v1zM3.354 3.646l-1.5-1.5-.708.708 1.5 1.5.708-.708zm9 .708l1.5-1.5-.708-.708-1.5 1.5.708.708z" fill="currentColor"></path></svg>
+                Campaign: {{campaignNameFromID(petition.campaignID)}}</div>
+              <div class="location" v-if="petition.location">
+                <svg viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path d="M7.5.5v14m7-7.005H.5m13 0a6.006 6.006 0 01-6 6.005c-3.313 0-6-2.694-6-6.005a5.999 5.999 0 016-5.996 6 6 0 016 5.996z" stroke="currentColor" stroke-linecap="square"></path></svg>
+                {{petition.location}}</div>
+              <div class="sigs-sign">
+                <div class="signatures">
+                  <svg viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" width="19" height="19"><path d="M10.5 14.49v.5h.5v-.5h-.5zm-10 0H0v.5h.5v-.5zm14 .01v.5h.5v-.5h-.5zM8 3.498a2.499 2.499 0 01-2.5 2.498v1C7.433 6.996 9 5.43 9 3.498H8zM5.5 5.996A2.499 2.499 0 013 3.498H2a3.499 3.499 0 003.5 3.498v-1zM3 3.498A2.499 2.499 0 015.5 1V0A3.499 3.499 0 002 3.498h1zM5.5 1A2.5 2.5 0 018 3.498h1A3.499 3.499 0 005.5 0v1zm5 12.99H.5v1h10v-1zm-9.5.5v-1.996H0v1.996h1zm2.5-4.496h4v-1h-4v1zm6.5 2.5v1.996h1v-1.997h-1zm-2.5-2.5a2.5 2.5 0 012.5 2.5h1a3.5 3.5 0 00-3.5-3.5v1zm-6.5 2.5a2.5 2.5 0 012.5-2.5v-1a3.5 3.5 0 00-3.5 3.5h1zM14 13v1.5h1V13h-1zm.5 1H12v1h2.5v-1zM12 11a2 2 0 012 2h1a3 3 0 00-3-3v1zm-.5-3A1.5 1.5 0 0110 6.5H9A2.5 2.5 0 0011.5 9V8zM13 6.5A1.5 1.5 0 0111.5 8v1A2.5 2.5 0 0014 6.5h-1zM11.5 5A1.5 1.5 0 0113 6.5h1A2.5 2.5 0 0011.5 4v1zm0-1A2.5 2.5 0 009 6.5h1A1.5 1.5 0 0111.5 5V4z" fill="currentColor"></path></svg>
+                  {{petition.signatureCount.toLocaleString()}} signatures</div>
+                <div class="buttons"><a class="button primary" :href="'/petitions/' + petition.slug" >Read / Sign<span class="visually-hidden"> {{petition.petitionTitle}}</span></a></div>
+              </div>
             </div>
           </article>
         </li>
       </ul>
     </div>
 
-    <form action='#' @submit.prevent="submitForm" v-if="showTheForm">
+    <form class="petition-form" action='#' @submit.prevent="submitForm" v-if="showTheForm">
       <div class="petition-info">
         <div class="petition-titles">
           <h1>{{publicData.petitionTitle}}</h1>
@@ -173,8 +216,8 @@
       </div><!-- end .petition-form -->
     </form>
 
-    <div class="grpet-updates" v-if="publicData.updates">
-      <h2>Updates </h2>
+    <div class="grpet-updates" v-if="(publicData.updates || {length:0}).length > 0">
+      <h2>Updates</h2>
       <div v-for="update in publicData.updates" class="update">
         <div class="text">
           <p>{{update.when}}</p>
@@ -184,14 +227,59 @@
       </div>
     </div>
 
+    <div class="grpet-social" v-if="showTheForm">
+      <h2>Share this petition</h2>
+      <inlay-socials icons=1 :socials="inlay.initData.socials" :button-style="inlay.initData.socialStyle" ></inlay-socials>
+    </div>
+
   </div>
 </template>
 <style lang="scss">
 .grpet {
+  padding-top: 2rem;
+
+  // Prevent that weird thing when there's nothing to show and the site's footer sort of floats mid-window.
+  min-height: 70vh;
+
   .error {
     color: #a00;
-    text-align: center;
-    padding: 1rem;
+  }
+
+  // Visual users will have enough context to not need to see this.
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    text-indent: 2px;
+  }
+
+  // Icons.
+  svg {
+    display: inline-block;
+    margin-right: 0.5rem;
+    vertical-align: baseline;
+  }
+
+  form.filters {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+
+    label {
+      display: block;
+      line-height:2;
+    }
+
+    .text-filter {
+      flex: 1 0 15rem;
+      padding-right: 2rem;
+    }
+
+    .campaign-filter {
+      flex: 0 0 auto;
+    }
+
   }
 
   // Petitions list page
@@ -221,24 +309,31 @@
     }
     .texts {
       flex: 4 0 16rem;
-      padding-left: 1rem; /* todo */
+      padding-left: 2rem;
     }
     h1 {
-      margin: 0 0 1rem;
+      margin: 0 0 0.5rem;
       font-size: 2rem;
       line-height: 1.2;
     }
     .campaign {
-      
     }
     .location {
-
+    }
+    .sigs-sign {
+      display: flex;
+      align-items: baseline;
     }
     .signatures {
-
+      flex:1 0 8rem;
+      padding-right: 2rem;
+      font-weight: bold;
     }
     .buttons {
-
+      flex:0 0 auto;
+      a {
+        margin:0;
+      }
     }
   }
 
@@ -251,10 +346,10 @@
     display: flex;
     flex-direction: column;
 
-    h2 { order: 1; margin: 0; text-transform: none; font-size: 2rem; }
-    h1 { order: 2; text-transform: none; margin-top: 0; }
+    h2 { order: 1; margin: 0 0 1rem; line-height: 1.2; text-transform: none; font-size: 2rem; }
+    h1 { order: 2; text-transform: none; margin-top: 0; line-height: 1.2; }
   }
-  form {
+  form.petition-form {
     display: flex;
     flex-wrap: wrap;
     padding:0;
@@ -357,7 +452,7 @@ export default {
       // Object of data of current petition from its publicData
       publicData: {},
       // Petition slug (if poss) from the url.
-      petitionSlug: (window.location.pathname.match(/^\/petitions\/([^/#?]+)/) || [null, null])[1],
+      petitionSlug: (window.location.pathname.match(/^\/petitions\/([^#?]+)/) || [null, null])[1],
 
       location: window.location.href,
       // Form data
@@ -397,7 +492,7 @@ export default {
           : ((this.publicData.signatureCount > 1000)
             ? 1000
             : 100);
-        return Math.floor((this.publicData.signatureCount / 0.75) / m) * m;
+        return Math.ceil((this.publicData.signatureCount / 0.75) / m) * m;
       }
       else {
         return this.publicData.targetCount;
@@ -427,7 +522,7 @@ export default {
 
     if (!this.petitionSlug) {
       // We'll be presenting the list of petitions.
-      progress.startTimer(5, 100, true);
+      progress.startTimer(5, 100, {reset: 1});
       this.inlay.request({method: 'get', body: { need: 'publicPetitionList' }})
       .then(r => {
         console.log(r);
@@ -452,7 +547,7 @@ export default {
     }
 
     // Submit a request for the petition.
-    progress.startTimer(5, 100, true);
+    progress.startTimer(5, 100, {reset: 1});
     this.inlay.request({method: 'get', body: { need: 'publicData', petitionSlug: this.petitionSlug }})
     .then(r => {
       console.log(r);
@@ -510,12 +605,12 @@ export default {
       };
       console.log("submitting ", d);
       const progress = this.$refs.submitProgress;
-      progress.startTimer(5, 20, 1);
+      progress.startTimer(5, 20, {reset: 1});
       this.inlay.request({method: 'post', body: d})
         .then(r => {
           if (r.token) {
             d.token = r.token;
-            progress.startTimer(6, 80);
+            progress.startTimer(6, 80, {easing: false});
             // Force 5s wait for the token to become valid
             return new Promise((resolve, reject) => {
               window.setTimeout(resolve, 5000);

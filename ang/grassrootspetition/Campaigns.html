@@ -132,6 +132,7 @@
 
   <div ng-show="stage=='viewPetitions' && selectedCampaign" >
     <h2>Petitions in: {{selectedCampaign.name}}</h2>
+    <p><a href ng-click="stage='listCampaigns'" >Back to campaigns list</a></p>
     <table>
       <thead>
         <tr>
@@ -144,7 +145,7 @@
       </thead>
       <tbody>
         <tr ng-repeat="petition in selectedCampaign.stats.petitions" >
-          <td>{{petition.petitionTitle}}</td>
+          <td>{{petition|json}}</td>
           <td>
             <span class="mod-petitions" ng-show="petition.petitionNeedsMod == 1" >
               <i class="fa-exclamation-triangle crm-icon crm-i"></i> 
@@ -160,7 +161,8 @@
           <td><a href="{{ CRM.url('civicrm/contact/view/case', {
             reset:1,
             cid: petition.contactID,
-            id: petition.caseID
+            id: petition.caseID,
+            action: 'view'
             }) }}" >Manage</a></td>
         </tr>
       </tbody>

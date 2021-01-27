@@ -18,4 +18,16 @@ return [
       'is_reserved' => 1,
     ],
   ],
+  [
+    'name' => 'grpet_login_email',
+    'entity' => 'MessageTemplate',
+    'params' => [
+      'version' => 3,
+      "msg_title" => "Grassroots Petition Login Link",
+      "msg_subject" => "Petition administration",
+      "msg_html" => "<p>Hi,</p>\r\n\r\n<p>Thanks for creating a petition. Our staff will get it live on the site for you ASAP.</p><p>Once live, you’ll find your petition at <br/><a href=\"{\$publicLink}\" >{\$publicLink}</a></p><p>To administer your petition (e.g. provide updates, or mark it as Won etc.) use the following link to log-in:<br/><a href=\"{\$loginLink}\" >{\$loginLink}</p>\r\n\r\n<p><a href=\"{\$petitionLink}\">{\$petitionLink}</a></p>\r\n\r\n<p>Soldarity,</p>\r\n\r\n<p>{domain.name}</p>",
+      "is_active" => "1",
+      'is_reserved' => 1,
+    ],
+  ],
 ];

@@ -170,14 +170,14 @@ function grassrootspetition_civicrm_themes(&$themes) {
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_navigationMenu
  */
-//function grassrootspetition_civicrm_navigationMenu(&$menu) {
-//  _grassrootspetition_civix_insert_navigation_menu($menu, 'Mailings', array(
-//    'label' => E::ts('New subliminal message'),
-//    'name' => 'mailing_subliminal_message',
-//    'url' => 'civicrm/mailing/subliminal',
-//    'permission' => 'access CiviMail',
-//    'operator' => 'OR',
-//    'separator' => 0,
-//  ));
-//  _grassrootspetition_civix_navigationMenu($menu);
-//}
+function grassrootspetition_civicrm_navigationMenu(&$menu) {
+  _grassrootspetition_civix_insert_navigation_menu($menu, 'Cases', [
+    'label' => E::ts('Grassroots Petitions'),
+    'name' => 'grpet_campaigns_admin',
+    'url' => 'civicrm/a#/grassrootspetition/campaigns',
+    'permission' => 'access my cases and activities,access all cases and activities',
+    'operator' => 'OR',
+    'separator' => 0,
+  ]);
+  _grassrootspetition_civix_navigationMenu($menu);
+}

@@ -209,6 +209,12 @@ class GrassrootsPetition extends InlayType {
 
       $output['petitions'][] = $public;
     }
+
+    // Sort by signatures.
+    usort($output['petitions'], function($a, $b) {
+      return (($b['signatureCount'] ?? 0) <=> ($a['signatureCount'] ?? 0));
+    });
+
     // Simplify/reduce campaigns output.
     foreach ($output['campaigns'] as &$campaign) {
       $campaign = [
@@ -436,7 +442,7 @@ class GrassrootsPetition extends InlayType {
 
     // Thank you.
     if (!empty($this->config['thanksMsgTplID'])) {
-      $case->sendThankYouEmail($contactID, $data, $this->config['thanksMsgTplID']);
+      $this->sendMsgTpl($contactID, $data['email'], $this->config['thanksMsgTplID']);
     }
 
     // No error
@@ -508,19 +514,11 @@ class GrassrootsPetition extends InlayType {
       // xxx move to config.
       $link = 'https://peopleandplanet.org/petitions-admin#' . $hash;
       // Send email
-      // Find the message template ID.
       $msgTplID = civicrm_api3('MessageTemplate', 'getsingle', ['return' => 'id', 'msg_title' => 'Grassroots Petition Admin Link'])['id'];
-      $from = civicrm_api3('OptionValue', 'getvalue', [ 'return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
-      $emailParams = [
-        'id'              => $msgTplID,
-        'template_params' => [ 'petitionLink' => $link ], /*Nb. use of template params requires Smarty (without my PR?).*/
-        'from'            => $from,
-        'to_email'        => $body['email'],
-        'contact_id'      => $contactID, // should not be used for anything.
-        // 'bcc' => "forums@artfulrobot.uk",
-      ];
-      $result = civicrm_api3('MessageTemplate', 'send', $emailParams);
-      Civi::log()->info("Email $msgTplID sent to $contactID $body[email] with link $link");
+      $this->sendMsgTpl($contactID, $body['email'], $msgTplID, [
+        'petitionLink' => $link , /*Nb. use of template params requires Smarty (without my PR?).*/
+      ]);
+      Civi::log()->info("Grassroots Petition Auth Email $msgTplID sent to $contactID $body[email] with link $link");
     }
 
     // We always return successful so as not to give anything away about what data we hold.
@@ -564,12 +562,12 @@ class GrassrootsPetition extends InlayType {
     }
 
     // Email
-    $_ = trim($data['email']) ?? '';
+    $email = trim($data['email']) ?? '';
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
       $errors[] = "invalid email address";
     }
     else {
-      $valid['email'] = $data['email'];
+      $valid['email'] = $email;
     }
 
     // Check we've not been fed a web address as a name
@@ -659,17 +657,20 @@ class GrassrootsPetition extends InlayType {
 
     // Summarise the cases
     $list = [];
-    foreach ($cases as $case) {
+    foreach ($cases as $petition) {
+      $mainImage = $petition->getMainImage();
       $list[] = [
-        'id'             => $case->getID(),
-        'title'          => $case->getPetitionTitle(),
-        'status'         => $case->getCaseStatus(),
-        'location'       => $case->getCustomData('grpet_location'),
-        'slug'           => $case->getCustomData('grpet_slug'),
-        'targetCount'    => $case->getCustomData('grpet_target_count'),
-        'targetName'     => $case->getCustomData('grpet_target_name'),
-        'campaign'       => $case->getCampaignPublicName(),
-        'signatureCount' => $case->getPetitionSigsCount(),
+        'id'             => $petition->getID(),
+        'title'          => $petition->getPetitionTitle(),
+        'status'         => $petition->getCaseStatus(),
+        'location'       => $petition->getCustomData('grpet_location'),
+        'slug'           => $petition->getCustomData('grpet_slug'),
+        'targetCount'    => $petition->getCustomData('grpet_target_count'),
+        'imageAlt'       => $mainImage['imageAlt'],
+        'imageUrl'       => $mainImage['imageUrl'],
+        'targetName'     => $petition->getCustomData('grpet_target_name'),
+        'campaign'       => $petition->getCampaignPublicName(),
+        'signatureCount' => $petition->getPetitionSigsCount(),
       ];
     }
 
@@ -686,6 +687,7 @@ class GrassrootsPetition extends InlayType {
 
     $body = $request->getBody();
 
+    // Identify the CaseID (0 = new, >0 = editing existing) and the campaign.
     $caseID = (int) ($body['id'] ?? 0);
     if ($caseID) {
       // Editing an existing petition.
@@ -714,43 +716,53 @@ class GrassrootsPetition extends InlayType {
       }
     }
 
-    // Validate the data
+    // Validate the data into the $valid array.
     $valid = [];
-    // For create and for edit we need these:
+    // For create AND for edit we need these:
     $valid['why'] = $this->requireSimpleText($body['why'] ?? '', 50000, "why");
-    $valid['targetCount'] = (int)($body['targetCount'] ?? 0);
     $valid['title'] = $this->requireSimpleText($body['title'] ?? '', 255, "title");
+    $valid['who'] = $this->requireSimpleText($body['who'] ?? '', 255, "who");
+    $valid['targetCount'] = (int)($body['targetCount'] ?? 0);
     if (!($valid['targetCount']>0)) {
       throw new ApiException(400, ['publicError' => 'Target count must be a number.']);
     }
+
     if (!$caseID) {
       // We need more data for a new petition.
       $valid['targetName'] = $this->requireSimpleText($body['targetName'] ?? '', 255, "target name");
       $valid['location'] = $this->requireSimpleText($body['location'] ?? '', 255, "location");
-      $valid['who'] = $this->requireSimpleText($body['who'] ?? '', 255, "who");
       $valid['what'] = $this->requireSimpleText($body['what'] ?? '', 50000, "what");
       $valid['campaign'] = $campaign['label'];
     }
 
-    // OK, if we get here, we have all we need in $valid.
+    // OK, if we get here, we have all we need in $valid. Copy the bits we need
+    // into an $updates array.
     $updates = [];
-    if (!$caseID) {
+    if ($caseID) {
+      // Existing case. Update only the bits we're allowing.
+      $updates += [
+        'grpet_who'          => $valid['who'],
+        'grpet_why'          => $valid['why'],
+        'grpet_target_count' => $valid['targetCount'],
+      ];
+    }
+    else {
       // New case, create it now.
-      $case = CaseWrapper::createNew($contactID, $valid['title'], $campaign['label'], $valid['location'], $valid['targetName'], $valid['who']);
+      $case = CaseWrapper::createNew($contactID,
+        $valid['title'],
+        $campaign['label'],
+        $valid['location'],
+        $valid['targetName'],
+        $valid['who']);
       // These are the things you're NOT allowed to change later.
       $updates += [
-        'grpet_who'         => $valid['who'],
-        'grpet_target_name' => $valid['targetName'],
-        'grpet_what'        => $valid['what'],
-        'grpet_location'    => $valid['location'],
+        'grpet_what'         => $valid['what'],
+        'grpet_why'          => $valid['why'],
+        'grpet_target_count' => $valid['targetCount'],
       ];
-      $case->setPetitionTitle($valid['title']);
     }
-    $updates += [
-      'grpet_why'          => $valid['why'],
-      'grpet_target_count' => $valid['targetCount'],
-      'grpet_target_count' => $valid['targetCount'],
-    ];
+    // These functions don't do updates unless they're necessary.
+    $case->setPetitionTitle($valid['title']);
     $case->setCustomData($updates);
 
     if (preg_match('@^data:(image/(?:jpeg|png));base64(.*)$@', $body['imageData'] ?? '', $m)) {
@@ -766,8 +778,67 @@ class GrassrootsPetition extends InlayType {
       }
     }
 
+    if (!$caseID) {
+      // This was a new petition.
+      // xxx move domain to config.
+      $msgTplID = civicrm_api3('MessageTemplate', 'getsingle', ['return' => 'id', 'msg_title' => 'Grassroots Petition Login Link'])['id'];
+      $this->sendMsgTpl($contactID, NULL, $msgTplID, [
+        'loginLink' => 'https://peopleandplanet.org/petitions-admin#P' . $case->getID(),
+        'publicLink' => 'https://peopleandplanet.org/petitions/' . $case->getCustomData('grpet_slug'),
+      ]);
+
+      Civi::log()->info("Grassroots Petition Admin Login Link email ($msgTplID) sent to $contactID $body[email] with link $link");
+    }
+
     // Done.
     return ['success' => 1, 'petitions' => $this->getListOfPetitionsForContact($contactID)];
+  }
+
+  /**
+   * Send email.
+   */
+  public function sendMsgTpl(int $contactID, ?string $toEmail, int $msgTplID, array $tplVars=[]) {
+
+    $from = civicrm_api3('OptionValue', 'getvalue', [ 'return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
+    if ($toEmail === NULL) {
+      // Look up primary email.
+      $toEmail = civicrm_api3('Email', 'get', [
+        'contact_id' => $contactID,
+        'on_hold' => 0,
+        'sequential' => 1,
+        'return' => ['email'],
+        'options' => ['sort' => "is_primary DESC"],
+      ])['values'][0]['email'] ?? NULL;
+      if (!$toEmail) {
+        throw new ApiException(500, ['publicError' => 'Sorry, we don’t have a valid email for you. Please contact us. (EM1)'],
+          "GrassrootsPetition: No valid email for contact $contactID, cannot send msgtpl $msgTplID"
+        );
+      }
+    }
+
+    // We use the email send in the data, as that's what they'd expect.
+    $params = [
+      'id'             => $msgTplID,
+      'from'           => $from,
+      'to_email'       => $toEmail,
+      'contact_id'     => $contactID,
+      'disable_smarty' => 1,
+      'template_params' => $tplVars,
+      /*
+      'template_params' =>
+      [ 'foo' => 'hello',
+      // {$foo} in templates 'bar' => '123',
+      // {$bar} in templates ],
+      */
+      ];
+
+    try {
+      civicrm_api3('MessageTemplate', 'send', $params);
+    }
+    catch (\Exception $e) {
+      // Log silently.
+      Civi::log()->error("Failed to send MessageTemplate with params: " . json_encode($params, JSON_PRETTY_PRINT) . " Caught " . get_class($e) . ": " . $e->getMessage());
+    }
   }
   /**
    * Load petition details for editing.
@@ -966,7 +1037,7 @@ class GrassrootsPetition extends InlayType {
     // The slug is stored as custom data on the case.
     $case = CaseWrapper::fromSlug($slug);
     if (!$case) {
-      throw new ApiException(400, ['publicError' => 'Petition not found.']);
+      throw new ApiException(400, ['publicError' => 'Petition not found. If you have just created a petition, it will be available as soon as it has been moderated by staff.']);
     }
 
     switch ($case->getCaseStatus()) {
