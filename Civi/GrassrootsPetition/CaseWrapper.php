@@ -5,7 +5,10 @@ use Civi\Inlay\GrassrootsPetition;
 use CRM_Core_DAO;
 use Civi\Api4\OptionValue;
 use Civi\Api4\GrassrootsPetitionCampaign;
+use League\CommonMark\CommonMarkConverter;
 use Civi;
+
+require_once 'vendor/autoload.php';
 
 /**
  * Various sugar and convenience functions wrapping a Case of type GrassrootsPetition
@@ -21,6 +24,8 @@ class CaseWrapper {
   /** @var array Cache of the petition created activity */
   public $createdActivity;
 
+  /** @var CommonMarkConverter */
+  public $markdownConverter;
   /** @var Array */
   public static $activityTypesByName;
 
@@ -272,6 +277,10 @@ class CaseWrapper {
   }
   public function __construct() {
     static::init();
+    $this->markdownConverter = new CommonMarkConverter([
+      'html_input'         => 'strip',
+      'allow_unsafe_links' => false,
+    ]);
   }
   public static function init() {
 
@@ -444,16 +453,24 @@ class CaseWrapper {
   /**
    * Returns the text details of *what* the people who sign have signed up for.
    */
-  public function getWhat() :string {
+  public function getWhat(bool $html=TRUE) :string {
     $this->mustBeLoaded();
-    return $this->getCustomData('grpet_what') ?? '';
+    $text = $this->getCustomData('grpet_what') ?? '';
+    if ($html) {
+      $text = $this->markdownConverter->convertToHtml($text);
+    }
+    return $text;
   }
   /**
    * Returns the details of *why* people should sign, this is the intro text.
    */
-  public function getWhy() :string {
+  public function getWhy(bool $html=TRUE) :string {
     $this->mustBeLoaded();
-    return $this->getCustomData('grpet_why') ?? '';
+    $text = $this->getCustomData('grpet_why') ?? '';
+    if ($html) {
+      $text = $this->markdownConverter->convertToHtml($text);
+    }
+    return $text;
   }
   /**
    * Updates are activities of the 'Grassroots Petition progress' type

@@ -866,8 +866,8 @@ class GrassrootsPetition extends InlayType {
       'title'            => $case->getPetitionTitle(),
       'targetName'       => $case->getCustomData('grpet_target_name'),
       'who'              => $case->getCustomData('grpet_who'),
-      'what'             => $case->getWhat(),
-      'why'              => $case->getWhy(),
+      'what'             => $case->getWhat(FALSE), // get raw markdown
+      'why'              => $case->getWhy(FALSE),  // get raw markdown
       'targetCount'      => $case->getCustomData('grpet_target_count'),
       'location'         => $case->getCustomData('grpet_location'),
       // campaigLabel not needed.
