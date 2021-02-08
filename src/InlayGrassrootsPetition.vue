@@ -229,7 +229,7 @@
 
     <div class="grpet-social" v-if="showTheForm">
       <h2>Share this petition</h2>
-      <inlay-socials icons=1 :socials="inlay.initData.socials" :button-style="inlay.initData.socialStyle" ></inlay-socials>
+      <inlay-socials icons=1 :socials="petitionSocials" :button-style="inlay.initData.socialStyle" ></inlay-socials>
     </div>
 
   </div>
@@ -466,6 +466,14 @@ export default {
     return d;
   },
   computed: {
+    petitionSocials() {
+      return [
+        { name: 'facebook' },
+        { name: 'twitter', tweet: this.publicData.tweet },
+        { name: 'email', subject: this.publicData.petitionTitle },
+        { name: 'whatsapp', whatsappText: this.publicData.petitionTitle },
+      ];
+    },
     filteredPetitions() {
       return this.petitions.filter(p => {
         if (this.filters.campaignID && p.campaignID != this.filters.campaignID) {

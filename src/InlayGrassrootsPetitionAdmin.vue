@@ -245,7 +245,7 @@
           :id="myId + 'petitionImage'"
           :disabled="$root.submissionRunning"
           />
-        <div class="field-help" >Make sure you upload a <em>landscape</em> image (i.e. wider than it is tall), otherwise important parts of the image might be cropped. Ideally your image should be 16:9 ratio and over 1000px wide.</div>
+        <div class="field-help" >Make sure you upload a <em>landscape</em> image (i.e. wider than it is tall), otherwise important parts of the image might be cropped. Ideally your image should be 1200x628.</div>
         <label :for="myId + 'petitionImageAlt'">Alternative text for paritally-sighted and blind people</label>
         <input
           type="text"
@@ -312,7 +312,7 @@
             :id="myId + 'updatePetitionImage'"
             :disabled="$root.submissionRunning"
             />
-          <div class="field-help" >Make sure you upload a <em>landscape</em> image (i.e. wider than it is tall), otherwise important parts of the image might be cropped. Ideally your image should be 16:9 ratio and over 1000px wide.</div>
+          <div class="field-help" >Make sure you upload a <em>landscape</em> image (i.e. wider than it is tall), otherwise important parts of the image might be cropped. Ideally your image should be 1200x628px.</div>
 
           <label :for="myId + 'petitionImageAlt'">Alternative text for paritally-sighted and blind people</label>
           <input

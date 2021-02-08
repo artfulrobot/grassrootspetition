@@ -958,9 +958,11 @@ class CaseWrapper {
     }
     $srcImage = $imageLoadFunction($src);
     // Calculate new size.
-    // We need images that are 1000px wide.
-    $newW = 1000;
-    $ratio = 16/9;
+    // We need images that are 1200px wide.
+    $newW = 1200;
+    // This ratio is for twitter and facebook (Feb 2021) but Twitter
+    // (summary_large_card) will chop the top and bottom 15px.
+    $ratio = 1200/628;
 
     $maxH = (int) ($newW / $ratio);
     $newH = (int) ($imgProperties[1] * $newW / $imgProperties[0]);
@@ -968,7 +970,7 @@ class CaseWrapper {
     $copyW = $imgProperties[0]; // copy full width
     $copyH = $imgProperties[1]; // copy full height
     if ($newH > $maxH) {
-      // Image is taller than 16:9 ratio.
+      // Image is taller than ratio.
       // We will take a crop from the middle.
       $offsetY = (int) (($imgProperties[1] - $imgProperties[0]/$ratio)/2);
       $copyH = (int) ($copyW / $ratio);
