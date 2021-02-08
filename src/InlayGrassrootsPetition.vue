@@ -546,6 +546,14 @@ export default {
       return;
     }
 
+    // We need the public data.
+    if (window.grpetPreload && window.grpetPreload.publicData.slug === this.petitionSlug) {
+      // Preloaded!
+      this.publicData = window.grpetPreload.publicData;
+      this.stage = 'form';
+      return;
+    }
+
     // Submit a request for the petition.
     progress.startTimer(5, 100, {reset: 1});
     this.inlay.request({method: 'get', body: { need: 'publicData', petitionSlug: this.petitionSlug }})
