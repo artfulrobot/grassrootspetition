@@ -555,7 +555,7 @@ export default {
     }
 
     // We need the public data.
-    if (window.grpetPreload && window.grpetPreload.publicData.slug === this.petitionSlug) {
+    if (window.grpetPreload && window.grpetPreload.publicData && window.grpetPreload.publicData.slug && window.grpetPreload.publicData.slug === this.petitionSlug) {
       // Preloaded!
       this.publicData = window.grpetPreload.publicData;
       this.stage = 'form';
