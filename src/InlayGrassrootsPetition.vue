@@ -92,6 +92,7 @@
         <ometer :count="publicData.signatureCount"
            :target="publicData.targetCount"
            :stretch-target="stretchTarget"
+           :last-signer="publicData.lastSigner"
            stmt="Signatures"></ometer>
 
         <div v-if="acceptingSignatures && stage === 'form'">

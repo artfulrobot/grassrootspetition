@@ -9,11 +9,12 @@
       <span v-show="stretchTarget && stretchTarget > target" class="stretch">Original target ({{target.toLocaleString()}}) exceeded! Let’s go for {{stretchTarget.toLocaleString()}}</span>
       <span v-show="!stretchTarget || stretchTarget < target" class="original">Target {{target.toLocaleString()}}</span>
     </span>
+    <div class="ipetometer__last" v-show="lastSigner" >Last signed by {{lastSigner.name}}, {{lastSigner.ago}}</div>
   </div>
 </template>
 <script>
 export default {
-  props: ['count', 'stmt', 'target', 'stretchTarget'],
+  props: ['count', 'stmt', 'target', 'stretchTarget', 'lastSigner'],
   data() {
     return {
       animStart: false,
@@ -115,6 +116,11 @@ export default {
   .ipetometer__target {
     flex: 0 0 auto;
     font-size: 1rem;
+  }
+  .ipetometer__last {
+    font-weight: normal;
+    font-size: 0.825rem;
+    padding-top: 0.5rem;
   }
 }
 </style>

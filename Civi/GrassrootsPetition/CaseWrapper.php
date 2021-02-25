@@ -389,6 +389,7 @@ class CaseWrapper {
       'imageAlt'         => $mainImage['imageAlt'],
       'updates'          => $this->getPublicUpdates(),
       'signatureCount'   => $this->getPetitionSigsCount(),
+      'lastSigner'       => $this->getLastSigner(),
       // @todo expose these on the Inlay Config
       'consentIntroHTML' => '<p>Get emails about this campaign and from People & Planet on our current and future projects, campaigns and appeals. There’s a link to unsubscribe at the bottom of each email update. <a href="https://peopleandplanet.org/privacy">Privacy Policy</a></p>',
       'consentYesText'   => 'Yes please',
@@ -583,6 +584,56 @@ class CaseWrapper {
     $count = (int) CRM_Core_DAO::singleValueQuery($sql);
 
     return $count;
+  }
+  /**
+   * Returns the name and 'ago' statement.
+   *
+   */
+  public function getLastSigner() :array {
+    $this->mustBeLoaded();
+    // Count the 'Grassroots Petition signed' petitions.
+    $signedActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition signed']['value'];
+    if (!$signedActivityTypeID) {
+      throw new \RuntimeException("Failed to identify Grassroots Petition signed activity type. Check installation.");
+    }
+
+    $caseID = (int) $this->case['id'];
+
+    // Count signed activities on this case from live contacts (i.e. exclude deleted contacts).
+    $sql = "
+      SELECT a.activity_date_time, c.first_name
+      FROM civicrm_activity a
+      INNER JOIN civicrm_case_activity ca ON a.id = ca.activity_id AND ca.case_id = $caseID
+      INNER JOIN civicrm_activity_contact ac ON ac.activity_id = a.id AND ac.record_type_id = 3 /* target */
+      INNER JOIN civicrm_contact c ON ac.contact_id = c.id AND c.is_deleted = 0
+      WHERE a.activity_type_id = $signedActivityTypeID
+        AND a.is_deleted = 0
+      ORDER BY a.id DESC
+      LIMIT 1
+    ";
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    if ($dao->fetch()) {
+      $x = time() - strtotime($dao->activity_date_time);
+      if ($x < 60) {
+        $ago = "$x seconds ago";
+      }
+      else if ($x < 60*60) {
+        // up to 59 mins.
+        $x = (int) ($x/60);
+        $ago = "$x minutes ago";
+      }
+      else if ($x < 24*60*60) {
+        // up to 23 horus
+        $x = (int) ($x/60/60);
+        $ago = "$x hours ago";
+      }
+      else {
+        $x = (int) ($x/60/60/24);
+        $ago = "$x days ago";
+      }
+      return ['name' => $dao->first_name, 'ago' => $ago];
+    }
+    return ['name' => '', 'ago' => ''];
   }
   /**
    * Return the name (or other value) of the case status from its value.
