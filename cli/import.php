@@ -7,7 +7,7 @@ use Civi\Api4\GrassrootsPetitionCampaign;
 use Civi\GrassrootsPetition\CaseWrapper;
 
 /*
- * Run this with: cv scr removeAllData.php
+ * Run this with: cv scr import.php
  */
 if (php_sapi_name() !== 'cli') {
   http_response_code(404);
@@ -20,6 +20,7 @@ class Importer {
    * @see https://docs.google.com/spreadsheets/d/1T1IOQ0OipfoCN-ng-DNMxHpKubUALvhHrGXsXpjf5_A/edit#gid=1906811397
    */
   public $toImport = [
+    /*
     ['Fossil Free: divestment', 'Stop Barclays Funding Fossil Fuels', 'https://act.peopleandplanet.org/petitions/barclays-bank-boycott-barclays?source=homepage&utm_medium=promotion&utm_source=homepage', 'YES'],
     ['Fossil Free: divestment', 'LSBU: Divest From Fossil Fuels', 'https://act.peopleandplanet.org/petitions/lsbu-divest-from-fossil-fuels', 'NO'],
     ['Fossil Free: divestment', 'End Barclays Sponsorship: Divest Pride', 'https://act.peopleandplanet.org/petitions/end-barclays-sponsorship-divest-pride', 'NO'],
@@ -53,6 +54,8 @@ class Importer {
     ['Workers Rights', 'Make Surrey’s Tech Ethical', 'https://act.peopleandplanet.org/petitions/make-surrey-s-tech-ethical'],
     ['Workers Rights', 'University of Wales, Trinity St. David Go Sweatshop Free - Join Electronics Watch', 'https://act.peopleandplanet.org/petitions/university-of-wales-trinity-st-david-go-sweatshop-free-join-electronics-watch'],
     ['Workers Rights', 'Stop Union Busting in the Electronics Industry', 'https://act.peopleandplanet.org/petitions/stop-union-busting-in-the-electronics-industry'],
+     */
+    ['Migration', 'KCL Undoing Borders', 'https://act.peopleandplanet.org/petitions/kcl-undoing-borders', 'YES'],
   ];
 
   /**
