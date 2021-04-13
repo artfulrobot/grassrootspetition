@@ -422,6 +422,11 @@ class GrassrootsPetition extends InlayType {
 
     if ($data['optin'] === 'yes') {
       $case->recordConsent($contactID, $data);
+
+      // Thank you.
+      if (!empty($this->config['thanksMsgTplID'])) {
+        $this->sendMsgTpl($contactID, $data['email'], $this->config['thanksMsgTplID']);
+      }
     }
 
     // xxx
@@ -440,10 +445,6 @@ class GrassrootsPetition extends InlayType {
     }
      */
 
-    // Thank you.
-    if (!empty($this->config['thanksMsgTplID'])) {
-      $this->sendMsgTpl($contactID, $data['email'], $this->config['thanksMsgTplID']);
-    }
 
     // No error
     return '';
@@ -1037,7 +1038,7 @@ class GrassrootsPetition extends InlayType {
     // The slug is stored as custom data on the case.
     $case = CaseWrapper::fromSlug($slug);
     if (!$case) {
-      throw new ApiException(400, ['publicError' => 'Petition not found. If you have just created a petition, it will be available as soon as it has been moderated by staff.']);
+      throw new ApiException(400, ['publicError' => 'Petition not ' . $slug . ' found. If you have just created a petition, it will be available as soon as it has been moderated by staff.']);
     }
 
     switch ($case->getCaseStatus()) {
