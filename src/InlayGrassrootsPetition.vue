@@ -648,6 +648,10 @@ export default {
           }
           // update signature count
           this.publicData.signatureCount++;
+          this.publicData.lastSigner = {
+            name: this.first_name,
+            ago: 'just now'
+          };
           this.stage = 'thanksShareAsk';
         })
         .catch(e => {
