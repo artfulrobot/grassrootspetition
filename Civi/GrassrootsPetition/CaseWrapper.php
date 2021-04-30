@@ -1076,11 +1076,19 @@ class CaseWrapper {
       'options' => ['limit' => 1, 'sort' => 'id'],
     ]);
     if (!empty($original['id'])) {
+      Civi::log("Found original attachment $original[id], deleting it now.");
       civicrm_api3('Attachment', 'delete', [
         'id' => $original['id']
       ]);
+
+      $filePath = $this->getFile('path', NULL);
+      if (file_exists($filePath)) {
+        Civi::log("Deleting original public file $filePath so new one shines through.");
+        unlink($filePath);
+      }
     }
 
+    Civi::log("Creating new attachment on activity $activity[id] image type $imageFileType file $filename");
     civicrm_api3('Attachment', 'create', [
       'entity_table' => 'civicrm_activity',
       'entity_id' => $activity['id'],
