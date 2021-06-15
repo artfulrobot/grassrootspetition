@@ -257,7 +257,7 @@ class CaseWrapper {
     $params = [
       'case_type_id' => 'grassrootspetition',
       'status_id' => ['IN' => [
-        static::$caseStatusesByName['grpet_Pending']['value'],
+        // static::$caseStatusesByName['grpet_Pending']['value'],
         static::$caseStatusesByName['Open']['value'],
       ]],
       'is_deleted' => 0,
