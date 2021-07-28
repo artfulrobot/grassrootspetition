@@ -1,0 +1,39 @@
+site_name: Grassroots Petition Inlay
+repo_url: https://github.com/artfulrobot/grassrootspetition
+site_description: 'Grassroots Petition Inlay'
+site_author: 'Rich Lott / Artful Robot'
+theme:
+  name:
+    material
+
+nav:
+- Home: index.md
+- Tutorials:
+  - Intro: tutorial/index.md
+  - Petition Lifecycle: tutorial/lifecycle.md
+- How To: howto/index.md
+- Discussion:
+  - Intro: discussion/index.md
+  - Auth: discussion/auth.md
+  - Sanitisation: discussion/sanitisation.md
+- Reference:
+  - Intro: reference/index.md
+  - URLs: reference/urls.md
+
+markdown_extensions:
+  - attr_list
+  - admonition
+  - def_list
+  - pymdownx.highlight:
+      guess_lang: False
+  - toc:
+      permalink: True
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.tilde
+  - pymdownx.betterem
+  - pymdownx.mark
+
+plugins:
+  - search:
+      lang: en
