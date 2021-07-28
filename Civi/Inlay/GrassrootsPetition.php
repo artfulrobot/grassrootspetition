@@ -46,11 +46,15 @@ class GrassrootsPetition extends InlayType {
   public static $defaultConfig = [
     'thanksMsgTplID'   => NULL,
     // Socials v1.2 {{{
-    'socials'          => ['twitter', 'facebook', 'email', 'whatsapp'],
-    'socialStyle'      => 'col-buttons', // col-buttons|col-icon|'',
-    'tweet'            => '',
-    'whatsappText'     => '',
+    'socials'            => ['twitter', 'facebook', 'email', 'whatsapp'],
+    'socialStyle'        => 'col-buttons', // col-buttons|col-icon|'',
+    'tweet'              => '',
+    'whatsappText'       => '',
     // }}}
+    'consentIntroHTML'   => '<p>Get emails about this campaign and from People & Planet on our current and future projects, campaigns and appeals. There’s a link to unsubscribe at the bottom of each email update. <a href="https://peopleandplanet.org/privacy">Privacy Policy</a></p>',
+    'consentNoWarning'   => 'If you’re not already subscribed you won’t hear about the success (or otherwise!) of this campaign. Sure?',
+    'thanksShareAskHTML' => '<h2>Thanks, please share this petition</h2><p>Thanks for signing. Can you share to help amplify your voice?</p>',
+    'thanksFinalHTML'    => '<h2>Thanks, can you donate?</h2><p>Can you chip in to help People &amp; Planet’s campaigns?</p><p><a class="button primary" href="/donate">Donate</a></p>',
   ];
 
   /**
@@ -234,7 +238,14 @@ class GrassrootsPetition extends InlayType {
   public function processGetPublicDataRequest(ApiRequest $request) {
     $case = $this->getCaseWrapperFromRequest($request);
     // Extract what we need from the case.
-    return ['publicData' => $case->getPublicData()];
+    $return = ['publicData' => $case->getPublicData()];
+    $return['publicData'] += [
+      'consentIntroHTML'   => $this->config['consentIntroHTML'],
+      'consentNoWarning'   => $this->config['consentNoWarning'],
+      'thanksShareAskHTML' => $this->config['thanksShareAskHTML'],
+      'thanksFinalHTML'    => $this->config['thanksFinalHTML'],
+    ];
+    return $return;
   }
   /**
    * Handle signature submission.
@@ -421,7 +432,8 @@ class GrassrootsPetition extends InlayType {
     }
 
     if ($data['optin'] === 'yes') {
-      $case->recordConsent($contactID, $data);
+      // xxx @todo remove this hard coded value; implement in config. Also conseider per-campaign. (per petition even)
+      $case->recordConsent($contactID, $data, $this->config['groupID'] ?? 62);
 
       // Thank you.
       if (!empty($this->config['thanksMsgTplID'])) {

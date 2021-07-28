@@ -522,12 +522,11 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
    * @return TRUE on success
    * @throws Exception
    */
-  // public function upgrade_4200() {
-  //   $this->ctx->log->info('Applying update 4200');
-  //   CRM_Core_DAO::executeQuery('UPDATE foo SET bar = "whiz"');
-  //   CRM_Core_DAO::executeQuery('DELETE FROM bang WHERE willy = wonka(2)');
-  //   return TRUE;
-  // }
+  public function upgrade_0001() {
+    $this->ctx->log->info('Applying update 0001');
+    $this->executeSqlFile('sql/upgrade_0001.sql');
+    return TRUE;
+  }
 
 
   /**

@@ -13,6 +13,45 @@
         />
     </div>
 
+    <div crm-ui-field="{name: 'inlayForm.consentIntroHTML', title: ts('Consent intro text')}">
+      <textarea
+        crm-ui-id="inlayForm.consentIntroHTML"
+        crm-ui-richtext
+        name="consentIntroHTML"
+        ng-model="inlay.config.consentIntroHTML"
+        class="crm-form-text"
+        ></textarea>
+    </div>
+
+    <div crm-ui-field="{name: 'inlayForm.consentNoWarning', title: ts('Warning text to show if signer chooses No to updates.')}">
+      <textarea
+        crm-ui-id="inlayForm.consentNoWarning"
+        name="consentNoWarning"
+        ng-model="inlay.config.consentNoWarning"
+        class="crm-form-text"
+        ></textarea>
+    </div>
+
+    <div crm-ui-field="{name: 'inlayForm.thanksShareAskHTML', title: ts('After signing, text inviting to share/donate')}">
+      <textarea
+        crm-ui-id="inlayForm.thanksShareAskHTML"
+        crm-ui-richtext
+        name="thanksShareAskHTML"
+        ng-model="inlay.config.thanksShareAskHTML"
+        class="crm-form-text"
+        ></textarea>
+      <p>Note: the user will see this text, then the selected socials buttons, and also a <em>Skip</em> link.</p>
+    </div>
+
+    <div crm-ui-field="{name: 'inlayForm.thanksShareAskHTML', title: ts('Text to show if the signer chooses Skip')}">
+      <textarea
+        crm-ui-id="inlayForm.thanksFinalHTML"
+        crm-ui-richtext
+        name="thanksFinalHTML"
+        ng-model="inlay.config.thanksFinalHTML"
+        class="crm-form-text"
+        ></textarea>
+    </div>
     <!-- Socials v1.2 {{{ -->
     <h3>Social Media</h3>
 
@@ -86,6 +125,7 @@
                 value="{{g.id}}">{{g.msg_title}}</option>
       </select>
     </div>
+
 
     <div>
       <button ng-click="save()">{{ts('Save')}}</button>

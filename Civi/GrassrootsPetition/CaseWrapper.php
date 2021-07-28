@@ -184,6 +184,54 @@ class CaseWrapper {
       'activity_date_time' => date('Y-m-d H:i:s'),
     ]);
 
+    if (!empty($campaign['notify_contact_id'])) {
+
+      // Nb. the MessageTemplate API won't let you search by name(!)
+      $msgTplID = civicrm_api3('MessageTemplate', 'getsingle', ['return' => 'id', 'msg_title' => 'Grassroots Petition New Petition Notification'])['id'];
+
+      $toEmail = $campaign['notify_email'] ?? NULL;
+
+      $from = civicrm_api3('OptionValue', 'getvalue', [ 'return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
+      if ($toEmail === NULL) {
+        // Look up primary email.
+        $toEmail = civicrm_api3('Email', 'get', [
+          'contact_id' => $campaign['notify_contact_id'],
+          'on_hold' => 0,
+          'sequential' => 1,
+          'return' => ['email'],
+          'options' => ['sort' => "is_primary DESC"],
+        ])['values'][0]['email'] ?? NULL;
+        if (!$toEmail) {
+          throw new ApiException(500, ['publicError' => 'Sorry, this petition is misconfigured. Please contact us. (EM2)'],
+            "GrassrootsPetition: Notify contact ({$campaign['notify_contact_id']}) has no valid email, "
+            ."cannot notify about new petition (CaseID " . $case->getID() . ")"
+          );
+        }
+      }
+
+      $params = [
+        'id'             => $msgTplID,
+        'from'           => $from,
+        'to_email'       => $toEmail,
+        'contact_id'     => $campaign['notify_contact_id'],
+        'disable_smarty' => 1,
+        'template_params' => [ 'campaignName' => $campaign['label'] ]
+      ];
+
+      try {
+        civicrm_api3('MessageTemplate', 'send', $params);
+      }
+      catch (\Exception $e) {
+        // Log silently.
+        throw new ApiException(500,
+          ['publicError' => 'Sorry, there was a problem notifying staff about the new petition. Please contact us. (EM3)'],
+          "GrassrootsPetition: Failed to send notification of new petitoin email: " . json_encode($params) . " on case "
+          . $case->getID()
+        );
+      }
+
+    }
+
     return $case;
   }
 
@@ -390,13 +438,9 @@ class CaseWrapper {
       'updates'          => $this->getPublicUpdates(),
       'signatureCount'   => $this->getPetitionSigsCount(),
       'lastSigner'       => $this->getLastSigner(),
-      // @todo expose these on the Inlay Config
-      'consentIntroHTML' => '<p>Get emails about this campaign and from People & Planet on our current and future projects, campaigns and appeals. There’s a link to unsubscribe at the bottom of each email update. <a href="https://peopleandplanet.org/privacy">Privacy Policy</a></p>',
+      // @todo possibly expose these on the Inlay Config?
       'consentYesText'   => 'Yes please',
       'consentNoText'    => 'No, don’t add me',
-      'consentNoWarning' => 'If you’re not already subscribed you won’t hear about the success (or otherwise!) of this campaign. Sure?',
-      'thanksShareAskHTML'   => '<h2>Thanks, please share this petition</h2><p>Thanks for signing. Can you share to help amplify your voice?</p>',
-      'thanksDonateAskHTML'  => '<h2>Thanks, can you donate?</h2><p>Can you chip in to help People &amp; Planet’s campaigns?</p><p><a class="button primary" href="/donate">Donate</a></p>',
     ];
 
     return $public;
@@ -854,7 +898,7 @@ class CaseWrapper {
    *
    * @return int Activity ID created.
    */
-  public function recordConsent(int $contactID, array $data) :void {
+  public function recordConsent(int $contactID, array $data, ?int $groupID) :void {
 
     if (class_exists('CRM_Gdpr_CommunicationsPreferences_Utils')) {
       \CRM_Gdpr_CommunicationsPreferences_Utils::createCommsPrefActivity($contactID,
@@ -868,9 +912,11 @@ class CaseWrapper {
 
 
     // todo extract this from the petition side of things; use a hook.
-    // Add them to the P&P newsletter
-    $groupID = 62; // xxx remove hard coded value!
-    list($total, $added, $notAdded) = \CRM_Contact_BAO_GroupContact::addContactsToGroup([$contactID], $groupID, 'Web', 'Added');
+    // Add them to the newsletter
+
+    if ($groupID) {
+      list($total, $added, $notAdded) = \CRM_Contact_BAO_GroupContact::addContactsToGroup([$contactID], $groupID, 'Web', 'Added');
+    }
 
     // Add them to the email consent group
     $emailConsentGroup = \Civi\Api4\Group::get(FALSE)
@@ -879,7 +925,7 @@ class CaseWrapper {
         ->execute()
         ->first()['id'] ?? NULL;
     if (!$emailConsentGroup) {
-      Civi::log()->error("Failed to find consent_all_email Group; was going to add contact $contactID into it as they signed up.");
+      Civi::log()->warning("Failed to find consent_all_email Group; was going to add contact $contactID into it as they signed up.");
     }
     else {
       list($total, $added, $notAdded) = \CRM_Contact_BAO_GroupContact::addContactsToGroup([$contactID], $emailConsentGroup, 'Web', 'Added');
@@ -893,7 +939,7 @@ class CaseWrapper {
           ->execute()
           ->first()['id'] ?? NULL;
       if (!$phoneConsentGroup) {
-        Civi::log()->error("Failed to find consent_all_phone Group; was going to add contact $contactID into it as they signed up.");
+        Civi::log()->warning("Failed to find consent_all_phone Group; was going to add contact $contactID into it as they signed up.");
       }
       else {
         list($total, $added, $notAdded) = \CRM_Contact_BAO_GroupContact::addContactsToGroup([$contactID], $phoneConsentGroup, 'Web', 'Added');
@@ -1012,7 +1058,7 @@ class CaseWrapper {
     // We need images that are 1200px wide.
     $newW = 1200;
     // This ratio is for twitter and facebook (Feb 2021) but Twitter
-    // (summary_large_card) will chop the top and bottom 15px.
+    // (summary_large_image) will chop the top and bottom 15px.
     $ratio = 1200/628;
 
     $maxH = (int) ($newW / $ratio);

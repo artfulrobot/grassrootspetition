@@ -37,7 +37,7 @@
   <div ng-show="stage=='editCampaign' && campaignBeingEdited">
     <h2>{{ts(campaignBeingEdited.id > 0 ? 'Edit campaign' : 'Create new campaign')}}</h2>
 
-    <form name="camp" crm-ui-id-scope>
+    <form name="camp" crm-ui-id-scope ng-submit="save()">
       <div crm-ui-field="{name: 'camp.name', title: ts('Name (internal)') }">
         <input
           crm-ui-id="camp.name"
@@ -121,10 +121,32 @@
         <p>This forms part of petitions' URLs. For example if you had a campaign called <em>Decolonising Tech</em> and you gave it a slug of <em>decolonising-tech</em>, and someone created a petition called <em>Ditch Master-Slave Terminology in Databases</em> then their petition would be available at <em>www.example.org/petitions/decolonising-tech/ditch-master-slave-terminology-in-databases</em>. It’s suggested that you use all lower case letters, hyphens to separate words, since this is easiest to read and type.</p>
       </div>
 
+      <div crm-ui-accordion="{title: ts('Who to notify about new petitions')}">
+        <div crm-ui-field="{name: 'camp.notify_contact_id', title: ts('Select (staff) contact to notify')}">
+          <input
+            crm-entityref="{entity: 'Contact', select: {allowClear:true}}"
+            crm-ui-id="camp.notify_contact_id"
+            name="notify_contact_id"
+            ng-model="campaignBeingEdited.notify_contact_id"
+            />
+        </div>
+
+        <div crm-ui-field="{name: 'camp.notifyEmail', title: ts('Email address to use for notification (if not the primary email of the contact chosen above)')}">
+          <input
+            type="email"
+            crm-ui-id="camp.notify_email"
+            name="notify_email"
+            ng-model="campaignBeingEdited.notify_email"
+            class="crm-form-text"
+            placeholder="{{ts('e.g. projectX@example.org')}}"
+            />
+        </div>
+      </div>
+
       <div>
         <button ng-click="campaignBeingEdited = null; stage='listCampaigns';">{{ts('Cancel')}}</button>
         &nbsp;
-        <button ng-click="save()">{{ts('Save')}}</button>
+        <button ng-click="">{{ts('Save')}}</button>
       </div>
 
     </form>

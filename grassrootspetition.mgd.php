@@ -30,4 +30,16 @@ return [
       'is_reserved' => 1,
     ],
   ],
+  [
+    'name' => 'grpet_notify_new_petition',
+    'entity' => 'MessageTemplate',
+    'params' => [
+      'version' => 3,
+      "msg_title" => "Grassroots Petition New Petition Notification",
+      "msg_subject" => "New petition requires moderation",
+      "msg_html" => "<p>Hi {contact.first_name},</p>\r\n\r\n<p>A new {\$campaignName} petition on the has been created that needs you to check and publish it.</p>\r\n\r\n<p>Please visit the petitions page at <strong>Cases » Grassroots Petitions</strong> to check for this and any other petitions needing moderation.</p><p>{domain.name}</p>",
+      "is_active" => "1",
+      'is_reserved' => 1,
+    ],
+  ],
 ];

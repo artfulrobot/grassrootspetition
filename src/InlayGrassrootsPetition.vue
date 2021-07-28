@@ -72,10 +72,10 @@
     </div>
 
     <form class="petition-form" action='#' @submit.prevent="submitForm" v-if="showTheForm">
+
       <div class="petition-info">
         <div class="petition-titles">
           <h1>{{publicData.petitionTitle}}</h1>
-
           <h2>To: {{publicData.targetName}}</h2>
         </div>
 
@@ -83,9 +83,7 @@
           <img :src="publicData.imageUrl" :alt="publicData.imageAlt" />
         </div>
 
-        <div class="petition-why" v-html="publicData.petitionWhyHTML"></div>
         <div class="petition-what" v-html="publicData.petitionWhatHTML"></div>
-        <div class="petition-who" >Organisers: <em>{{publicData.organiser}}</em>.</div>
 
       </div>
       <div class="petition-form">
@@ -203,20 +201,24 @@
           </div>
           <inlay-progress ref="submitProgress"></inlay-progress>
         </div><!-- end if acceptingSignatures -->
+
         <div v-show="stage === 'thanksShareAsk'" >
           <div v-html="publicData.thanksShareAskHTML"></div>
 
           <inlay-socials icons=1 :socials="inlay.initData.socials" :button-style="inlay.initData.socialStyle" ></inlay-socials>
 
-          <p><a href @click.prevent="stage='thanksDonateAsk'" >Skip sharing</a></p>
+          <p><a href @click.prevent="stage='thanksFinalHTML'" >Skip</a></p>
 
         </div>
-        <div v-show="stage === 'thanksDonateAsk'" >
-          <div v-html="publicData.thanksDonateAskHTML"></div>
+
+        <div v-show="stage === 'thanksFinalHTML'" >
+          <div v-html="publicData.thanksFinalHTML"></div>
         </div>
       </div><!-- end .petition-form -->
     </form>
 
+    <div class="petition-why" v-html="publicData.petitionWhyHTML"></div>
+    <div class="petition-who" >Organisers: <em>{{publicData.organiser}}</em>.</div>
     <div class="grpet-updates" v-if="(publicData.updates || {length:0}).length > 0">
       <h2>Updates</h2>
       <div v-for="update in publicData.updates" class="update">
@@ -230,7 +232,7 @@
 
     <div class="grpet-social" v-if="showTheForm">
       <h2>Share this petition</h2>
-      <inlay-socials icons=1 :socials="petitionSocials" :button-style="inlay.initData.socialStyle" ></inlay-socials>
+      <inlay-socials icons=1 :socials="inlay.initData.socials" :button-style="inlay.initData.socialStyle" ></inlay-socials>
     </div>
 
   </div>
@@ -340,7 +342,7 @@
 
   // Petition form page
 
-  $colgap: 2rem;
+  $colgap: 3rem;
   $flexgap: ($colgap/2);
   // Accessibly swap presentation order of titles.
   .petition-titles {
@@ -355,7 +357,9 @@
     flex-wrap: wrap;
     padding:0;
     margin: 0 (-$flexgap) 2rem;
+    border-bottom: solid 1px #ddd;
   }
+  .ipetometer { margin-top: 1rem; }
   .petition-image {
     margin-bottom: 1rem;
     img { max-width: 100%; height:auto; display:block; }
@@ -397,10 +401,10 @@
     padding-bottom: 2rem;
   }
   .petition-what {
-    font-weight: bold;
-    padding-bottom: 2rem;
+    padding-bottom: 1rem;
   }
   .petition-who {
+    margin-bottom: 1rem;
   }
 
   .grpet-updates {
@@ -467,6 +471,7 @@ export default {
     return d;
   },
   computed: {
+    /*
     petitionSocials() {
       return [
         { name: 'facebook' },
@@ -475,6 +480,7 @@ export default {
         { name: 'whatsapp', whatsappText: this.publicData.petitionTitle },
       ];
     },
+    */
     filteredPetitions() {
       return this.petitions.filter(p => {
         if (this.filters.campaignID && p.campaignID != this.filters.campaignID) {
@@ -511,7 +517,7 @@ export default {
       return (this.publicData.signatureCount > this.publicData.targetCount);
     },
     showTheForm() {
-      return ['form', 'thanksShareAsk', 'thanksDonateAsk'].includes(this.stage);
+      return ['form', 'thanksShareAsk', 'thanksFinalHTML'].includes(this.stage);
     },
     submissionRunning() {
       return this.$root.submissionRunning;

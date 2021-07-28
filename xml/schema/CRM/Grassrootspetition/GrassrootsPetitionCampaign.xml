@@ -71,4 +71,23 @@
     <comment>HTML template for the title of new petitions</comment>
   </field>
 
+  <field>
+    <name>notify_contact_id</name>
+    <type>int unsigned</type>
+    <comment>FK to Contact to notify about new petitions</comment>
+  </field>
+  <foreignKey>
+    <name>notify_contact_id</name>
+    <table>civicrm_contact</table>
+    <key>id</key>
+    <onDelete>CASCADE</onDelete>
+  </foreignKey>
+
+  <field>
+    <name>notify_email</name>
+    <type>varchar</type>
+    <length>255</length>
+    <comment>Email address to notify about new petitions</comment>
+  </field>
+
 </table>

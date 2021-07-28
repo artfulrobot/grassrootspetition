@@ -48,14 +48,7 @@
     $scope.campaignBeingEdited = null;
     $scope.CRM = CRM;
 
-    $scope.editCampaign = function(campaign) {
-      if (campaign) {
-        $scope.campaignBeingEdited = Object.assign({}, campaign);
-        $scope.campaignBeingEdited.is_active = campaign.is_active ? '1' : '0';
-      }
-      else {
-        // New campaign
-        $scope.campaignBeingEdited = {
+    const emptyCampaign = {
           id: 0,
           name: '',
           label: '',
@@ -65,7 +58,17 @@
           template_why : '',
           template_title : '',
           slug : '',
+          notify_contact_id:'',
+          notify_email:'',
         };
+    $scope.editCampaign = function(campaign) {
+      if (campaign) {
+        $scope.campaignBeingEdited = Object.assign({}, emptyCampaign, campaign);
+        $scope.campaignBeingEdited.is_active = campaign.is_active ? '1' : '0';
+      }
+      else {
+        // New campaign
+        $scope.campaignBeingEdited = Object.assign({}, emptyCampaign);
       }
       $scope.stage = 'editCampaign';
     };
