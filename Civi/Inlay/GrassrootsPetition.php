@@ -136,6 +136,8 @@ class GrassrootsPetition extends InlayType {
   /**
    * Generates data to be served with the Javascript application code bundle.
    *
+   * Nb. this data is used for all petitions. So the tweet is the default tweet.
+   *
    * @return array
    */
   public function getInitData() {

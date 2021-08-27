@@ -205,7 +205,10 @@
         <div v-show="stage === 'thanksShareAsk'" >
           <div v-html="publicData.thanksShareAskHTML"></div>
 
-          <inlay-socials icons=1 :socials="inlay.initData.socials" :button-style="inlay.initData.socialStyle" ></inlay-socials>
+          <inlay-socials
+            icons=1
+            :socials="socials"
+            :button-style="inlay.initData.socialStyle" ></inlay-socials>
 
           <p><a href @click.prevent="stage='thanksFinalHTML'" >Skip</a></p>
 
@@ -232,12 +235,16 @@
 
     <div class="grpet-social" v-if="showTheForm">
       <h2>Share this petition</h2>
-      <inlay-socials icons=1 :socials="inlay.initData.socials" :button-style="inlay.initData.socialStyle" ></inlay-socials>
+      <inlay-socials icons=1
+        :socials="socials"
+        :button-style="inlay.initData.socialStyle"
+        ></inlay-socials>
     </div>
 
   </div>
 </template>
 <style lang="scss">
+@use "sass:math";
 .grpet {
   padding-top: 2rem;
 
@@ -343,7 +350,7 @@
   // Petition form page
 
   $colgap: 3rem;
-  $flexgap: ($colgap/2);
+  $flexgap: math.div($colgap, 2);
   // Accessibly swap presentation order of titles.
   .petition-titles {
     display: flex;
@@ -527,6 +534,17 @@ export default {
         return true;
       }
       return false;
+    },
+    socials() {
+      // Take deep copy.
+      let s = JSON.parse(JSON.stringify(this.inlay.initData.socials));
+
+      // If the petition has configured tweet text, use that
+      if (this.publicData.tweet) {
+        s.find(i => i.name === 'twitter').tweet = this.publicData.tweet;
+      }
+
+      return s;
     }
   },
   mounted() {

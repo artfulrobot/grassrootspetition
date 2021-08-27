@@ -2,6 +2,7 @@ let mix = require('laravel-mix');
 
 mix
   .js('src/inlaygrpet.js', 'dist/inlaygrpet.js')
+  .vue({version: 2})
 ;
 
 // Full API

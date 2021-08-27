@@ -420,7 +420,7 @@
     margin-bottom: 1rem;
   }
   .field-help {
-    font-size: (14rem/16);
+    font-size: 0.875rem;
     margin-bottom: 1rem;
   }
 
@@ -442,7 +442,7 @@
       background: #f0f0f0;
       padding: 0.25rem 1rem;
       color: #555;
-      font-size: (14rem/16);
+      font-size: 0.875rem;
     }
   }
   .status {
