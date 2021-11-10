@@ -8,7 +8,7 @@ use Civi\Api4\GrassrootsPetitionCampaign;
 use League\CommonMark\CommonMarkConverter;
 use Civi;
 
-require_once 'vendor/autoload.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 /**
  * Various sugar and convenience functions wrapping a Case of type GrassrootsPetition

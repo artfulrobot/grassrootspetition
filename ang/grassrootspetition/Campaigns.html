@@ -143,6 +143,41 @@
         </div>
       </div>
 
+      <br/>
+
+      <div crm-ui-accordion="{title: ts('Thank you/confirmation email overrides')}">
+        <p>If provided, these email templates will be used in preference to a globally configured one for people who sign petitions for <strong>this campaign</strong>.
+          However, if there is a petition-specific one, that would override this.</p>
+
+        <div crm-ui-field="{name: 'camp.thanks_msg_template_id', title: ts('Thank you email (consent)')}">
+          <select
+            crm-ui-select="{allowClear:true, dropdownAutoWidth: true}"
+            ng-model="campaignBeingEdited.thanks_msg_template_id"
+            name="thanks_msg_template_id"
+            style="width: 100%"
+            >
+            <option value="">(no campaign-specific message)</option>
+            <option ng-repeat="g in messageTpls"
+                    value="{{g.id}}">{{g.msg_title}}</option>
+          </select>
+          <p>This email will be sent to people who <strong>opt-in</strong>, so it can contain "marketing" content if you need it to.</p>
+        </div>
+
+        <div crm-ui-field="{name: 'camp.confirm_msg_template_id', title: ts('Thank you email (no consent)')}">
+          <select
+            crm-ui-select="{allowClear:true, dropdownAutoWidth: true}"
+            ng-model="campaignBeingEdited.confirm_msg_template_id"
+            name="confirm_msg_template_id"
+            style="width: 100%"
+            >
+            <option value="">(no campaign-specific message)</option>
+            <option ng-repeat="g in messageTpls"
+                    value="{{g.id}}">{{g.msg_title}}</option>
+          </select>
+          <p>This email will be sent to people who <strong>do not opt-in</strong>, so it cannot contain "marketing" content but can be used to confirm signing etc.</p>
+        </div>
+      </div>
+
       <div>
         <button ng-click="campaignBeingEdited = null; stage='listCampaigns';">{{ts('Cancel')}}</button>
         &nbsp;

@@ -58,12 +58,14 @@ CREATE TABLE `civicrm_grpet_campaign` (
      `template_why` longtext    COMMENT 'HTML template for the \'Why\' of new petitions',
      `template_title` varchar(255)    COMMENT 'HTML template for the title of new petitions',
      `notify_contact_id` int unsigned    COMMENT 'FK to Contact to notify about new petitions',
-     `notify_email` varchar(255)    COMMENT 'Email address to notify about new petitions' 
+     `notify_email` varchar(255)    COMMENT 'Email address to notify about new petitions',
+     `thanks_msg_template_id` int unsigned    COMMENT 'FK to MessageTemplate for opted-in signers of this campaign',
+     `confirm_msg_template_id` int unsigned    COMMENT 'FK to MessageTemplate for not-opted-in signers of this campaign' 
 ,
         PRIMARY KEY (`id`)
  
  
-,          CONSTRAINT FK_civicrm_grpet_campaign_notify_contact_id FOREIGN KEY (`notify_contact_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE  
+,          CONSTRAINT FK_civicrm_grpet_campaign_notify_contact_id FOREIGN KEY (`notify_contact_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE,          CONSTRAINT FK_civicrm_grpet_campaign_thanks_msg_template_id FOREIGN KEY (`thanks_msg_template_id`) REFERENCES `civicrm_msg_template`(`id`) ON DELETE SET NULL,          CONSTRAINT FK_civicrm_grpet_campaign_confirm_msg_template_id FOREIGN KEY (`confirm_msg_template_id`) REFERENCES `civicrm_msg_template`(`id`) ON DELETE SET NULL  
 )  ENGINE=InnoDB  ;
 
  

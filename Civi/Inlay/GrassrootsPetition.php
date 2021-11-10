@@ -45,6 +45,7 @@ class GrassrootsPetition extends InlayType {
 
   public static $defaultConfig = [
     'thanksMsgTplID'   => NULL,
+    'confirmMsgTplID'   => NULL,
     // Socials v1.2 {{{
     'socials'            => ['twitter', 'facebook', 'email', 'whatsapp'],
     'socialStyle'        => 'col-buttons', // col-buttons|col-icon|'',
@@ -406,6 +407,7 @@ class GrassrootsPetition extends InlayType {
       throw new \Civi\Inlay\ApiException(400, ['error' => 'Petition not found'],
         "Failed to load case with ID " . json_encode($data['case_id']));
     }
+    $campaign = $case->getCampaign();
 
     // Find Contact with XCM.
     // @todo source?
@@ -433,32 +435,35 @@ class GrassrootsPetition extends InlayType {
       \CRM_Gdpr_SLA_Utils::recordSLAAcceptance($contactID);
     }
 
+    $msgTplID = NULL;
     if ($data['optin'] === 'yes') {
       // xxx @todo remove this hard coded value; implement in config. Also conseider per-campaign. (per petition even)
       $case->recordConsent($contactID, $data, $this->config['groupID'] ?? 62);
 
-      // Thank you.
-      if (!empty($this->config['thanksMsgTplID'])) {
-        $this->sendMsgTpl($contactID, $data['email'], $this->config['thanksMsgTplID']);
+      // Select marketing-safe thank you email.
+      $msgTplID = $case->getCustomData('grpet_thanks_msg_template_id');
+      if (!$msgTplID) {
+        $msgTplID = $campaign['thanks_msg_template_id'] ?? NULL;
+      }
+      if (!$msgTplID) {
+        $msgTplID = $this->config['thanksMsgTplID'] ?? NULL;
+      }
+
+    }
+    else {
+      // No consent/opt-in, but do we still want to send a non-marketing confirmation
+      $msgTplID = $case->getCustomData('grpet_confirm_msg_template_id');
+      if (!$msgTplID) {
+        $msgTplID = $campaign['confirm_msg_template_id'] ?? NULL;
+      }
+      if (!$msgTplID) {
+        $msgTplID = $this->config['confirmMsgTplID'] ?? NULL;
       }
     }
 
-    // xxx
-    // Handle optin.
-    /*
-    if (!empty($this->config['mailingGroup'])) {
-      $optinMode = $this->config['optinMode'];
-
-      // If there was no optin (e.g. signup form)
-      // or if the user actively checked/selected yes, then sign up.
-      if ($optinMode === 'none'
-        || ($data['optin'] ?? 'no') === 'yes') {
-        // Add contact to the group.
-        $this->addContactToGroup($contactID);
-      }
+    if ($msgTplID) {
+      $this->sendMsgTpl($contactID, $data['email'], $msgTplID);
     }
-     */
-
 
     // No error
     return '';
@@ -734,7 +739,7 @@ class GrassrootsPetition extends InlayType {
     // Validate the data into the $valid array.
     $valid = [];
     // For create AND for edit we need these:
-    $valid['why'] = $this->requireSimpleText($body['why'] ?? '', 50000, "why");
+    $valid['why'] = $this->requireSimpleText($body['why'] ?? '', 50000, "why", TRUE);
     $valid['title'] = $this->requireSimpleText($body['title'] ?? '', 255, "title");
     $valid['who'] = $this->requireSimpleText($body['who'] ?? '', 255, "who");
     $valid['targetCount'] = (int)($body['targetCount'] ?? 0);
@@ -746,7 +751,7 @@ class GrassrootsPetition extends InlayType {
       // We need more data for a new petition.
       $valid['targetName'] = $this->requireSimpleText($body['targetName'] ?? '', 255, "target name");
       $valid['location'] = $this->requireSimpleText($body['location'] ?? '', 255, "location");
-      $valid['what'] = $this->requireSimpleText($body['what'] ?? '', 50000, "what");
+      $valid['what'] = $this->requireSimpleText($body['what'] ?? '', 50000, "what", TRUE);
       $valid['campaign'] = $campaign['label'];
     }
 
@@ -832,7 +837,7 @@ class GrassrootsPetition extends InlayType {
       }
     }
 
-    // We use the email send in the data, as that's what they'd expect.
+    // We use the "to" email sent in the data, as that's what they'd expect.
     $params = [
       'id'             => $msgTplID,
       'from'           => $from,
@@ -1074,14 +1079,15 @@ class GrassrootsPetition extends InlayType {
    *
    * @throws ApiException
    */
-  public static function requireSimpleText($text, ?int $maxLength=NULL, string $src='') :string {
+  public static function requireSimpleText($text, ?int $maxLength=NULL, string $src='', bool $allowLinks=FALSE) :string {
     if (empty($text) || !is_string($text) || trim($text) === '') {
       throw new ApiException(400, ['publicError' => "Invalid $src. (ST1)"],
         "$src failed validation");
     }
     // Is a string.
     $text = trim($text);
-    if (preg_match('@([<>]|http|//)@', $text)) {
+    $disallowed = $allowLinks ? '@[<>]@' : '@([<>]|http|//)@';
+    if (preg_match($disallowed, $text)) {
       throw new ApiException(400, ['publicError' => "Invalid $src. (ST2)"],
         "$src contains special chars or http");
     }

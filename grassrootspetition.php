@@ -181,3 +181,40 @@ function grassrootspetition_civicrm_navigationMenu(&$menu) {
   ]);
   _grassrootspetition_civix_navigationMenu($menu);
 }
+/**
+ * Implements hook_civicrm_buildForm
+ * https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_buildForm/
+ *
+ * This converts what would be a <input type=text> to a searchable select2 field for the two email template overrides.
+ */
+function grassrootspetition_civicrm_buildForm($formName, &$form) {
+  \Civi::log()->info($formName);
+  if ($formName === 'CRM_Case_Form_CustomData') {
+    CRM_Core_Region::instance('form-bottom')->add([
+      'jquery' => <<<JAVASCRIPT
+          // confirm email
+          $('[name="custom_112_3"]').crmEntityRef({
+            entity: 'MessageTemplate',
+            api: {
+              search_field: 'msg_title',
+              label_field: 'msg_title',
+              description_field: 'msg_subject',
+              params: { is_active: 1 },
+            },
+            create: false
+          });
+          // thanks email
+          $('[name="custom_111_3"]').crmEntityRef({
+            entity: 'MessageTemplate',
+            api: {
+              search_field: 'msg_title',
+              label_field: 'msg_title',
+              description_field: 'msg_subject',
+              params: { is_active: 1 },
+            },
+            create: false
+          });
+        JAVASCRIPT
+    ]);
+  }
+}

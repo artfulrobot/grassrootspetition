@@ -113,7 +113,7 @@
     <!-- }}} -->
 
 
-    <div crm-ui-field="{name: 'inlayForm.thanksMsgTplID', title: ts('Thank you email')}">
+    <div crm-ui-field="{name: 'inlayForm.thanksMsgTplID', title: ts('Thank you email (consent)')}">
       <select
         crm-ui-select="{allowClear:true, dropdownAutoWidth: true}"
         ng-model="inlay.config.thanksMsgTplID"
@@ -124,8 +124,22 @@
         <option ng-repeat="g in messageTpls"
                 value="{{g.id}}">{{g.msg_title}}</option>
       </select>
+      <p>This email will be sent to people who <strong>opt-in</strong>, so it can contain "marketing" content if you need it to. This email will only be sent if there is not a specific one defined for the campaign or petition.</p>
     </div>
 
+    <div crm-ui-field="{name: 'inlayForm.confirmMsgTplID', title: ts('Thank you email (no consent)')}">
+      <select
+        crm-ui-select="{allowClear:true, dropdownAutoWidth: true}"
+        ng-model="inlay.config.confirmMsgTplID"
+        name="confirmMsgTplID"
+        style="width: 100%"
+        >
+        <option value="">(do not send an email)</option>
+        <option ng-repeat="g in messageTpls"
+                value="{{g.id}}">{{g.msg_title}}</option>
+      </select>
+      <p>This email will be sent to people who <strong>do not opt-in</strong>, so it cannot contain "marketing" content but can be used to confirm signing etc. This email will only be sent if there is not a specific one defined for the campaign or petition.</p>
+    </div>
 
     <div>
       <button ng-click="save()">{{ts('Save')}}</button>

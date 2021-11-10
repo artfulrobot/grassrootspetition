@@ -15,7 +15,6 @@
                 withStats: true,
                 orderBy: {is_active: 'DESC', name: 'ASC'}
               }],
-              /*
               messageTpls: [ 'MessageTemplate', 'get', {
                 select: ["id", "msg_title", "msg_subject"],
                 where: [
@@ -24,7 +23,6 @@
                 ],
                 orderBy: {msg_title: 'ASC'}},
                 'id']
-                */
             };
             return crmApi4(params);
           },
@@ -47,6 +45,7 @@
     $scope.stage = 'listCampaigns';
     $scope.campaignBeingEdited = null;
     $scope.CRM = CRM;
+    $scope.messageTpls = various.messageTpls;
 
     const emptyCampaign = {
           id: 0,
@@ -60,6 +59,8 @@
           slug : '',
           notify_contact_id:'',
           notify_email:'',
+          thanks_msg_template_id: null,
+          confirm_msg_template_id: null,
         };
     $scope.editCampaign = function(campaign) {
       if (campaign) {

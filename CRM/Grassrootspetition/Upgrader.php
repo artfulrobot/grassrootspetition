@@ -307,8 +307,6 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     // Why, What
     // (originally stored as case details, but there's no UI for that field, which begins as a copy of the open case activity)
     // Decided it was simpler to just put it on a custom field
-
-    $x=1;
     $baseParams = [
       'custom_group_id' => $customGroupIDPetition,
       'name'            => "grpet_who",
@@ -349,6 +347,35 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
       'html_type'       => "TextArea",
       'note_rows'       => 3,
       'note_columns'    => 40,
+      'is_required'     => 0,
+    ];
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
+
+    // Mailing overrides
+    $baseParams = [
+      'custom_group_id' => $customGroupIDPetition,
+      'name'            => "grpet_thanks_msg_template_id",
+    ];
+    $allParams = [
+      'column_name'     => "thanks_msg_template_id",
+      'label'           => "Thank you email override (opted-in)",
+      'data_type'       => "Integer",
+      'html_type'       => 'Text',
+      'is_searchable'   => 0,
+      'is_required'     => 0,
+    ];
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
+
+    $baseParams = [
+      'custom_group_id' => $customGroupIDPetition,
+      'name'            => "grpet_confirm_msg_template_id",
+    ];
+    $allParams = [
+      'column_name'     => "confirm_msg_template_id",
+      'label'           => "Thank you email override (not opted-in)",
+      'data_type'       => "Integer",
+      'html_type'       => 'Text',
+      'is_searchable'   => 0,
       'is_required'     => 0,
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
@@ -469,17 +496,22 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
   protected function createOrUpdate($entity, $baseParams, $allParams, $update=TRUE) {
     $results = civicrm_api3($entity, 'get', $baseParams);
 
+    $logPrefix = "createOrUpdate $entity with " . json_encode($baseParams);
+
     $params = $allParams;
     $debug_details = '';
     $count = $results['count'];
     if ($count === 1) {
       if (!$update) {
+        $this->ctx->log->info("$logPrefix: found entity $result[id], no change");
         return $results['id'];
       }
+      $this->ctx->log->info("$logPrefix: found entity $result[id], will call update");
       $params['id'] = $results['id'];
       $debug_details = 'update';
     }
     elseif ($count === 0) {
+      $this->ctx->log->info("$logPrefix: entity NOT found, will create");
       // Create.
       $params += $baseParams;
       $debug_details = 'create';
@@ -492,7 +524,8 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     if (!$id) {
       throw new \Exception("Failed to $debug_details '$entity' entity with: " . json_encode($params));
     }
-    return  $id;
+    $this->ctx->log->info("$logPrefix: created entity $id");
+    return $id;
   }
 
   /**
@@ -528,6 +561,20 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     return TRUE;
   }
 
+  /**
+   * Add a couple of fields.
+   *
+   * @return TRUE on success
+   * @throws Exception
+   */
+  public function upgrade_0002() {
+    $this->ctx->log->info('Applying update 0002');
+    $this->executeSqlFile('sql/upgrade_0002.sql');
+
+    $this->ctx->log->info('Applying update 0002: adding fields');
+    CRM_Core_Transaction::create()->run([$this, 'ensureDataStructuresExist']);
+    return TRUE;
+  }
 
   /**
    * Example: Run an external SQL script.

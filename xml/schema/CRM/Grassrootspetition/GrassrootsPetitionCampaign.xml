@@ -90,4 +90,28 @@
     <comment>Email address to notify about new petitions</comment>
   </field>
 
+  <field>
+    <name>thanks_msg_template_id</name>
+    <type>int unsigned</type>
+    <comment>FK to MessageTemplate for opted-in signers of this campaign</comment>
+  </field>
+  <foreignKey>
+    <name>thanks_msg_template_id</name>
+    <table>civicrm_msg_template</table>
+    <key>id</key>
+    <onDelete>SET NULL</onDelete>
+  </foreignKey>
+
+  <field>
+    <name>confirm_msg_template_id</name>
+    <type>int unsigned</type>
+    <comment>FK to MessageTemplate for not-opted-in signers of this campaign</comment>
+  </field>
+  <foreignKey>
+    <name>confirm_msg_template_id</name>
+    <table>civicrm_msg_template</table>
+    <key>id</key>
+    <onDelete>SET NULL</onDelete>
+  </foreignKey>
+
 </table>
