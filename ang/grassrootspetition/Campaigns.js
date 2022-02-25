@@ -46,6 +46,7 @@
     $scope.campaignBeingEdited = null;
     $scope.CRM = CRM;
     $scope.messageTpls = various.messageTpls;
+    $scope.templateImageFile = null;
 
     const emptyCampaign = {
           id: 0,
@@ -102,6 +103,48 @@
         $scope.campaignBeingEdited = null;
       });
     };
+
+    $scope.uploadNewImage = function (e) {
+      e.preventDefault();
+      const filesInput = document.getElementById('campaignImageFileUploadInput');
+      if (filesInput.files.length !== 1) {
+        alert("You need to select a file first.");
+        return;
+      }
+      console.log({filesInput});
+
+      d = {
+        campaignID: $scope.campaignBeingEdited.id,
+        fileName: filesInput.files[0].name,
+        data: '',
+      };
+
+      var p = new Promise((resolve, reject) => {
+        if (filesInput.files.length === 1) {
+          var fr = new FileReader();
+          fr.addEventListener('load', e => {
+            // File loaded.
+            console.log("File read ok");
+            d.data = fr.result;
+            resolve(d);
+          });
+          fr.readAsDataURL(filesInput.files[0]);
+        }
+      });
+      p.then((d) => {
+        return crmStatus(
+          // Status messages. For defaults, just use "{}"
+          {start: ts('Uploading...'), success: ts('Done')},
+          // The save action. Note that crmApi() returns a promise.
+          crmApi4('GrassrootsPetitionCampaign', 'uploadImage', d)
+        ).then(r => {
+          console.log("upload result", r);
+          $scope.campaignBeingEdited.template_image_url = r.image_url;
+          $scope.campaigns.find(c => c.id === $scope.campaignBeingEdited.id).template_image_url = r.image_url;
+        });
+      });
+    };
+
   });
 
 })(angular, CRM.$, CRM._);

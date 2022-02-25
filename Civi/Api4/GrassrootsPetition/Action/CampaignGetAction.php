@@ -27,6 +27,13 @@ class CampaignGetAction extends DAOGetAction {
     // Do the same as normal...
     parent::_run($result);
 
+    // Add in public image URI
+    $asset = \Civi\Inlay\Asset::singleton();
+    foreach ($result as &$campaign) {
+      $identifier = 'grassrootspetition_campaign_' . $campaign['id'] . '_default_image';
+      $campaign['template_image_url'] = $asset->getAssetUrl($identifier);
+    }
+
     // Now did we need stats?
     if (TRUE || $this->withStats) {
       // Gather campaign IDs.

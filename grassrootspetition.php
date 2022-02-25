@@ -193,7 +193,7 @@ function grassrootspetition_civicrm_buildForm($formName, &$form) {
     CRM_Core_Region::instance('form-bottom')->add([
       'jquery' => <<<JAVASCRIPT
           // confirm email
-          $('[name="custom_112_3"]').crmEntityRef({
+          $('[name^="custom_112_"]').crmEntityRef({
             entity: 'MessageTemplate',
             api: {
               search_field: 'msg_title',
@@ -204,7 +204,7 @@ function grassrootspetition_civicrm_buildForm($formName, &$form) {
             create: false
           });
           // thanks email
-          $('[name="custom_111_3"]').crmEntityRef({
+          $('[name^="custom_111_"]').crmEntityRef({
             entity: 'MessageTemplate',
             api: {
               search_field: 'msg_title',

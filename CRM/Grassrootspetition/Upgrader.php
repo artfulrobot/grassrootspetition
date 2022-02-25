@@ -577,6 +577,19 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
   }
 
   /**
+   * Add a template_image_alt field.
+   *
+   * @return TRUE on success
+   * @throws Exception
+   */
+  public function upgrade_0003() {
+    $this->ctx->log->info('Applying update 0003');
+    $this->executeSqlFile('sql/upgrade_0003.sql');
+    $this->ctx->log->info('Applying update 0003: added template_image_alt field');
+    return TRUE;
+  }
+
+  /**
    * Example: Run an external SQL script.
    *
    * @return TRUE on success
