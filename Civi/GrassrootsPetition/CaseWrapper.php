@@ -1213,13 +1213,22 @@ class CaseWrapper {
       }
       $activity['imageUrl'] = NULL;
       $activity['imageAlt'] = NULL;
+
+      // See if we can use the default campaign image here?
+      if (!empty($this->campaign['template_image_url'])) {
+        $activity['imageUrl'] = $this->campaign['template_image_url'];
+        $activity['imageAlt'] = $this->campaign['template_image_alt'] ?? '';
+      }
       return;
     }
 
     if (!file_exists($filePath)) {
       // File does not exist.
       Civi::log()->info("trying to create public image for " . json_encode($attachment, JSON_PRETTY_PRINT));
-      $tempFile = $this->createPublicImage($attachment['values'][$attachment['id']]);
+      try {
+        $tempFile = $this->createPublicImage($attachment['values'][$attachment['id']]);
+      }
+      catch (\Exception $e) {}
       if ($tempFile) {
         rename($tempFile, $filePath);
         Civi::log()->info("GrassrootsPetition: Created file '$filePath' for Case {$this->case['id']} on activity $activity[id]");

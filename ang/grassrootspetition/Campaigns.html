@@ -109,6 +109,23 @@
           ></textarea>
       </div>
 
+      <div class="ng-isolate-scope crm-section">
+        <div class="label"><label>Default image</label></div>
+        <div class="content">
+          <img style="float:right; margin-left: 1rem;max-width:17ch;height: auto;" src="{{campaignBeingEdited.template_image_url}}" />
+
+          <label for="campaignImageFileUploadInput" >Upload new image</label><br/>
+          <input id="campaignImageFileUploadInput" class="crm-form-text" type="file">
+          <button ng-click="uploadNewImage($event)" class="ng-scope"
+                                                    >Upload image</button>
+          <br/>
+          <br/>
+          <label crm-ui-for="camp.template_image_alt" >Accessibility text (for those who can't see the image)</label><br/>
+          <input crm-ui-id="camp.template_image_alt" name="template_image_alt" ng-model="campaignBeingEdited.template_image_alt" class="crm-form-text">
+        </div>
+        <div class="clear"></div><!-- yuk -->
+      </div>
+
       <div crm-ui-field="{name: 'camp.slug', title: ts('URL path component (“slug”)') }">
         <input
           crm-ui-id="camp.slug"

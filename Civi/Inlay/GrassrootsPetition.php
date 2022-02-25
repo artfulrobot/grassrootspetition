@@ -120,6 +120,20 @@ class GrassrootsPetition extends InlayType {
     return TRUE;
   }
   /**
+   * Return a list of assets used by this Inlay.
+   *
+   * We do not need to include our bundle file; Inlay itself looks after that.
+   */
+  public function getAssets() :array {
+    $campaignIDs = GrassrootsPetitionCampaign::get(FALSE)
+      ->addSelect('id')->execute()->column('id');
+    $assets = [];
+    foreach ($campaignIDs as $campaignID) {
+      $assets []= "grassrootspetition_campaign_{$campaignID}_default_image";
+    }
+    return $assets;
+  }
+  /**
    * Sets the config ensuring it's valid.
    *
    * This implementation simply ensures all the defaults exist, and that no
@@ -197,6 +211,7 @@ class GrassrootsPetition extends InlayType {
     $petitions = CaseWrapper::getPetitionsForPublic();
     $output = ['petitions' => [], 'campaigns' => []];
 
+    /** @var CaseWrapper $petition */
     foreach ($petitions as $petition) {
       $mainImage = $petition->getMainImage();
       $public = [
@@ -212,7 +227,6 @@ class GrassrootsPetition extends InlayType {
       if (!isset($output['campaigns'][$public['campaignID']])) {
         $output['campaigns'][$public['campaignID']] = $petition->getCampaign();
       }
-
 
       $output['petitions'][] = $public;
     }

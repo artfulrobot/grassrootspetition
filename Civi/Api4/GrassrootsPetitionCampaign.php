@@ -2,6 +2,7 @@
 namespace Civi\Api4;
 
 use Civi\Api4\GrassrootsPetition\Action\CampaignGetAction;
+use Civi\Api4\GrassrootsPetition\Action\CampaignUploadImageAction;
 
 /**
  * GrassrootsPetitionCampaign entity.
@@ -23,4 +24,14 @@ class GrassrootsPetitionCampaign extends Generic\DAOEntity {
       ->setCheckPermissions($checkPermissions);
   }
 
+  /**
+   * The factory method for the UploadImage action.
+   *
+   * @param bool $checkPermissions
+   * @return DAOGetAction
+   */
+  public static function uploadImage($checkPermissions = TRUE) {
+    return (new CampaignUploadImageAction(static::class, __FUNCTION__))
+      ->setCheckPermissions($checkPermissions);
+  }
 }
