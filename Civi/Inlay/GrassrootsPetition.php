@@ -443,9 +443,11 @@ class GrassrootsPetition extends InlayType {
       // Select marketing-safe thank you email.
       $msgTplID = $case->getCustomData('grpet_thanks_msg_template_id');
       if (!$msgTplID) {
+        Civi::log()->info("Did not find thanks_msg_template_id for petition " . $case->getID());
         $msgTplID = $campaign['thanks_msg_template_id'] ?? NULL;
       }
       if (!$msgTplID) {
+        Civi::log()->info("Did not find thanks_msg_template_id for campaign " . json_encode($campaign));
         $msgTplID = $this->config['thanksMsgTplID'] ?? NULL;
       }
 
