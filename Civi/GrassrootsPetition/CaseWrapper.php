@@ -1215,9 +1215,10 @@ class CaseWrapper {
       $activity['imageAlt'] = NULL;
 
       // See if we can use the default campaign image here?
-      if (!empty($this->campaign['template_image_url'])) {
-        $activity['imageUrl'] = $this->campaign['template_image_url'];
-        $activity['imageAlt'] = $this->campaign['template_image_alt'] ?? '';
+      $campaign = $this->getCampaign();
+      if (!empty($campaign['template_image_url'])) {
+        $activity['imageUrl'] = $campaign['template_image_url'];
+        $activity['imageAlt'] = $campaign['template_image_alt'] ?? '';
       }
       return;
     }
