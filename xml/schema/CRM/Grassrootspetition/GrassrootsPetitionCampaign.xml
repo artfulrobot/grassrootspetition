@@ -79,6 +79,13 @@
   </field>
 
   <field>
+    <name>template_tweet</name>
+    <type>varchar</type>
+    <length>512</length>
+    <comment>Default tweet for new petitions</comment>
+  </field>
+
+  <field>
     <name>notify_contact_id</name>
     <type>int unsigned</type>
     <comment>FK to Contact to notify about new petitions</comment>

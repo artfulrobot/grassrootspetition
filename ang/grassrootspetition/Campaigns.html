@@ -109,6 +109,16 @@
           ></textarea>
       </div>
 
+      <div crm-ui-field="{label: 'camp.template_tweet', title: ts('Default tweet for new campaigns (public)') }">
+        <textarea
+          crm-ui-id="camp.template_tweet"
+          name="template_tweet"
+          ng-model="campaignBeingEdited.template_tweet"
+          class="crm-form-text"
+          required
+          ></textarea>
+      </div>
+
       <div class="ng-isolate-scope crm-section">
         <div class="label"><label>Default image</label></div>
         <div class="content">

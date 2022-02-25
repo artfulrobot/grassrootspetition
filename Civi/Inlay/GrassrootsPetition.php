@@ -29,6 +29,7 @@ class GrassrootsPetition extends InlayType {
         'adminLoadPetition'  => 'processAdminLoadPetition',
         'adminLoadUpdates'   => 'processAdminLoadUpdates',
         'adminAddUpdate'     => 'processAdminAddUpdate',
+        'adminGetSignatures' => 'processAdminGetSignatures',
       ]
     ];
 
@@ -679,7 +680,7 @@ class GrassrootsPetition extends InlayType {
       ->execute();
     foreach ($campaigns as $campaign) {
       $response['campaigns'][] = array_intersect_key($campaign, array_flip([
-        'label', 'description', 'template_what', 'template_why', 'template_title'
+        'label', 'description', 'template_what', 'template_why', 'template_title', 'template_tweet',
       ]));
     }
 
@@ -1001,6 +1002,38 @@ class GrassrootsPetition extends InlayType {
 
     // Done.
     return ['success' => 1, 'petitions' => $this->getListOfPetitionsForContact($contactID)];
+  }
+  /**
+   * Download CSV of signatures
+   */
+  protected function processAdminGetSignatures(ApiRequest $request) {
+    $response = [];
+    $contactID = $this->checkAuthenticated($request, $response);
+    $body = $request->getBody();
+    $caseID = (int) ($body['petitionID'] ?? 0);
+    $case = NULL;
+    if ($caseID) {
+      // Editing an existing petition.
+      // Check that it belongs to this person.
+      $case = CaseWrapper::getPetitionsOwnedByContact($contactID, $caseID)[0] ?? NULL;
+    }
+    if (!$case) {
+      // This case does not exist, or is not owned by this contact.
+      throw new ApiException(400, ['publicError' => 'Invalid request. (AGS1)'], "Contact $contactID tried to get signatures for case $caseID which does not belong to them/does not exist.");
+    }
+
+    /** @var CaseWrapper $case */
+    $signatures = $case->getPetitionSigs(['name', 'email']);
+    $csv = '"Date", "Name", "Email"' . "\n";
+    foreach ($signatures as $signer) {
+      $csv .=
+        $signer['activity_date_time']
+        . ',"' . str_replace('"', '""', $signer['contact.display_name']) . '"'
+        . ',"' . str_replace('"', '""', $signer['email.email']) . "\"\n";
+    }
+
+    // Done.
+    return ['success' => 1, 'csv' => $csv];
   }
   /**
    * Returns the authenticated contactID, or throws a 401 ApiException

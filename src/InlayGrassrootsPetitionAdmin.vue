@@ -118,6 +118,7 @@
               <ul>
                 <li><a href @click.prevent="editPetition(petition)" >Edit petition (texts, targets etc.)</a></li>
                 <li><a href @click.prevent="updatePetition(petition)" >Provide updates, mark Won or Closed</a></li>
+                <li><a href @click.prevent="getSigs(petition)" >Download signatures</a></li>
                 <!-- Unimplemented <li><a href @click.prevent="createEmail(petition)" >Email signers</a></li> -->
               </ul>
             </div>
@@ -350,6 +351,22 @@
       </template>
 
     </div><!-- /addPetitionUpdate -->
+
+    <div
+      class="download-caution"
+      v-if="stage === 'downloadSigs'"
+    >
+      <h2>Download signatures</h2>
+      <p>You can download the names and emails of people who have signed this petition in a simple spreadsheet format (.csv).</p>
+      <p>CSV files can be opened in any spreadsheet application.</p>
+      <p><strong>This data is provided only so that you can prove support for your petition.</strong> This is <strong>personal data</strong> and as such
+        is protected by UK law. You should store this data securely, and delete it once you have submitted it for the purposes of the campaign.
+        <strong>You must NOT add these people to any mailing lists</strong> as they have NOT all opted-in to receive updates. If you wish
+        to send people who have opted in to updates an update, you can do so through this system, which will ensure that their
+        data is protected and provide them with opt-outs.</p>
+      </p>
+      <p><button @click.prevent="downloadSigs()" >Download CSV file</button></p>
+    </div>
 
     <div v-show="stage === 'loadingError'" class="grpet-error" >{{loadingError}}</div>
 
@@ -752,6 +769,47 @@ export default {
           alert("Sorry, there was an error: " + (r.publicError || 'Unknown error LP1'));
         }
       })
+    },
+    getSigs(petition) {
+      if (!petition.id) {
+        // New petition, nothing to load.
+        return;
+      }
+      this.stage = 'downloadSigs';
+      this.petitionBeingEdited = petition;
+      return;
+    },
+    downloadSigs() {
+      if (!this.petitionBeingEdited.id) {
+        // This should not happen.
+        return;
+      }
+
+      this.stage = 'loading';
+      this.loadingMessage = 'Loading data...';
+      const progress = this.$refs.loadingProgress;
+      progress.startTimer(20, 90, true);
+      this.authorisedRequest({ method: 'post', body: { need: 'adminGetSignatures', petitionID: this.petitionBeingEdited.id}})
+      .then(r => {
+        if (r.responseOk && r.success == 1 && r.csv) {
+          // Create the download.
+          // Construct a data URL.
+          progress.startTimer(10, 100, true);
+          let link = document.createElement('a');
+          link.href = URL.createObjectURL(new Blob([r.csv], { type: "text/csv;charset=utf8;" }));
+          link.download = 'petition-signatures.csv';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          progress.cancelTimer();
+        }
+        else {
+          progress.cancelTimer();
+          alert("Sorry, there was an error: " + (r.publicError || 'Unknown error LP1'));
+        }
+        this.stage = 'listPetitions';
+        this.petitionBeingEdited = null;
+      });
     },
     updatePetition(petition) {
       // Load exsting petition.

@@ -57,6 +57,8 @@
           template_what : '',
           template_why : '',
           template_title : '',
+          template_tweet : '',
+          template_image_alt' : '',
           slug : '',
           notify_contact_id:'',
           notify_email:'',

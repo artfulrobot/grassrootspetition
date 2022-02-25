@@ -58,6 +58,7 @@ CREATE TABLE `civicrm_grpet_campaign` (
      `template_why` longtext    COMMENT 'HTML template for the \'Why\' of new petitions',
      `template_title` varchar(255)    COMMENT 'HTML template for the title of new petitions',
      `template_image_alt` varchar(255)    COMMENT 'Alternative text for default campaign image',
+     `template_tweet` varchar(512)    COMMENT 'Default tweet for new petitions',
      `notify_contact_id` int unsigned    COMMENT 'FK to Contact to notify about new petitions',
      `notify_email` varchar(255)    COMMENT 'Email address to notify about new petitions',
      `thanks_msg_template_id` int unsigned    COMMENT 'FK to MessageTemplate for opted-in signers of this campaign',

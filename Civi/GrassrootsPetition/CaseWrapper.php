@@ -4,6 +4,7 @@ namespace Civi\GrassrootsPetition;
 use Civi\Inlay\GrassrootsPetition;
 use CRM_Core_DAO;
 use Civi\Api4\OptionValue;
+use Civi\Api4\Contact;
 use Civi\Api4\GrassrootsPetitionCampaign;
 use League\CommonMark\CommonMarkConverter;
 use Civi;
@@ -427,7 +428,6 @@ class CaseWrapper {
       'slug'             => $this->getCustomData('grpet_slug'),
       'targetCount'      => (int) $this->getCustomData('grpet_target_count'),
       'targetName'       => $this->getCustomData('grpet_target_name'),
-      'tweet'            => $this->getCustomData('grpet_tweet_text'),
       'petitionTitle'    => $this->getPetitionTitle(),
       'organiser'        => $this->getCustomData('grpet_who'),
       'petitionWhatHTML' => $this->getWhat(), // html?
@@ -442,6 +442,14 @@ class CaseWrapper {
       'consentYesText'   => 'Yes please',
       'consentNoText'    => 'No, don’t add me',
     ];
+
+    // Is there a tweet just for this campaign?
+    $public['tweet'] = $this->getCustomData('grpet_tweet_text');
+    // Is the tweet copied when the petition is created... I don't think so.
+    if (empty($public['tweet'])) {
+      // Use default campaign tweet if there's no petition-specific one.
+      $public['tweet'] = $this->getCampaign()['template_tweet'] ?? '';
+    }
 
     return $public;
   }
@@ -678,6 +686,56 @@ class CaseWrapper {
       return ['name' => $dao->first_name, 'ago' => $ago];
     }
     return ['name' => '', 'ago' => ''];
+  }
+  /**
+   * Returns all the data for the signatures
+   */
+  public function getPetitionSigs($fields = NULL) :array {
+    $this->mustBeLoaded();
+    // Count the 'Grassroots Petition signed' petitions.
+    $signedActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition signed']['value'];
+    if (!$signedActivityTypeID) {
+      throw new \RuntimeException("Failed to identify Grassroots Petition signed activity type. Check installation.");
+    }
+
+    $caseID = (int) $this->case['id'];
+
+    // Get ContactIDs.
+    $sql = "
+      SELECT a.id activity_id
+      FROM civicrm_activity a
+      INNER JOIN civicrm_case_activity ca ON a.id = ca.activity_id AND ca.case_id = $caseID
+      WHERE a.activity_type_id = $signedActivityTypeID
+        AND a.is_deleted = 0
+    ";
+    /** @var CRM_Core_DAO */
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    $activityIDs = $dao->fetchMap('activity_id', 'activity_id');
+
+    // Now do API4 request.
+    $selects = ['activity_date_time'];
+    foreach (($fields ?? ['name', 'email']) as $fieldRequested) {
+      $field = [
+        'name' => 'contact.display_name',
+        'email' => 'email.email',
+      ][$fieldRequested] ?? '';
+      if ($field) {
+        $selects[] = $field;
+      }
+    }
+
+    $activities = \Civi\Api4\Activity::get(FALSE)
+      ->addSelect(...$selects)
+      ->addWhere('id', 'IN', $activityIDs)
+      ->setJoin([
+        ['ActivityContact AS activity_contact', TRUE, NULL, ['id', '=', 'activity_contact.activity_id'], ['activity_contact.record_type_id', '=', 3]],
+        ['Contact AS contact', TRUE, NULL, ['activity_contact.contact_id', '=', 'contact.id'], ['contact.is_deleted', '=', 0], ['contact.is_deceased', '=', 0]],
+        ['Email AS email', FALSE, NULL, ['email.contact_id', '=', 'contact.id'], ['email.is_primary', '=', 1]],
+      ])
+      ->execute()->getArrayCopy()
+      ;
+
+    return $activities;
   }
   /**
    * Return the name (or other value) of the case status from its value.
