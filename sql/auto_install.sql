@@ -62,7 +62,9 @@ CREATE TABLE `civicrm_grpet_campaign` (
      `notify_contact_id` int unsigned    COMMENT 'FK to Contact to notify about new petitions',
      `notify_email` varchar(255)    COMMENT 'Email address to notify about new petitions',
      `thanks_msg_template_id` int unsigned    COMMENT 'FK to MessageTemplate for opted-in signers of this campaign',
-     `confirm_msg_template_id` int unsigned    COMMENT 'FK to MessageTemplate for not-opted-in signers of this campaign' 
+     `confirm_msg_template_id` int unsigned    COMMENT 'FK to MessageTemplate for not-opted-in signers of this campaign',
+     `download_permissions` varchar(128)    COMMENT 'What data can be downloaded by petition owners by default JSON array or empty to mean global defaults.',
+     `allow_mailings` varchar(8)   DEFAULT 'default' COMMENT 'Whether to allow mailings by default. Valid values are default/yes/no' 
 ,
         PRIMARY KEY (`id`)
  

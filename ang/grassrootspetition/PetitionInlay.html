@@ -87,7 +87,7 @@
       </li>
     </ul>
 
-    <div crm-ui-field="{name: 'inlayForm.tweet', title: ts('Suggested tweet')}"
+    <div crm-ui-field="{name: 'inlayForm.tweet', title: ts('Default suggested tweet (can be overridden at campaign and petition level)')}"
          ng-show="smActive('twitter')"
       >
       <textarea
@@ -111,7 +111,6 @@
         ></textarea>
     </div>
     <!-- }}} -->
-
 
     <div crm-ui-field="{name: 'inlayForm.thanksMsgTplID', title: ts('Thank you email (consent)')}">
       <select
@@ -139,6 +138,25 @@
                 value="{{g.id}}">{{g.msg_title}}</option>
       </select>
       <p>This email will be sent to people who <strong>do not opt-in</strong>, so it cannot contain "marketing" content but can be used to confirm signing etc. This email will only be sent if there is not a specific one defined for the campaign or petition.</p>
+    </div>
+
+    <!-- Download permissions -->
+    <div class="crm-section">
+      <div class="label"><label>Download signers</label></div>
+      <div class="content">
+        <p>What should petition owners be able to download, by default? You can override this per campaign and per petition.</p>
+        <div><label><input type=checkbox ng-model="downloadPermissions.name" /> Full names</label></div>
+        <div><label><input type=checkbox ng-model="downloadPermissions.email" /> Full email</label></div>
+      </div>
+    </div>
+
+    <!-- Mailing permissions -->
+    <div class="crm-section">
+      <div class="label"><label>Allow mailings?</label></div>
+      <div class="content">
+        <label><input type=checkbox ng-model="inlay.config.allowMailings" /> Allow Mailings</label>
+        <p>Should owners be allowed to create (draft) mailings to signers? This can be overridden on a campaign and petition basis.</p>
+      </div>
     </div>
 
     <div>

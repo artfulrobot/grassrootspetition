@@ -128,4 +128,22 @@
     <onDelete>SET NULL</onDelete>
   </foreignKey>
 
+  <field>
+    <name>download_permissions</name>
+    <type>varchar</type>
+    <length>128</length>
+    <comment>What data can be downloaded by petition owners by default JSON array or empty to mean global defaults.</comment>
+    <pseudoconstant>
+      <optionGroupName>grpet_download_permissions</optionGroupName>
+    </pseudoconstant>
+  </field>
+
+  <field>
+    <name>allow_mailings</name>
+    <type>varchar</type>
+    <length>8</length>
+    <comment>Whether to allow mailings by default. Valid values are default/yes/no</comment>
+    <default>'default'</default>
+  </field>
+
 </table>

@@ -13,7 +13,6 @@ external (i.e. non CiviCRM) websites.
 1. install
 
 
-
 ## About the docs
 
 

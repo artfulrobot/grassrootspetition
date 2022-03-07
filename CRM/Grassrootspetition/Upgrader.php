@@ -351,20 +351,69 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
-    // Mailing overrides
+    // Download override {{{
+    // Create the optiongroup
     $baseParams = [
-      'custom_group_id' => $customGroupIDPetition,
-      'name'            => "grpet_thanks_msg_template_id",
+      'name' => "grpet_download_permissions",
     ];
     $allParams = [
-      'column_name'     => "thanks_msg_template_id",
-      'label'           => "Thank you email override (opted-in)",
-      'data_type'       => "Integer",
-      'html_type'       => 'Text',
-      'is_searchable'   => 0,
-      'is_required'     => 0,
+      'title'     => "Grassroots Petition Download Permissions",
+      'data_type' => "String",
+      'is_active' => 1,
+      'is_reserved' => 1,
+      'is_locked' => 1, // We do not want people adding to this.
+    ];
+    $downloadOptionGroupID = $this->createOrUpdate('OptionGroup', $baseParams, $allParams);
+
+    // Create the options.
+    foreach ([
+      'override' => 'Override defaults',
+      'email' => 'Email',
+      'name' => 'Name',
+    ] as $name => $label) {
+
+      // We need the 'unallocated' option.
+      $baseParams = [
+        'option_group_id' => $downloadOptionGroupID,
+        'name'            => $name,
+      ];
+      $allParams = [
+        'label'           => $label,
+        'value'           => $name,
+      ];
+      $this->createOrUpdate('OptionValue', $baseParams, $allParams);
+    }
+
+    // Create the field that references the option group
+    $baseParams = [
+      'custom_group_id' => $customGroupIDPetition,
+      'name'            => 'grpet_download_permissions'
+    ];
+    $allParams = [
+      'label'           => "Download permissions",
+      'data_type'       => 'String',
+      'html_type'       => 'CheckBox',
+      'text_length'     => 255,
+      'column_name'     => 'download_permissions',
+      'option_group_id' => $downloadOptionGroupID,
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
+    // }}}
+
+    // Mailing override {{{
+    $baseParams = [
+      'custom_group_id' => $customGroupIDPetition,
+      'name'            => 'grpet_allow_mailings'
+    ];
+    $allParams = [
+      'label'           => "Allow mailings?",
+      'help_pre'        => 'Unset this field to use the default policy',
+      'data_type'       => 'Boolean',
+      'html_type'       => 'Radio',
+      'column_name'     => 'allow_mailings'
+    ];
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
+    // }}}
 
     $baseParams = [
       'custom_group_id' => $customGroupIDPetition,
@@ -380,8 +429,9 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
-
+    //
     // Create custom field group for the petition signed activity.
+    //
     $baseParams = [
       'name'       => 'grpet_signature',
       'table_name' => 'civicrm_grpet_signature',
@@ -586,6 +636,43 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     $this->ctx->log->info('Applying update 0003');
     $this->executeSqlFile('sql/upgrade_0003.sql');
     $this->ctx->log->info('Applying update 0003: added template_image_alt field');
+    return TRUE;
+  }
+
+  /**
+   * Add a template_tweet field.
+   *
+   * @return TRUE on success
+   * @throws Exception
+   */
+  public function upgrade_0004() {
+    $this->ctx->log->info('Applying update 0004');
+    $this->executeSqlFile('sql/upgrade_0004.sql');
+    $this->ctx->log->info('Applying update 0004: added template_tweet field');
+    return TRUE;
+  }
+  /**
+   * Add download permissions and mailing
+   *
+   * @return TRUE on success
+   * @throws Exception
+   */
+  public function upgrade_0005() {
+    $this->ctx->log->info('Applying update 0005');
+    $this->executeSqlFile('sql/upgrade_0005.sql');
+    $this->ctx->log->info('Applied update 0005');
+    return TRUE;
+  }
+
+  /**
+   * Add download permissions and mailing
+   *
+   * @return TRUE on success
+   * @throws Exception
+   */
+  public function upgrade_0006() {
+    $this->ctx->log->info('Applying update 0006');
+    $this->ensureDataStructuresExist();
     return TRUE;
   }
 

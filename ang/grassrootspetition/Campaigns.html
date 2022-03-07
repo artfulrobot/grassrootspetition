@@ -75,7 +75,6 @@
           name="description"
           ng-model="campaignBeingEdited.description"
           class="crm-form-text"
-          required
           ></textarea>
       </div>
 
@@ -85,7 +84,6 @@
           name="template_title"
           ng-model="campaignBeingEdited.template_title"
           class="crm-form-text"
-          required
           />
       </div>
 
@@ -95,7 +93,6 @@
           name="template_why"
           ng-model="campaignBeingEdited.template_why"
           class="crm-form-text"
-          required
           ></textarea>
       </div>
 
@@ -105,7 +102,6 @@
           name="template_what"
           ng-model="campaignBeingEdited.template_what"
           class="crm-form-text"
-          required
           ></textarea>
       </div>
 
@@ -115,8 +111,33 @@
           name="template_tweet"
           ng-model="campaignBeingEdited.template_tweet"
           class="crm-form-text"
-          required
           ></textarea>
+      </div>
+
+      <!-- Download permissions -->
+      <div class="crm-section">
+        <div class="label"><label>Download signers</label></div>
+        <div class="content">
+          <p>You can choose to override the global settings for this campaign. Note that you can also override these again on a per-petition basis.</p>
+          <div><label><input type=checkbox ng-model="camp.downloadPermissions.override" /> Override defaults</label></div>
+          <div ng-show="camp.downloadPermissions.override"><label><input type=checkbox ng-model="downloadPermissions.name" /> Full names</label></div>
+          <div ng-show="camp.downloadPermissions.override"><label><input type=checkbox ng-model="downloadPermissions.email" /> Full email</label></div>
+        </div>
+      </div>
+
+      <!-- Mailling permissions -->
+      <div crm-ui-field="{name: 'camp.allow_mailings', title: ts('Allow Mailings?')}">
+        <select
+          crm-ui-select="{allowClear:false, dropdownAutoWidth: true}"
+          ng-model="campaignBeingEdited.allow_mailings"
+          name="allow_mailings"
+          style="width: 100%"
+          >
+          <option value="default">(defer to global defaults)</option>
+          <option value="yes">Allow mailings by default for this campaign</option>
+          <option value="no">Disallow mailings by default for this campaign</option>
+        </select>
+        <p>You can override the global settings here, or not. This permission can also be overridden on a per-petition basis.</p>
       </div>
 
       <div class="ng-isolate-scope crm-section">
@@ -142,7 +163,6 @@
           name="slug"
           ng-model="campaignBeingEdited.slug"
           class="crm-form-text"
-          required
           placeholder="decolonising-tech"
           />
         <p>This forms part of petitions' URLs. For example if you had a campaign called <em>Decolonising Tech</em> and you gave it a slug of <em>decolonising-tech</em>, and someone created a petition called <em>Ditch Master-Slave Terminology in Databases</em> then their petition would be available at <em>www.example.org/petitions/decolonising-tech/ditch-master-slave-terminology-in-databases</em>. It’s suggested that you use all lower case letters, hyphens to separate words, since this is easiest to read and type.</p>

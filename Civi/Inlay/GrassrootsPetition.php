@@ -57,6 +57,8 @@ class GrassrootsPetition extends InlayType {
     'consentNoWarning'   => 'If you’re not already subscribed you won’t hear about the success (or otherwise!) of this campaign. Sure?',
     'thanksShareAskHTML' => '<h2>Thanks, please share this petition</h2><p>Thanks for signing. Can you share to help amplify your voice?</p>',
     'thanksFinalHTML'    => '<h2>Thanks, can you donate?</h2><p>Can you chip in to help People &amp; Planet’s campaigns?</p><p><a class="button primary" href="/donate">Donate</a></p>',
+    'downloadPermissions' => [], // ['name', 'email', ... ]
+    'allowMailings'      => FALSE,
   ];
 
   /**

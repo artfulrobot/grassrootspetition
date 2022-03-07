@@ -90,9 +90,22 @@
     // Call this in the save function: exportSocials(inlay.config);
     // }}}
 
+    // Unpack downloadPermissions
+    $scope.downloadPermissions = {
+      name: inlay.config.downloadPermissions.includes('name'),
+      email: inlay.config.downloadPermissions.includes('email'),
+    };
+
     $scope.save = function() {
 
       exportSocials(inlay.config);
+      // re-pack downloadPermissions
+      inlay.config.downloadPermissions = [];
+      ['name', 'email'].forEach(f => {
+        if ($scope.downloadPermissions[f]) {
+          inlay.config.downloadPermissions.push(f);
+        }
+      });
       console.log("Saving " + JSON.stringify(inlay));
 
       return crmStatus(

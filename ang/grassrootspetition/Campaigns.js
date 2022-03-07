@@ -58,12 +58,13 @@
           template_why : '',
           template_title : '',
           template_tweet : '',
-          template_image_alt' : '',
+          template_image_alt : '',
           slug : '',
           notify_contact_id:'',
           notify_email:'',
           thanks_msg_template_id: null,
           confirm_msg_template_id: null,
+          allow_mailings: 'default',
         };
     $scope.editCampaign = function(campaign) {
       if (campaign) {
