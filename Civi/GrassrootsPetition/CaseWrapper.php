@@ -1201,11 +1201,12 @@ class CaseWrapper {
       'entity_table' => 'civicrm_activity',
       'entity_id'    => $activity['id'],
       'options'      => ['limit' => 1, 'sort' => 'id'],
-    ]);
+      'sequential'   => 1,
+    ])['values'][0] ?? NULL;
 
     $filePath = $this->getFile('path', $updateActivityID);
 
-    if ($attachment['count'] == 0) {
+    if (empty($attachment)) {
       // No image.
       if (file_exists($filePath)) {
         unlink($filePath);
@@ -1227,7 +1228,7 @@ class CaseWrapper {
       // File does not exist.
       Civi::log()->info("trying to create public image for " . json_encode($attachment, JSON_PRETTY_PRINT));
       try {
-        $tempFile = $this->createPublicImage($attachment['values'][$attachment['id']]);
+        $tempFile = $this->createPublicImage($attachment);
       }
       catch (\Exception $e) {}
       if ($tempFile) {
