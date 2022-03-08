@@ -4438,21 +4438,41 @@ var render = function() {
                           )
                         ]),
                         _vm._v(" "),
-                        _c("li", [
-                          _c(
-                            "a",
-                            {
-                              attrs: { href: "" },
-                              on: {
-                                click: function($event) {
-                                  $event.preventDefault()
-                                  return _vm.getSigs(petition)
-                                }
-                              }
-                            },
-                            [_vm._v("Download signatures")]
-                          )
-                        ])
+                        petition.downloadPermissions
+                          ? _c("li", [
+                              _c(
+                                "a",
+                                {
+                                  attrs: { href: "" },
+                                  on: {
+                                    click: function($event) {
+                                      $event.preventDefault()
+                                      return _vm.getSigs(petition)
+                                    }
+                                  }
+                                },
+                                [_vm._v("Download signatures")]
+                              )
+                            ])
+                          : _vm._e(),
+                        _vm._v(" "),
+                        petition.allowMailings
+                          ? _c("li", [
+                              _c(
+                                "a",
+                                {
+                                  attrs: { href: "" },
+                                  on: {
+                                    click: function($event) {
+                                      $event.preventDefault()
+                                      return _vm.createEmail(petition)
+                                    }
+                                  }
+                                },
+                                [_vm._v("Email signers")]
+                              )
+                            ])
+                          : _vm._e()
                       ])
                     ])
                   ])

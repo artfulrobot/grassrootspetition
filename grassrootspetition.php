@@ -179,6 +179,14 @@ function grassrootspetition_civicrm_navigationMenu(&$menu) {
     'operator' => 'OR',
     'separator' => 0,
   ]);
+  _grassrootspetition_civix_insert_navigation_menu($menu, 'Cases', [
+    'label' => E::ts('Grassroots Petitions Settings'),
+    'name' => 'grpet_campaigns_admin',
+    'url' => 'civicrm/grassrootspetition/settings',
+    'permission' => 'access all cases and activities',
+    'operator' => 'OR',
+    'separator' => 0,
+  ]);
   _grassrootspetition_civix_navigationMenu($menu);
 }
 /**

@@ -118,8 +118,8 @@
               <ul>
                 <li><a href @click.prevent="editPetition(petition)" >Edit petition (texts, targets etc.)</a></li>
                 <li><a href @click.prevent="updatePetition(petition)" >Provide updates, mark Won or Closed</a></li>
-                <li><a href @click.prevent="getSigs(petition)" >Download signatures</a></li>
-                <!-- Unimplemented <li><a href @click.prevent="createEmail(petition)" >Email signers</a></li> -->
+                <li v-if="petition.downloadPermissions"><a href @click.prevent="getSigs(petition)" >Download signatures</a></li>
+                <li v-if="petition.allowMailings"><a href @click.prevent="createEmail(petition)" >Email signers</a></li>
               </ul>
             </div>
           </article>

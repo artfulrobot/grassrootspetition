@@ -34,6 +34,8 @@ petition ID which is in the link).
 Once you're authenticated, we assume it's safe to email you what could
 include personal data, and that you're not a spammer.
 
+The data is stored in the `civicrm_grpet_auth` table which maps a hash to a contactID with an expiry datetime.
+
 ## Spam risk?
 
 A spammer could steal a session token, then make post requests with that.

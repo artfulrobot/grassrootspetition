@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<menu>
+  <item>
+    <path>civicrm/grassrootspetition/settings</path>
+    <page_callback>CRM_Grassrootspetition_Form_Settings</page_callback>
+    <title>Grassroots Petition Settings</title>
+    <access_arguments>access all cases and activities</access_arguments>
+  </item>
+</menu>

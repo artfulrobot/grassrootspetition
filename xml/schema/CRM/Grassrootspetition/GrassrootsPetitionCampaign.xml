@@ -136,6 +136,7 @@
     <pseudoconstant>
       <optionGroupName>grpet_download_permissions</optionGroupName>
     </pseudoconstant>
+    <serialize>JSON</serialize>
   </field>
 
   <field>

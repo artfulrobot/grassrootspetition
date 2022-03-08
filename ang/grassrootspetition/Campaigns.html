@@ -119,9 +119,9 @@
         <div class="label"><label>Download signers</label></div>
         <div class="content">
           <p>You can choose to override the global settings for this campaign. Note that you can also override these again on a per-petition basis.</p>
-          <div><label><input type=checkbox ng-model="camp.downloadPermissions.override" /> Override defaults</label></div>
-          <div ng-show="camp.downloadPermissions.override"><label><input type=checkbox ng-model="downloadPermissions.name" /> Full names</label></div>
-          <div ng-show="camp.downloadPermissions.override"><label><input type=checkbox ng-model="downloadPermissions.email" /> Full email</label></div>
+          <div><label><input type=checkbox ng-model="campaignBeingEdited.downloadPermissions.override" /> Override defaults</label></div>
+          <div ng-show="campaignBeingEdited.downloadPermissions.override"><label><input type=checkbox ng-model="campaignBeingEdited.downloadPermissions.name" /> Full names</label></div>
+          <div ng-show="campaignBeingEdited.downloadPermissions.override"><label><input type=checkbox ng-model="campaignBeingEdited.downloadPermissions.email" /> Full email</label></div>
         </div>
       </div>
 
@@ -249,7 +249,7 @@
       </thead>
       <tbody>
         <tr ng-repeat="petition in selectedCampaign.stats.petitions" >
-          <td>{{petition.petitionTitle}}</td>
+          <td>{{petition.petitionTitle}} </td>
           <td>
             <span class="mod-petitions" ng-show="petition.petitionNeedsMod == 1" >
               <i class="fa-exclamation-triangle crm-icon crm-i"></i> 
@@ -267,7 +267,9 @@
             cid: petition.contactID,
             id: petition.caseID,
             action: 'view'
-            }) }}" >Manage</a></td>
+            }) }}" >Manage</a>
+            <a href ng-click="impersonate(petition)" title="Sends an admin person to the public website as if they had logged in as the owner of this petition. Use with caution." >Impersonate owner</a>
+          </td>
         </tr>
       </tbody>
     </table>

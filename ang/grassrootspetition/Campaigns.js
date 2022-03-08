@@ -69,7 +69,14 @@
     $scope.editCampaign = function(campaign) {
       if (campaign) {
         $scope.campaignBeingEdited = Object.assign({}, emptyCampaign, campaign);
+        // Swap out the download_permissions
+        $scope.campaignBeingEdited.downloadPermissions = {
+          override: ($scope.campaignBeingEdited.download_permissions || []).includes('override'),
+          email: ($scope.campaignBeingEdited.download_permissions || []).includes('email'),
+          name: ($scope.campaignBeingEdited.download_permissions || []).includes('name'),
+        };
         $scope.campaignBeingEdited.is_active = campaign.is_active ? '1' : '0';
+        console.log($scope.campaignBeingEdited);
       }
       else {
         // New campaign
@@ -85,10 +92,25 @@
 
     $scope.save = function() {
 
+      const records = Object.assign({}, $scope.campaignBeingEdited);
+      if (records.downloadPermissions.override) {
+        const downloadPermissions = ['override'];
+        ['name', 'email'].forEach(f => {
+          if (records.downloadPermissions[f]) {
+            downloadPermissions.push(f);
+          }
+        });
+        records.download_permissions = downloadPermissions;
+      }
+      else {
+        records.download_permissions = null;
+      }
+      delete records.downloadPermissions;
+      delete records['$$hashKey'];
+      delete records.stats;
+
       const params = {
-        saved: ['GrassrootsPetitionCampaign', 'save', {
-          records: [$scope.campaignBeingEdited]
-        }],
+        saved: ['GrassrootsPetitionCampaign', 'save', {records: [records]}],
         campaigns: ['GrassrootsPetitionCampaign', 'get', {
           orderBy: {is_active: 'DESC', name: 'ASC'}
         }],
@@ -105,6 +127,28 @@
         $scope.stage = 'listCampaigns';
         $scope.campaignBeingEdited = null;
       });
+    };
+    $scope.impersonate = function(petition) {
+
+      if (petition.impersonateLink) {
+        // We already have one, reuse it.
+        window.open(petition.impersonateLink);
+        return;
+      }
+      const params = {
+        link: ['GrassrootsPetition', 'MakeAuthLink', { id: petition.caseID }],
+      };
+      crmStatus(
+        // Status messages. For defaults, just use "{}"
+        {start: ts('Generating link...'), success: ts('Done')},
+        // The save action. Note that crmApi() returns a promise.
+        crmApi4(params)
+      ).then(r => {
+        console.log("MakeAuthLink result", r);
+        petition.impersonateLink = r.link.link;
+        window.open(petition.impersonateLink);
+      });
+
     };
 
     $scope.uploadNewImage = function (e) {

@@ -1,13 +1,13 @@
 <?php
 namespace Civi\GrassrootsPetition;
 
-use Civi\Inlay\GrassrootsPetition;
-use CRM_Core_DAO;
-use Civi\Api4\OptionValue;
-use Civi\Api4\Contact;
-use Civi\Api4\GrassrootsPetitionCampaign;
-use League\CommonMark\CommonMarkConverter;
 use Civi;
+use Civi\Api4\GrassrootsPetitionCampaign;
+use Civi\Api4\OptionValue;
+use Civi\Inlay\ApiException;
+use Civi\Inlay\GrassrootsPetition;
+use League\CommonMark\CommonMarkConverter;
+use CRM_Core_DAO;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
@@ -27,7 +27,15 @@ class CaseWrapper {
 
   /** @var CommonMarkConverter */
   public $markdownConverter;
-  /** @var Array */
+  /** @var Array of activity types (arrays) keyed by name:
+   *
+   * - Grassroots Petition created
+   * - Grassroots Petition progress
+   * - Grassroots Petition mailing
+   * - Grassroots Petition signed
+   *
+   * Use getActivityTypeIDByName() which ensures init is called.
+   */
   public static $activityTypesByName;
 
   /** @var array Status name to option value */
@@ -237,6 +245,12 @@ class CaseWrapper {
   }
 
   /**
+   */
+  public static function getActivityTypeIDByName(string $name) :int {
+    static::init();
+    return (int) static::$activityTypesByName[$name]['value'];
+  }
+  /**
    * Get case type ID
    */
   public static function getCaseTypeID() :int {
@@ -331,6 +345,8 @@ class CaseWrapper {
       'allow_unsafe_links' => false,
     ]);
   }
+  /**
+   */
   public static function init() {
 
     static::getCaseTypeID();
@@ -502,6 +518,58 @@ class CaseWrapper {
         ->execute()->first();
     }
     return $this->campaign;
+  }
+  /**
+   * Get a list of machine-name download permissions
+   * that have been overridden at campaign or petition level.
+   *
+   * @return null|Array NULL is returned if no overrides.
+   */
+  public function getDownloadPermissions() :?Array {
+    $this->mustBeLoaded();
+    // Has our petition had the defaults overridden?
+    $customPerms = $this->getCustomData('grpet_download_permissions') ?? [];
+    $override = array_search('override', $customPerms);
+    if ($override !== FALSE) {
+      // Using overriden permissions
+      unset($customPerms[$override]);
+      return $customPerms;
+    }
+    // Does the campaign have defaults?
+    $campaign = $this->getCampaign();
+    if (!empty($campaign['download_permissions'])) {
+      // maybe.
+      $customPerms = $campaign['download_permissions'];
+      $override = array_search('override', $customPerms);
+      if ($override !== FALSE) {
+        // Using overriden permissions
+        unset($customPerms[$override]);
+        return $customPerms;
+      }
+    }
+
+    // No, fall back to inlay defaults.
+    return NULL;
+  }
+  /**
+   *
+   * @return null|Array NULL is returned if no overrides.
+   */
+  public function getMailingPermissions() :?bool {
+    $this->mustBeLoaded();
+    // Has our petition had the defaults overridden?
+    $customPerms = $this->getCustomData('grpet_allow_mailings') ?? NULL;
+    if ($customPerms !== 'default') {
+      return ['yes' => TRUE, 'no' => FALSE][$customPerms] ?? FALSE;
+    }
+    // Does the campaign have defaults?
+    $campaign = $this->getCampaign();
+    if (isset($campaign['allow_mailings'])) {
+      return ['yes' => TRUE, 'no' => FALSE][$campaign['allow_mailings']] ?? FALSE;
+    }
+
+    // No, fall back to inlay defaults.
+    return NULL;
   }
   /**
    * Returns the text details of *what* the people who sign have signed up for.
@@ -1007,17 +1075,6 @@ class CaseWrapper {
     // Add them to the group for this petition
     // todo
 
-  }
-  /**
-   */
-  public function syncImages() {
-    if ($this->getCaseStatus() === 'grpet_Pending') {
-      $this->deactivateImages();
-    }
-    else {
-      // Case is public
-      $this->activateImages();
-    }
   }
   /**
    * Returns absolute file path or url to an image.

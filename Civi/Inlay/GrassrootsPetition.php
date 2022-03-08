@@ -8,7 +8,6 @@ use Civi\Inlay\ApiException;
 use Civi\GrassrootsPetition\CaseWrapper;
 use Civi\GrassrootsPetition\Auth;
 use Civi;
-use Civi\Api4\Inlay;
 use Civi\Api4\GrassrootsPetitionCampaign;
 use CRM_Grassrootspetition_ExtensionUtil as E;
 
@@ -53,7 +52,7 @@ class GrassrootsPetition extends InlayType {
     'tweet'              => '',
     'whatsappText'       => '',
     // }}}
-    'consentIntroHTML'   => '<p>Get emails about this campaign and from People & Planet on our current and future projects, campaigns and appeals. There’s a link to unsubscribe at the bottom of each email update. <a href="https://peopleandplanet.org/privacy">Privacy Policy</a></p>',
+    'consentIntroHTML'   => '<p>Get emails about this campaign and from People & Planet on our current and future projects, campaigns and appeals. There’s a link to unsubscribe at the bottom of each email update. <a href="#">Privacy Policy</a></p>',
     'consentNoWarning'   => 'If you’re not already subscribed you won’t hear about the success (or otherwise!) of this campaign. Sure?',
     'thanksShareAskHTML' => '<h2>Thanks, please share this petition</h2><p>Thanks for signing. Can you share to help amplify your voice?</p>',
     'thanksFinalHTML'    => '<h2>Thanks, can you donate?</h2><p>Can you chip in to help People &amp; Planet’s campaigns?</p><p><a class="button primary" href="/donate">Donate</a></p>',
@@ -72,7 +71,7 @@ class GrassrootsPetition extends InlayType {
    * @return CRM_Queue_Service
    */
   public static function getQueueService() {
-    return CRM_Queue_Service::singleton()->create([
+    return \CRM_Queue_Service::singleton()->create([
       'type'  => 'Sql',
       'name'  => 'inlay-grassrootspetition',
       'reset' => FALSE, // We do NOT want to delete an existing queue!
@@ -298,7 +297,7 @@ class GrassrootsPetition extends InlayType {
       // Store that now.
       $data['inlayID'] = $this->getID();
 
-      $queue->createItem(new CRM_Queue_Task(
+      $queue->createItem(new \CRM_Queue_Task(
         ['Civi\\Inlay\\GrassrootsPetition', 'processQueueItem'], // callback
         [$data], // arguments
         "Grassroots Petition signature" // title
@@ -444,7 +443,7 @@ class GrassrootsPetition extends InlayType {
 
     // Create a signature activity, if not already signed.
     if ($case->getPetitionSigsCount($contactID) === 0) {
-      $activityID = $case->addSignedPetitionActivity($contactID, $data);
+      $case->addSignedPetitionActivity($contactID, $data);
     }
 
     // They must agree the GRPR stuff when submitting the form.
@@ -550,8 +549,7 @@ class GrassrootsPetition extends InlayType {
       if ($petition) {
         $hash = "P{$petition}-$hash";
       }
-      // xxx move to config.
-      $link = 'https://peopleandplanet.org/petitions-admin#' . $hash;
+      $link = Civi::settings()->get('grpet_public_admin_url') . $hash;
       // Send email
       $msgTplID = civicrm_api3('MessageTemplate', 'getsingle', ['return' => 'id', 'msg_title' => 'Grassroots Petition Admin Link'])['id'];
       $this->sendMsgTpl($contactID, $body['email'], $msgTplID, [
@@ -670,7 +668,7 @@ class GrassrootsPetition extends InlayType {
     $response = ['success' => 1];
     $contactID = $this->checkAuthenticated($request, $response);
 
-    $cases = CaseWrapper::getPetitionsOwnedByContact($contactID);
+    // $cases = CaseWrapper::getPetitionsOwnedByContact($contactID);
 
     // Summarise the cases
     $response['petitions'] = $this->getListOfPetitionsForContact($contactID);
@@ -699,17 +697,19 @@ class GrassrootsPetition extends InlayType {
     foreach ($cases as $petition) {
       $mainImage = $petition->getMainImage();
       $list[] = [
-        'id'             => $petition->getID(),
-        'title'          => $petition->getPetitionTitle(),
-        'status'         => $petition->getCaseStatus(),
-        'location'       => $petition->getCustomData('grpet_location'),
-        'slug'           => $petition->getCustomData('grpet_slug'),
-        'targetCount'    => $petition->getCustomData('grpet_target_count'),
-        'imageAlt'       => $mainImage['imageAlt'],
-        'imageUrl'       => $mainImage['imageUrl'],
-        'targetName'     => $petition->getCustomData('grpet_target_name'),
-        'campaign'       => $petition->getCampaignPublicName(),
-        'signatureCount' => $petition->getPetitionSigsCount(),
+        'id'                  => $petition->getID(),
+        'title'               => $petition->getPetitionTitle(),
+        'status'              => $petition->getCaseStatus(),
+        'location'            => $petition->getCustomData('grpet_location'),
+        'slug'                => $petition->getCustomData('grpet_slug'),
+        'targetCount'         => $petition->getCustomData('grpet_target_count'),
+        'imageAlt'            => $mainImage['imageAlt'],
+        'imageUrl'            => $mainImage['imageUrl'],
+        'targetName'          => $petition->getCustomData('grpet_target_name'),
+        'campaign'            => $petition->getCampaignPublicName(),
+        'signatureCount'      => $petition->getPetitionSigsCount(),
+        'downloadPermissions' => !empty($petition->getDownloadPermissions() ?? $this->config['downloadPermissions']),
+        'allowMailings'       => $petition->getMailingPermissions() ?? $this->config['allowMailings'],
       ];
     }
 
@@ -823,11 +823,11 @@ class GrassrootsPetition extends InlayType {
       // xxx move domain to config.
       $msgTplID = civicrm_api3('MessageTemplate', 'getsingle', ['return' => 'id', 'msg_title' => 'Grassroots Petition Login Link'])['id'];
       $this->sendMsgTpl($contactID, NULL, $msgTplID, [
-        'loginLink' => 'https://peopleandplanet.org/petitions-admin#P' . $case->getID(),
-        'publicLink' => 'https://peopleandplanet.org/petitions/' . $case->getCustomData('grpet_slug'),
+        'loginLink'  => Civi::settings()->get('grpet_public_admin_url') . 'P' . $case->getID(),
+        'publicLink' => Civi::settings()->get('grpet_public_url') . $case->getCustomData('grpet_slug'),
       ]);
 
-      Civi::log()->info("Grassroots Petition Admin Login Link email ($msgTplID) sent to $contactID $body[email] with link $link");
+      Civi::log()->info("Grassroots Petition Admin Login Link email ($msgTplID) sent to $contactID $body[email]");
     }
 
     // Done.
@@ -920,6 +920,12 @@ class GrassrootsPetition extends InlayType {
       'status'           => $case->getCaseStatus(),
     ];
 
+    // Download permissions
+    $data['downloadPermissions'] = !empty($case->getDownloadPermissions() ?? $this->config['downloadPermissions']);
+
+    // Mailing permissions
+    $data['allowMailings'] = $case->getMailingPermissions() ?? $this->config['allowMailings'];
+
     // Done.
     return ['success' => 1, 'petition' => $data];
   }
@@ -1011,6 +1017,7 @@ class GrassrootsPetition extends InlayType {
   protected function processAdminGetSignatures(ApiRequest $request) {
     $response = [];
     $contactID = $this->checkAuthenticated($request, $response);
+
     $body = $request->getBody();
     $caseID = (int) ($body['petitionID'] ?? 0);
     $case = NULL;
@@ -1024,14 +1031,43 @@ class GrassrootsPetition extends InlayType {
       throw new ApiException(400, ['publicError' => 'Invalid request. (AGS1)'], "Contact $contactID tried to get signatures for case $caseID which does not belong to them/does not exist.");
     }
 
+    $permissions = $case->getDownloadPermissions() ?? $this->config['downloadPermissions'];
+    if (empty($permissions)) {
+      throw new ApiException(400, ['publicError' => 'Permission denied (DWN1)'], "Contact $contactID tried to get signatures for case $caseID but download permissions are not configured to allow this.");
+    }
+    $columns = [
+      ['"Date"', 'activity_date_time', FALSE],
+    ];
+    foreach ($permissions as $perm) {
+      $columns[] = [
+        [
+          'name' => '"Name"',
+          'email' => '"Email"',
+        ][$perm],
+        [
+          'name' => 'contact.display_name',
+          'email' => 'email.email',
+        ][$perm],
+        TRUE
+      ];
+    }
+
     /** @var CaseWrapper $case */
-    $signatures = $case->getPetitionSigs(['name', 'email']);
-    $csv = '"Date", "Name", "Email"' . "\n";
+    $signatures = $case->getPetitionSigs($permissions);
+
+    $csv = implode(',', array_column($columns, 0)) . "\n";
     foreach ($signatures as $signer) {
-      $csv .=
-        $signer['activity_date_time']
-        . ',"' . str_replace('"', '""', $signer['contact.display_name']) . '"'
-        . ',"' . str_replace('"', '""', $signer['email.email']) . "\"\n";
+      $row = [];
+      foreach ($columns as $col) {
+        $field = $col[1];
+        $needsQuoting = $col[2];
+        $val = $signer[$field];
+        if ($needsQuoting) {
+          $val = str_replace('"', '""', $val);
+        }
+        $row[] = $val;
+      }
+      $csv .= implode(',', $row) . "\n";
     }
 
     // Done.
@@ -1061,7 +1097,7 @@ class GrassrootsPetition extends InlayType {
   public function contactAlreadySigned($contactID) {
 
     $subject = $this->getName();
-    $activityTypeID = $this->getActivityTypeID();
+    $activityTypeID = CaseWrapper::getActivityTypeIDByName('Grassroots Petition signed');
 
     $found = (bool) \CRM_Core_DAO::singleValueQuery("
         SELECT a.id
@@ -1082,10 +1118,10 @@ class GrassrootsPetition extends InlayType {
   }
   /**
    */
-  public function addSignedPetitionActivity(int $contactID, array $data) {
+  public function addSignedPetitionActivity(int $contactID) {
 
     $activityCreateParams = [
-      'activity_type_id'     => $this->getActivityTypeID(),
+      'activity_type_id'     => CaseWrapper::getActivityTypeIDByName('Grassroots Petition signed'),
       'target_id'            => $contactID,
       'subject'              => $this->getName(),
       'status_id'            => 'Completed',
