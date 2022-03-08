@@ -10,6 +10,7 @@ use Civi\GrassrootsPetition\Auth;
 use Civi;
 use Civi\Api4\GrassrootsPetitionCampaign;
 use CRM_Grassrootspetition_ExtensionUtil as E;
+use League\CommonMark\CommonMarkConverter;
 
 class GrassrootsPetition extends InlayType {
 
@@ -29,6 +30,7 @@ class GrassrootsPetition extends InlayType {
         'adminLoadUpdates'   => 'processAdminLoadUpdates',
         'adminAddUpdate'     => 'processAdminAddUpdate',
         'adminGetSignatures' => 'processAdminGetSignatures',
+        'adminCreateMailing' => 'processAdminCreateMailing',
       ]
     ];
 
@@ -1074,6 +1076,76 @@ class GrassrootsPetition extends InlayType {
     return ['success' => 1, 'csv' => $csv];
   }
   /**
+   * Create a mailing
+   */
+  protected function processAdminCreateMailing(ApiRequest $request) {
+    $response = [];
+    $contactID = $this->checkAuthenticated($request, $response);
+
+    $body = $request->getBody();
+    $caseID = (int) ($body['petitionID'] ?? 0);
+    $case = NULL;
+    if ($caseID) {
+      // Check that it belongs to this person.
+      /** @var CaseWrapper */
+      $case = CaseWrapper::getPetitionsOwnedByContact($contactID, $caseID)[0] ?? NULL;
+    }
+    if (!$case) {
+      // This case does not exist, or is not owned by this contact.
+      throw new ApiException(400, ['publicError' => 'Invalid request. (CM1)'], "Contact $contactID tried to create mailing for case $caseID which does not belong to them/does not exist.");
+    }
+
+    if (empty($case->getMailingPermissions() ?? $this->config['allowMailings'])) {
+      throw new ApiException(400, ['publicError' => 'Permission denied (CM2)'], "Contact $contactID tried to create mailing for case $caseID but creating maliing is not allowed.");
+    }
+
+    // Ensure we have valid input.
+    $subject = static::requireSimpleText($request['emailSubject'], 200, 'subject', FALSE, TRUE);
+    $body = static::requireSimpleText($request['emailBody'], 4000, 'message body', TRUE, TRUE);
+
+    $markdownConverter = new CommonMarkConverter([
+      'html_input'         => 'strip',
+      'allow_unsafe_links' => false,
+    ]);
+
+    $mailingGroupID = $case->getSignerMailingList(); // xxx
+    // Create CiviMail mailing
+    $domainContactID = \CRM_Core_BAO_Domain::getDomain()->contact_id;
+
+    list($domainFromName, $domainFromEmail) = \CRM_Core_BAO_Domain::getNameAndEmail(TRUE);
+    $mailing = civicrm_api3('Mailing', 'create', [
+      'sequential' => 1,
+      'name' => 'Grassroots Petition Update: ' . $case->case['id'] . ' ' . $case->getPetitionTitle(),
+      // 'msg_template_id'
+      // 'replyto_email'
+      'groups' => [
+        'include' => [$mailingGroupID],
+        // 'exclude' => [],
+        // 'base' => [$mailingGroupID],
+      ],
+      'from_name' => $domainFromName, // @todo should be the name of the contact?
+      'from_email' => $domainFromEmail,
+      'header_id' => '',
+      'footer_id' => '',
+      'created_id' => $domainContactID,
+      'scheduled_id' => NULL,
+      'scheduled_date' => NULL,
+      'approval_date' => NULL,
+      'body_html' => $markdownConverter->convertToHtml($body),
+      'body_text' => $body,
+      'subject' => $subject,
+      //'template_type' => $templateTypes[0]['name'],
+      //'template_options' => array('nonce' => 1),
+    ]);
+
+    return $mailing['id'];
+
+
+
+    // Done.
+    return ['success' => 1];
+  }
+  /**
    * Returns the authenticated contactID, or throws a 401 ApiException
    */
   protected function checkAuthenticated(ApiRequest $request, array &$response) :int {
@@ -1166,26 +1238,26 @@ class GrassrootsPetition extends InlayType {
    *
    * @throws ApiException
    */
-  public static function requireSimpleText($text, ?int $maxLength=NULL, string $src='', bool $allowLinks=FALSE) :string {
+  public static function requireSimpleText($text, ?int $maxLength=NULL, string $publicFieldName='', bool $allowLinks=FALSE, bool $allowEmoji=FALSE) :string {
     if (empty($text) || !is_string($text) || trim($text) === '') {
-      throw new ApiException(400, ['publicError' => "Invalid $src. (ST1)"],
-        "$src failed validation");
+      throw new ApiException(400, ['publicError' => "Invalid $publicFieldName. (ST1)"],
+        "$publicFieldName failed validation");
     }
     // Is a string.
     $text = trim($text);
     $disallowed = $allowLinks ? '@[<>]@' : '@([<>]|http|//)@';
     if (preg_match($disallowed, $text)) {
-      throw new ApiException(400, ['publicError' => "Invalid $src. (ST2)"],
-        "$src contains special chars or http");
+      throw new ApiException(400, ['publicError' => "Invalid $publicFieldName. (ST2)"],
+        "$publicFieldName contains special chars or http");
     }
     // Emojis? No thanks.
-    if (preg_match("/[\u{1f300}-\u{1f5ff}\u{e000}-\u{f8ff}]/u", $text)) {
-      throw new ApiException(400, ['publicError' => "Invalid $src, 😥 emojis are not allowed (ST3)"],
-        "$src contains emojis");
+    if (!$allowEmoji && preg_match("/[\u{1f300}-\u{1f5ff}\u{e000}-\u{f8ff}]/u", $text)) {
+      throw new ApiException(400, ['publicError' => "Invalid $publicFieldName, 😥 emojis are not allowed (ST3)"],
+        "$publicFieldName contains emojis");
     }
     if ($maxLength && mb_strlen($text) > $maxLength) {
-      throw new ApiException(400, ['publicError' => "Invalid $src, too long (ST4)"],
-        "$src contains emojis");
+      throw new ApiException(400, ['publicError' => "Invalid $publicFieldName, too long (ST4)"],
+        "$publicFieldName contains emojis");
     }
 
     return $text;

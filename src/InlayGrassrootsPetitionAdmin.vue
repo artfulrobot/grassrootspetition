@@ -119,7 +119,7 @@
                 <li><a href @click.prevent="editPetition(petition)" >Edit petition (texts, targets etc.)</a></li>
                 <li><a href @click.prevent="updatePetition(petition)" >Provide updates, mark Won or Closed</a></li>
                 <li v-if="petition.downloadPermissions"><a href @click.prevent="getSigs(petition)" >Download signatures</a></li>
-                <li v-if="petition.allowMailings"><a href @click.prevent="createEmail(petition)" >Email signers</a></li>
+                <li v-if="petition.allowMailings && petition.status === 'Open'"><a href @click.prevent="prepareMailing(petition)" >Email signers</a></li>
               </ul>
             </div>
           </article>
@@ -368,6 +368,50 @@
       <p><button @click.prevent="downloadSigs()" >Download CSV file</button></p>
     </div>
 
+    <div
+      class="prepare-mailing"
+      v-if="stage === 'prepareMailing'"
+    >
+      <form @submit.prevent="createMailing" >
+        <h2>Email people who signed</h2>
+        <p><a href @click.prevent="stage = 'listPetitions';petitionBeingUpdated = null;" >Back to list</a></p>
+        <p>You can send an email to all the people who signed your petition and
+          opted in to receive updates. When you submit your email it will await
+          the OK from staff; this is necessary to protect our system from being
+          abused by spammers.</p>
+
+        <div class="field" >
+          <label :for="myId + 'emailSubject'">Email subject</label>
+          <input
+            type=text
+            required
+            :id="myId + 'emailSubject'"
+            :disabled="$root.submissionRunning"
+            v-model="emailSubject"
+            >
+        </div>
+
+        <div class="field" >
+          <label :for="myId + 'emailBody'">Email body</label>
+          <textarea
+            required
+            rows=5
+            cols=60
+            :id="myId + 'emailBody'"
+            :disabled="$root.submissionRunning"
+            v-model="emailBody"
+            ></textarea>
+        </div>
+
+        <div class="field">
+          <br/>
+          <button class="secondary" type="submit" @click.prevent="stage='listPetitions';petitionBeingUpdated=null;">Cancel</button>
+          &nbsp;
+          <button class="primary" type="submit" >Submit Email</button>
+        </div>
+      </form><!-- /createMailing form -->
+    </div><!-- /prepareMailing -->
+
     <div v-show="stage === 'loadingError'" class="grpet-error" >{{loadingError}}</div>
 
     <inlay-progress ref="loadingProgress"></inlay-progress>
@@ -565,6 +609,9 @@ export default {
 
       petitionBeingUpdated: {},
       updateImageFileCount: 0,
+
+      emailSubject: '',
+      emailBody: '',
     };
     return d;
   },
@@ -835,6 +882,31 @@ export default {
           alert("Sorry, there was an error: " + (r.publicError || 'Unknown error UPL1'));
         }
       })
+    },
+    prepareMailing(petition) {
+      this.petitionBeingEdited = petition;
+      this.stage = 'prepareMailing';
+    },
+    createMailing() {
+      this.stage = 'loading';
+      this.loadingMessage = "Submitting email...";
+      // Send request to load petitions.
+      this.authorisedRequest({method: 'post', body: {
+        need: 'adminCreateMailing',
+        petitionID: this.petitionBeingEdited.id,
+        emailSubject: this.emailSubject,
+        emailBody: this.emailBody,
+      }})
+      .then(r => {
+        if (r.success) {
+          this.stage = 'listPetitions';
+          this.petitionBeingEdited = null;
+        }
+        else {
+          alert("Sorry, something went wrong.\n\n" + r.publicError);
+          this.stage = 'prepareMailing';
+        }
+      });
     },
     createNewPetition() {
       this.stage = 'createNewPetition';

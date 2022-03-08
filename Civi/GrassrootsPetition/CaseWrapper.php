@@ -559,8 +559,8 @@ class CaseWrapper {
     $this->mustBeLoaded();
     // Has our petition had the defaults overridden?
     $customPerms = $this->getCustomData('grpet_allow_mailings') ?? NULL;
-    if ($customPerms !== 'default') {
-      return ['yes' => TRUE, 'no' => FALSE][$customPerms] ?? FALSE;
+    if (in_array($customPerms, ['0', '1'])) {
+      return (bool) $customPerms;
     }
     // Does the campaign have defaults?
     $campaign = $this->getCampaign();
@@ -1282,6 +1282,27 @@ class CaseWrapper {
     return $this->createdActivity;
   }
 
+  /**
+   * Get a smart group set up to track petition signatures on this case,
+   * creating it if it does not exist.
+   *
+   * @return int the ID of the group.
+   */
+  public function getSignerMailingList() :int {
+    $groupName = "grassrootspetition_" . $this->case['id'] . "_mailing_group";
+    $groupID = \Civi\Api4\Group::get()
+        ->addSelect('id')
+        ->addWhere('name', '=', 'sdfsf')
+        ->execute()
+        ->first()['id'] ?? 0;
+    if ($groupID) {
+      return (int) $groupID;
+    }
+
+    // Group not found. Create it now.
+    // @todo - should use searchkit here I think. We're looking for contacts who have done an activity of known type and (subject ?) and case_id, AND opted-in (where is this stored - custom field on activity)
+
+  }
   /**
    * Assert that the case is loaded; used by public getters.
    */

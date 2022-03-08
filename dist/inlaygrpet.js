@@ -1288,6 +1288,50 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
   props: ['inlay'],
@@ -1311,7 +1355,9 @@ __webpack_require__.r(__webpack_exports__);
       petitionBeingEdited: {},
       mainImageFileCount: null,
       petitionBeingUpdated: {},
-      updateImageFileCount: 0
+      updateImageFileCount: 0,
+      emailSubject: '',
+      emailBody: ''
     };
     return d;
   },
@@ -1641,6 +1687,34 @@ __webpack_require__.r(__webpack_exports__);
         }
       });
     },
+    prepareMailing: function prepareMailing(petition) {
+      this.petitionBeingEdited = petition;
+      this.stage = 'prepareMailing';
+    },
+    createMailing: function createMailing() {
+      var _this8 = this;
+
+      this.stage = 'loading';
+      this.loadingMessage = "Submitting email..."; // Send request to load petitions.
+
+      this.authorisedRequest({
+        method: 'post',
+        body: {
+          need: 'adminCreateMailing',
+          petitionID: this.petitionBeingEdited.id,
+          emailSubject: this.emailSubject,
+          emailBody: this.emailBody
+        }
+      }).then(function (r) {
+        if (r.success) {
+          _this8.stage = 'listPetitions';
+          _this8.petitionBeingEdited = null;
+        } else {
+          alert("Sorry, something went wrong.\n\n" + r.publicError);
+          _this8.stage = 'prepareMailing';
+        }
+      });
+    },
     createNewPetition: function createNewPetition() {
       this.stage = 'createNewPetition';
       this.petitionBeingEdited = null;
@@ -1657,7 +1731,7 @@ __webpack_require__.r(__webpack_exports__);
       this.editPetition(petition);
     },
     savePetition: function savePetition() {
-      var _this8 = this;
+      var _this9 = this;
 
       // The browser's checks say the fields are valid.
       // (do any custom stuff in response to the buttonclick)
@@ -1666,48 +1740,48 @@ __webpack_require__.r(__webpack_exports__);
       }; // Copy our fields.
 
       ['title', 'targetName', 'who', 'what', 'why', 'targetCount', 'location', 'imageAlt'].forEach(function (f) {
-        d[f] = _this8.petitionBeingEdited[f];
+        d[f] = _this9.petitionBeingEdited[f];
       });
       var p = new Promise(function (resolve, reject) {
-        if (_this8.$refs.imageFile.files.length === 1) {
+        if (_this9.$refs.imageFile.files.length === 1) {
           var fr = new FileReader();
           fr.addEventListener('load', function (e) {
             // File loaded.
             d.imageData = fr.result;
             resolve(d);
           });
-          fr.readAsDataURL(_this8.$refs.imageFile.files[0]);
+          fr.readAsDataURL(_this9.$refs.imageFile.files[0]);
         } else {
           resolve(d);
         }
       });
       p.then(function (d) {
-        if (_this8.editingPetition) {
+        if (_this9.editingPetition) {
           // send ID of existing petitions.
-          d.id = _this8.petitionBeingEdited.id;
+          d.id = _this9.petitionBeingEdited.id;
         } else {
           // new petitions need this.
-          d.campaignLabel = _this8.petitionBeingEdited.campaignLabel;
+          d.campaignLabel = _this9.petitionBeingEdited.campaignLabel;
         } // Got data.
 
 
-        var progress = _this8.$refs.loadingProgress;
+        var progress = _this9.$refs.loadingProgress;
         progress.startTimer(5, 100, true);
-        _this8.$root.submissionRunning = true;
+        _this9.$root.submissionRunning = true;
 
-        _this8.authorisedRequest({
+        _this9.authorisedRequest({
           method: 'post',
           body: d
         }).then(function (r) {
-          _this8.$root.submissionRunning = false;
+          _this9.$root.submissionRunning = false;
           progress.cancelTimer(); // Were there any errors?
           // We're not expecting any, so just use alert.
 
           if (r.responseOk && r.success == 1) {
             // The result of saving successfully is an updated set of petitions.
-            _this8.petitions = r.petitions;
-            _this8.stage = 'listPetitions';
-            _this8.petitionBeingEdited = null;
+            _this9.petitions = r.petitions;
+            _this9.stage = 'listPetitions';
+            _this9.petitionBeingEdited = null;
           } else {
             alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SP1'));
           }
@@ -1715,7 +1789,7 @@ __webpack_require__.r(__webpack_exports__);
       });
     },
     addPetitionUpdate: function addPetitionUpdate() {
-      var _this9 = this;
+      var _this10 = this;
 
       // The browser's checks say the fields are valid.
       // (do any custom stuff in response to the buttonclick)
@@ -1727,14 +1801,14 @@ __webpack_require__.r(__webpack_exports__);
       }; // Image?
 
       var p = new Promise(function (resolve, reject) {
-        if (_this9.$refs.imageFileUpdate.files.length === 1) {
+        if (_this10.$refs.imageFileUpdate.files.length === 1) {
           var fr = new FileReader();
           fr.addEventListener('load', function (e) {
             // File loaded.
             d.imageData = fr.result;
             resolve(d);
           });
-          fr.readAsDataURL(_this9.$refs.imageFileUpdate.files[0]);
+          fr.readAsDataURL(_this10.$refs.imageFileUpdate.files[0]);
         } else {
           resolve(d);
         }
@@ -1743,8 +1817,8 @@ __webpack_require__.r(__webpack_exports__);
       p.then(function (d) {
         // Got data.
         progress.startTimer(5, 100, true);
-        _this9.$root.submissionRunning = true;
-        return _this9.authorisedRequest({
+        _this10.$root.submissionRunning = true;
+        return _this10.authorisedRequest({
           method: 'post',
           body: d
         });
@@ -1752,13 +1826,13 @@ __webpack_require__.r(__webpack_exports__);
         // Were there any errors?
         // We're not expecting any, so just use alert.
         if (r.responseOk && r.success == 1) {
-          _this9.stage = 'listPetitions';
-          _this9.petitionBeingUpdated = null;
+          _this10.stage = 'listPetitions';
+          _this10.petitionBeingUpdated = null;
         } else {
           alert("Sorry, there was an error: " + (r.publicError || 'Unknown error SU1'));
         }
       })["finally"](function () {
-        _this9.$root.submissionRunning = false;
+        _this10.$root.submissionRunning = false;
         progress.cancelTimer();
       });
     },
@@ -4456,7 +4530,7 @@ var render = function() {
                             ])
                           : _vm._e(),
                         _vm._v(" "),
-                        petition.allowMailings
+                        petition.allowMailings && petition.status === "Open"
                           ? _c("li", [
                               _c(
                                 "a",
@@ -4465,7 +4539,7 @@ var render = function() {
                                   on: {
                                     click: function($event) {
                                       $event.preventDefault()
-                                      return _vm.createEmail(petition)
+                                      return _vm.prepareMailing(petition)
                                     }
                                   }
                                 },
@@ -5311,6 +5385,139 @@ var render = function() {
                 [_vm._v("Download CSV file")]
               )
             ])
+          ])
+        : _vm._e(),
+      _vm._v(" "),
+      _vm.stage === "prepareMailing"
+        ? _c("div", { staticClass: "prepare-mailing" }, [
+            _c(
+              "form",
+              {
+                on: {
+                  submit: function($event) {
+                    $event.preventDefault()
+                    return _vm.createMailing.apply(null, arguments)
+                  }
+                }
+              },
+              [
+                _c("h2", [_vm._v("Email people who signed")]),
+                _vm._v(" "),
+                _c("p", [
+                  _c(
+                    "a",
+                    {
+                      attrs: { href: "" },
+                      on: {
+                        click: function($event) {
+                          $event.preventDefault()
+                          _vm.stage = "listPetitions"
+                          _vm.petitionBeingUpdated = null
+                        }
+                      }
+                    },
+                    [_vm._v("Back to list")]
+                  )
+                ]),
+                _vm._v(" "),
+                _c("p", [
+                  _vm._v(
+                    "You can send an email to all the people who signed your petition and\n        opted in to receive updates. When you submit your email it will await\n        the OK from staff; this is necessary to protect our system from being\n        abused by spammers."
+                  )
+                ]),
+                _vm._v(" "),
+                _c("div", { staticClass: "field" }, [
+                  _c("label", { attrs: { for: _vm.myId + "emailSubject" } }, [
+                    _vm._v("Email subject")
+                  ]),
+                  _vm._v(" "),
+                  _c("input", {
+                    directives: [
+                      {
+                        name: "model",
+                        rawName: "v-model",
+                        value: _vm.emailSubject,
+                        expression: "emailSubject"
+                      }
+                    ],
+                    attrs: {
+                      type: "text",
+                      required: "",
+                      id: _vm.myId + "emailSubject",
+                      disabled: _vm.$root.submissionRunning
+                    },
+                    domProps: { value: _vm.emailSubject },
+                    on: {
+                      input: function($event) {
+                        if ($event.target.composing) {
+                          return
+                        }
+                        _vm.emailSubject = $event.target.value
+                      }
+                    }
+                  })
+                ]),
+                _vm._v(" "),
+                _c("div", { staticClass: "field" }, [
+                  _c("label", { attrs: { for: _vm.myId + "emailBody" } }, [
+                    _vm._v("Email body")
+                  ]),
+                  _vm._v(" "),
+                  _c("textarea", {
+                    directives: [
+                      {
+                        name: "model",
+                        rawName: "v-model",
+                        value: _vm.emailBody,
+                        expression: "emailBody"
+                      }
+                    ],
+                    attrs: {
+                      required: "",
+                      rows: "5",
+                      cols: "60",
+                      id: _vm.myId + "emailBody",
+                      disabled: _vm.$root.submissionRunning
+                    },
+                    domProps: { value: _vm.emailBody },
+                    on: {
+                      input: function($event) {
+                        if ($event.target.composing) {
+                          return
+                        }
+                        _vm.emailBody = $event.target.value
+                      }
+                    }
+                  })
+                ]),
+                _vm._v(" "),
+                _c("div", { staticClass: "field" }, [
+                  _c("br"),
+                  _vm._v(" "),
+                  _c(
+                    "button",
+                    {
+                      staticClass: "secondary",
+                      attrs: { type: "submit" },
+                      on: {
+                        click: function($event) {
+                          $event.preventDefault()
+                          _vm.stage = "listPetitions"
+                          _vm.petitionBeingUpdated = null
+                        }
+                      }
+                    },
+                    [_vm._v("Cancel")]
+                  ),
+                  _vm._v("\n         \n        "),
+                  _c(
+                    "button",
+                    { staticClass: "primary", attrs: { type: "submit" } },
+                    [_vm._v("Submit Email")]
+                  )
+                ])
+              ]
+            )
           ])
         : _vm._e(),
       _vm._v(" "),
