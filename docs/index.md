@@ -10,11 +10,9 @@ external (i.e. non CiviCRM) websites.
 
 ## Demo
 
-1. install
-
+...
 
 ## About the docs
-
 
 Documentation is split between the following types
 

@@ -8,6 +8,7 @@ use Civi\Inlay\ApiException;
 use Civi\Inlay\GrassrootsPetition;
 use League\CommonMark\CommonMarkConverter;
 use CRM_Core_DAO;
+use CRM_Grassrootspetition_ExtensionUtil as E;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
@@ -518,6 +519,28 @@ class CaseWrapper {
         ->execute()->first();
     }
     return $this->campaign;
+  }
+  /**
+   * Fetch the case 'client'. This would be the person who started the petition.
+   *
+   * @todo find out why this (and next fn) are dealing with 1-indexed arrays.
+   */
+  public function getClientContactID() :int {
+    return (int) reset($this->case['client_id']);
+  }
+  /**
+   * Fetch the case 'manager'. This would (also) be the person who started the petition.
+   *
+   * @todo find out why this (and getClientContactID) are dealing with 1-indexed arrays.
+   */
+  public function getManagerContactID() :int {
+    return (int) reset($this->case['contact_id']);
+  }
+  /**
+   * Fetch the petition owner; this is the case manager.
+   */
+  public function getOwnerContactID() :int {
+    return $this->getManagerContactID();
   }
   /**
    * Get a list of machine-name download permissions
@@ -1286,22 +1309,73 @@ class CaseWrapper {
    * Get a smart group set up to track petition signatures on this case,
    * creating it if it does not exist.
    *
+   * Nb. the group and the saved search each have the machine name
+   * grassrootspetition_<CASE_ID>_mailing_group
+   *
    * @return int the ID of the group.
    */
   public function getSignerMailingList() :int {
     $groupName = "grassrootspetition_" . $this->case['id'] . "_mailing_group";
-    $groupID = \Civi\Api4\Group::get()
+    $groupID = \Civi\Api4\Group::get(FALSE)
         ->addSelect('id')
-        ->addWhere('name', '=', 'sdfsf')
+        ->addWhere('name', '=',$groupName)
         ->execute()
         ->first()['id'] ?? 0;
-    if ($groupID) {
-      return (int) $groupID;
+    if (!$groupID) {
+
+      // Group not found. Create it now.
+      // @todo - should use searchkit here I think. We're looking for contacts who have done an activity of known type and (subject ?) and case_id, AND opted-in (where is this stored - custom field on activity)
+
+      $api = [
+        "version" => 4,
+        "select" => [ "id", "display_name", "Contact_ActivityContact_Activity_01.activity_date_time", "Contact_ActivityContact_Activity_01.subject" ],
+        "orderBy" => [],
+        "where" => [ [ "Contact_ActivityContact_Activity_01.grpet_signature.grpet_sig_optin:name", "=", true ] ],
+        "groupBy" => [],
+        "join" => [
+          [
+            "Activity AS Contact_ActivityContact_Activity_01", "INNER", "ActivityContact", [ "id", "=", "Contact_ActivityContact_Activity_01.contact_id" ],
+            [ "Contact_ActivityContact_Activity_01.record_type_id:name", "=", "\"Activity Targets\"" ],
+            [ "Contact_ActivityContact_Activity_01.activity_type_id:name", "=", "\"Grassroots Petition signed\"" ]
+          ],
+          [
+              "Case AS Contact_ActivityContact_Activity_01_Activity_CaseActivity_Case_01", "INNER", "CaseActivity",
+              [ "Contact_ActivityContact_Activity_01.id", "=", "Contact_ActivityContact_Activity_01_Activity_CaseActivity_Case_01.activity_id" ],
+              [ "Contact_ActivityContact_Activity_01_Activity_CaseActivity_Case_01.id", "=", $this->case['id'] ]
+          ]
+        ],
+        "having" => []
+      ];
+      $groupTitle = E::ts("Grassroots Petition %1 email updates", [1 => $this->case['id']]);
+      // ->addValue('public', 
+
+      // Create a saved search for this.
+      // First delete any saved search we already had with this name - there
+      // shouldn't really be one there, so this is a just-in-case.
+      \Civi\Api4\SavedSearch::delete(FALSE)->addWhere('name', '=', $groupName)->execute();
+      $savedSearchID = \Civi\Api4\SavedSearch::create(FALSE)
+        ->addValue('name', $groupName)
+        ->addValue('label', $groupTitle)
+        ->addValue('api_entity', 'Contact')
+        ->addValue('api_params',$api)
+        ->execute()->first()['id'];
+
+      // Now create a smart group.
+      $groupID = \Civi\Api4\Group::create(FALSE)
+        ->addValue('name', $groupName)
+        ->addValue('title', $groupTitle)
+        ->addValue('description', E::ts('People who signed this petition and opted in to updates.'))
+        ->addValue('saved_search_id', $savedSearchID)
+        ->addValue('is_active', TRUE)
+        ->addValue('api_params',$api)
+        ->addValue('visibility', 'User and User Admin Only')
+        ->addValue('group_type', [2]) // Mailing group.
+        ->addValue('frontend_title', E::ts("Updates from: %1", [1 => $this->getPetitionTitle()]))
+        // Internal description is ok. ->addValue('frontend_description', E::ts(""))
+        ->execute()->first()['id'];
     }
 
-    // Group not found. Create it now.
-    // @todo - should use searchkit here I think. We're looking for contacts who have done an activity of known type and (subject ?) and case_id, AND opted-in (where is this stored - custom field on activity)
-
+    return (int) $groupID;
   }
   /**
    * Assert that the case is loaded; used by public getters.

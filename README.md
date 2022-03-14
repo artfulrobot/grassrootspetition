@@ -42,3 +42,12 @@ cv en grassrootspetition
 ## Known Issues
 
 (* FIXME *)
+
+## Versions
+
+### 1.1
+
+Brings ability for petition owners to (draft) mailings to their supporters
+(requires SearchKit, Civi 5.47+), and also to download signatures. Both of
+these require permissions that can be set globally, at a campaign level, or at
+a petition level.

@@ -395,12 +395,14 @@
           <label :for="myId + 'emailBody'">Email body</label>
           <textarea
             required
-            rows=5
+            rows=20
             cols=60
             :id="myId + 'emailBody'"
             :disabled="$root.submissionRunning"
             v-model="emailBody"
             ></textarea>
+          <p>Note: minimal styling can be applied to your text using <a href="https://commonmark.org/help/" title="Learn MarkDown in 30 seconds. Opens in new tab." target="_blank">MarkDown</a>.</p>
+          <p><strong>After submitting, your email will await moderation (to protect us, and your signers from spammers). We’ll get to it as soon as we can. Thanks!</strong></p>
         </div>
 
         <div class="field">

@@ -1078,7 +1078,7 @@ class GrassrootsPetition extends InlayType {
   /**
    * Create a mailing
    */
-  protected function processAdminCreateMailing(ApiRequest $request) {
+  protected function processAdminCreateMailing(ApiRequest $request) :array {
     $response = [];
     $contactID = $this->checkAuthenticated($request, $response);
 
@@ -1100,50 +1100,116 @@ class GrassrootsPetition extends InlayType {
     }
 
     // Ensure we have valid input.
-    $subject = static::requireSimpleText($request['emailSubject'], 200, 'subject', FALSE, TRUE);
-    $body = static::requireSimpleText($request['emailBody'], 4000, 'message body', TRUE, TRUE);
+    $subject = static::requireSimpleText($body['emailSubject'], 200, 'subject', FALSE, TRUE);
+    $body = static::requireSimpleText($body['emailBody'], 4000, 'message body', TRUE, TRUE);
 
     $markdownConverter = new CommonMarkConverter([
       'html_input'         => 'strip',
       'allow_unsafe_links' => false,
     ]);
 
-    $mailingGroupID = $case->getSignerMailingList(); // xxx
+    $mailingGroupID = $case->getSignerMailingList();
     // Create CiviMail mailing
     $domainContactID = \CRM_Core_BAO_Domain::getDomain()->contact_id;
 
+    // Load the petition owner's name
+    $ownerName = \Civi\Api4\Contact::get(FALSE)->addWhere('id', '=', $case->getOwnerContactID())->addSelect('display_name')->execute()->first()['display_name'];
+
     list($domainFromName, $domainFromEmail) = \CRM_Core_BAO_Domain::getNameAndEmail(TRUE);
+    list($headerID, $footerID) = $this->getMailingHeaderFooterIDs();
     $mailing = civicrm_api3('Mailing', 'create', [
-      'sequential' => 1,
-      'name' => 'Grassroots Petition Update: ' . $case->case['id'] . ' ' . $case->getPetitionTitle(),
-      // 'msg_template_id'
-      // 'replyto_email'
+      'name'           => "Grassroots Petition (#$caseID) update: " . $case->getPetitionTitle(),
+      'from_name'      => $domainFromName, /* or $ownerName - but this then fails in the mailing screen which uses a select from registered addresses */
+      'from_email'     => $domainFromEmail,
+      'header_id'      => $headerID,
+      'footer_id'      => $footerID,
+      'created_id'     => $case->getOwnerContactID(),
+      'scheduled_id'   => NULL,
+      'scheduled_date' => NULL,
+      'approval_date'  => NULL,
+      'body_html'      => $markdownConverter->convertToHtml($body),
+      'body_text'      => $body,
+      'subject'        => $subject,
+      'visibility'     => 'User and User Admin Only',
       'groups' => [
         'include' => [$mailingGroupID],
         // 'exclude' => [],
         // 'base' => [$mailingGroupID],
       ],
-      'from_name' => $domainFromName, // @todo should be the name of the contact?
-      'from_email' => $domainFromEmail,
-      'header_id' => '',
-      'footer_id' => '',
-      'created_id' => $domainContactID,
-      'scheduled_id' => NULL,
-      'scheduled_date' => NULL,
-      'approval_date' => NULL,
-      'body_html' => $markdownConverter->convertToHtml($body),
-      'body_text' => $body,
-      'subject' => $subject,
+      // 'replyto_email'
       //'template_type' => $templateTypes[0]['name'],
-      //'template_options' => array('nonce' => 1),
     ]);
+    Civi::log()->notice("Created mailing $mailing[id] for petition (case) $caseID owned by '$ownerName'. " . $case->getPetitionTitle());
 
-    return $mailing['id'];
+    $campaign = $case->getCampaign();
+    if (!empty($campaign['notify_contact_id'])) {
 
+      // Nb. the MessageTemplate API won't let you search by name(!)
+      $msgTplID = civicrm_api3('MessageTemplate', 'getsingle', ['return' => 'id', 'msg_title' => 'Grassroots Petition New Mailing Notification'])['id'];
 
+      $toEmail = $campaign['notify_email'] ?? NULL;
 
-    // Done.
+      $from = civicrm_api3('OptionValue', 'getvalue', [ 'return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
+      if ($toEmail === NULL) {
+        // Look up primary email.
+        $toEmail = civicrm_api3('Email', 'get', [
+          'contact_id' => $campaign['notify_contact_id'],
+          'on_hold' => 0,
+          'sequential' => 1,
+          'return' => ['email'],
+          'options' => ['sort' => "is_primary DESC"],
+        ])['values'][0]['email'] ?? NULL;
+        if (!$toEmail) {
+          throw new ApiException(500, ['publicError' => 'Sorry, this petition is misconfigured. Please contact us. (MLG1)'],
+            "GrassrootsPetition: Notify contact ({$campaign['notify_contact_id']}) has no valid email, "
+            ."cannot notify about new petition mailing (CaseID " . $case->getID() . "), though one has been created."
+          );
+        }
+      }
+
+      $params = [
+        'id'             => $msgTplID,
+        'from'           => $from,
+        'to_email'       => $toEmail,
+        'contact_id'     => $campaign['notify_contact_id'],
+        // 'disable_smarty' => 1,
+        'template_params' => [
+          'campaignName' => $campaign['label'],
+          'petitionName' => $case->getPetitionTitle(),
+          'petitionOwner' => $ownerName,
+        ]
+      ];
+
+      try {
+        civicrm_api3('MessageTemplate', 'send', $params);
+      }
+      catch (\Exception $e) {
+        throw new ApiException(500,
+          ['publicError' => 'Sorry, there was a problem notifying staff about the new petition. Please contact us. (EM3)'],
+          "GrassrootsPetition: Failed to send notification of new petitoin email: " . json_encode($params) . " on case "
+          . $case->getID() . " Exception message: " . $e->getMessage()
+        );
+      }
+
+    }
     return ['success' => 1];
+  }
+  /**
+   *
+   */
+  protected function getMailingHeaderFooterIDs() :array {
+    return [
+      civicrm_api3('MailingComponent', 'get', ['return' => 'id',
+      'name' => "Header for Grassroots Petition updates",
+      'component_type' => 'Header',
+      'is_active' => 1,
+      ])['id'] ?? NULL,
+      civicrm_api3('MailingComponent', 'get', ['return' => 'id',
+      'name' => "Footer for Grassroots Petition updates",
+      'component_type' => 'Footer',
+      'is_active' => 1,
+      ])['id'] ?? NULL,
+    ];
   }
   /**
    * Returns the authenticated contactID, or throws a 401 ApiException

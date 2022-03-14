@@ -42,4 +42,16 @@ return [
       'is_reserved' => 1,
     ],
   ],
+  [
+    'name' => 'grpet_notify_new_mailing',
+    'entity' => 'MessageTemplate',
+    'params' => [
+      'version' => 3,
+      "msg_title" => "Grassroots Petition New Mailing Notification",
+      "msg_subject" => "New petition mailing requires moderation",
+      "msg_html" => "<p>Hi {contact.first_name},</p>\r\n\r\n<p>A new {\$campaignName} petition mailing has been submitted for the <em>{\$petitionName}</em> petition by its owner, {\$petitionOwner}.</p>\r\n\r\n<p><strong>Their email is awaiting your approval.</strong></p>\r\n<p>Please visit the Scheduled and Draft Mailings page.</p>\r\n<p>{domain.name}</p>",
+      "is_active" => "1",
+      'is_reserved' => 1,
+    ],
+  ],
 ];

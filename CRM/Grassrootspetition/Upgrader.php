@@ -497,41 +497,50 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
 
-    return;
-
-    // We need our allocation option group.
+    // Create header and footers for mailings.
     $baseParams = [
-      'name' => "pelf_project",
+      'name' => "Header for Grassroots Petition updates",
+      'component_type' => 'Header',
     ];
     $allParams = [
-      'title'     => "Project",
-      'data_type' => "Integer",
+      'subject' => "Header for Grassroots Petition updates",
+      'body_html' => '',
+      'body_text' => '',
       'is_active' => 1,
     ];
-    $this->createOrUpdate('OptionGroup', $baseParams, $allParams);
+    $this->createOrUpdate('MailingComponent', $baseParams, $allParams);
 
-    // We need the 'unallocated' option.
     $baseParams = [
-      'option_group_id' => "pelf_project",
-      'name'            => "unallocated",
+      'name' => "Footer for Grassroots Petition updates",
+      'component_type' => 'Footer',
     ];
     $allParams = [
-      'label'           => "Unallocated",
-      'value'           => 1,
+      'subject' => "Footer for Grassroots Petition updates",
+      'body_html' => '<div style="margin-top:2rem;border-top: solid 1px #aaa; padding: 2rem 1rem; font-size: 14px; color: #666;" >'
+        . '<p style="margin:0 0 14px;">You were send this email because you signed the petition and opted-in to updates.<br/>'
+        . '<a href="{action.unsubscribeUrl}">Unsubscribe</a></p>'
+        . '<p style="margin:0;">This petition site is managed by {domain.address}</p></div>',
+      'body_text' =>
+          "\r\n\r\n--------------------------------------------------------------------------\r\n"
+        . 'You were send this email because you signed the petition and opted-in to updates.'
+        . "\r\n{action.unsubscribeUrl}\r\n\r\n"
+        . "This petition site is managed by {domain.address}\r\n",
+      'is_active' => 1,
     ];
-    $this->createOrUpdate('OptionValue', $baseParams, $allParams);
+    $this->createOrUpdate('MailingComponent', $baseParams, $allParams);
 
-    // Require a dir.
-    $dir = Civi::paths()->getPath('[civicrm.files]/grassrootspetition-images');
-    if (!$dir) {
-      throw new \RuntimeException("Failed to obtain path to civicrm.files");
-    }
-    else {
-      if (!is_dir($dir)) {
-        // Create the dir now.
-        mkdir($dir);
-      }
-    }
+    // // Require a dir.
+    // $dir = Civi::paths()->getPath('[civicrm.files]/grassrootspetition-images');
+    // if (!$dir) {
+    //   throw new \RuntimeException("Failed to obtain path to civicrm.files");
+    // }
+    // else {
+    //   if (!is_dir($dir)) {
+    //     // Create the dir now.
+    //     mkdir($dir);
+    //   }
+    // }
+
   }
   /**
    * Helper function
