@@ -173,8 +173,31 @@ class CampaignGetAction extends DAOGetAction {
 
     // Clean up the petitions arrays as objects awkward in angular.
     unset($camp);
+    $statusOrder = [
+      'Pending' => 1,
+      'Ongoing' => 2,
+      'Won' => 3,
+      'Dead' => 4,
+    ];
     foreach ($stats as &$camp) {
       $camp['petitions'] = array_values($camp['petitions']);
+      usort($camp['petitions'], function ($a, $b) use ($statusOrder) {
+        // First, we want to ignore dead ones.
+        $_ = ($a['caseStatus'] === 'Dead') <=> ($b['caseStatus'] === 'Dead');
+        if (!$_) {
+          // Now by action required.
+          $_ = (($b['petitionNeedsMod'] + $b['updatesToMod']) > 0) <=> (($a['petitionNeedsMod'] + $a['updatesToMod']) > 0);
+          if (!$_) {
+            // Now by non-dead statuses
+            $_ = ($statusOrder[$a['caseStatus']] ?? 0) <=> ($statusOrder[$b['caseStatus']] ?? 0);
+            if (!$_) {
+              // Finally by name
+              $_ = $a['petitionTitle'] <=> $b['petitionTitle'];
+            }
+          }
+        }
+        return $_;
+      });
     }
     unset($camp);
 

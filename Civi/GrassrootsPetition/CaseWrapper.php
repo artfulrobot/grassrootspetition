@@ -224,7 +224,7 @@ class CaseWrapper {
         'from'           => $from,
         'to_email'       => $toEmail,
         'contact_id'     => $campaign['notify_contact_id'],
-        'disable_smarty' => 1,
+        // 'disable_smarty' => 1,
         'template_params' => [ 'campaignName' => $campaign['label'] ]
       ];
 

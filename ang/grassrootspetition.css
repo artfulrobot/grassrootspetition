@@ -7,3 +7,9 @@
   color: #950;
   font-weight: bold;
 }
+.grpet-admin .petition-status--Dead {
+  color: rgba(0, 0, 0, 0.6);
+}
+.grpet-admin .petition-highlight {
+  background-color: hsla(41.6, 78.1%, 71.4%, 0.5);
+}

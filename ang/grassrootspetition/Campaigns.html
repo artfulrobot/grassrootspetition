@@ -248,7 +248,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="petition in selectedCampaign.stats.petitions" >
+        <tr ng-repeat="petition in selectedCampaign.stats.petitions" ng-class="'petition-status--' + petition.caseStatus + ' ' +  (petition.caseStatus !== 'Dead' && (petition.petitionNeedsMod > 0 || petition.updatesToMod > 0) ? 'petition-highlight': '' )" >
           <td>{{petition.petitionTitle}} </td>
           <td>
             <span class="mod-petitions" ng-show="petition.petitionNeedsMod == 1" >
@@ -257,7 +257,7 @@
             <span ng-show="petition.petitionNeedsMod == 0" >
              {{petition.caseStatus}}</span>
           </td>
-          <td>{{petition.signatures.toLocaleString()}}</td>
+          <td style="text-align:right;">{{ petition.signatures }}</td>
           <td>
             <span class="mod-updates" ng-show="petition.updatesToMod >0" >
               <i class="fa-quote-left crm-icon crm-i"></i> 
@@ -267,7 +267,7 @@
             cid: petition.contactID,
             id: petition.caseID,
             action: 'view'
-            }) }}" >Manage</a>
+            }) }}" >Manage</a><br/>
             <a href ng-click="impersonate(petition)" title="Sends an admin person to the public website as if they had logged in as the owner of this petition. Use with caution." >Impersonate owner</a>
           </td>
         </tr>
