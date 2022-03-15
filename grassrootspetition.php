@@ -172,7 +172,7 @@ function grassrootspetition_civicrm_themes(&$themes) {
  */
 function grassrootspetition_civicrm_navigationMenu(&$menu) {
   _grassrootspetition_civix_insert_navigation_menu($menu, 'Cases', [
-    'label' => E::ts('Grassroots Petitions'),
+    'label' => E::ts('Grassroots Petition Campaigns'),
     'name' => 'grpet_campaigns_admin',
     'url' => 'civicrm/a#/grassrootspetition/campaigns',
     'permission' => 'access my cases and activities,access all cases and activities',
@@ -180,8 +180,8 @@ function grassrootspetition_civicrm_navigationMenu(&$menu) {
     'separator' => 0,
   ]);
   _grassrootspetition_civix_insert_navigation_menu($menu, 'Cases', [
-    'label' => E::ts('Grassroots Petitions Settings'),
-    'name' => 'grpet_campaigns_admin',
+    'label' => E::ts('Grassroots Petition Site Settings'),
+    'name' => 'grpet_site_admin',
     'url' => 'civicrm/grassrootspetition/settings',
     'permission' => 'access all cases and activities',
     'operator' => 'OR',
