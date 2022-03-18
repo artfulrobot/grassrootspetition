@@ -119,7 +119,7 @@
                 <li><a href @click.prevent="editPetition(petition)" >Edit petition (texts, targets etc.)</a></li>
                 <li><a href @click.prevent="updatePetition(petition)" >Provide updates, mark Won or Closed</a></li>
                 <li v-if="petition.downloadPermissions"><a href @click.prevent="getSigs(petition)" >Download signatures</a></li>
-                <li v-if="petition.allowMailings && petition.status === 'Open'"><a href @click.prevent="prepareMailing(petition)" >Email signers</a></li>
+                <li v-if="petition.allowMailings && petition.status === 'Open'"><a href @click.prevent="prepareMailing(petition)" >Send email to signers</a></li>
               </ul>
             </div>
           </article>
@@ -357,15 +357,19 @@
       v-if="stage === 'downloadSigs'"
     >
       <h2>Download signatures</h2>
-      <p>You can download the names and emails of people who have signed this petition in a simple spreadsheet format (.csv).</p>
+      <p>You can download the names and/or emails of people who have signed this petition in a simple spreadsheet format (.csv).</p>
       <p>CSV files can be opened in any spreadsheet application.</p>
       <p><strong>This data is provided only so that you can prove support for your petition.</strong> This is <strong>personal data</strong> and as such
         is protected by UK law. You should store this data securely, and delete it once you have submitted it for the purposes of the campaign.
         <strong>You must NOT add these people to any mailing lists</strong> as they have NOT all opted-in to receive updates. If you wish
-        to send people who have opted in to updates an update, you can do so through this system, which will ensure that their
-        data is protected and provide them with opt-outs.</p>
+        to send people who have opted in to updates an update, you can do so through this system (go back to
+        <a href @click.prevent="stage = 'listPetitions'">your petitions</a> and click
+        <strong>Send email to signers</strong>), which will ensure that their data is protected and provide them with opt-outs.</p>
+      <p>
+        <button class="secondary" @click.prevent="stage = 'listPetitions'" >Back</button>
+        &nbsp;
+        <button @click.prevent="downloadSigs()" >Download CSV file</button>
       </p>
-      <p><button @click.prevent="downloadSigs()" >Download CSV file</button></p>
     </div>
 
     <div
