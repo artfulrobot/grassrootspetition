@@ -552,10 +552,11 @@ class CaseWrapper {
     $this->mustBeLoaded();
     // Has our petition had the defaults overridden?
     $customPerms = $this->getCustomData('grpet_download_permissions') ?? [];
-    $override = array_search('override', $customPerms);
+    $override = array_search('override', $customPerms) !== FALSE;
+    // \Civi::log()->info("getDownloadPermissions PEtition: " . json_encode([ 'customPerms' => $customPerms, 'override' => $override, ], JSON_PRETTY_PRINT));
     if ($override !== FALSE) {
       // Using overriden permissions
-      unset($customPerms[$override]);
+      $customPerms = array_values(array_diff($customPerms, ['override']));
       return $customPerms;
     }
     // Does the campaign have defaults?
@@ -563,10 +564,11 @@ class CaseWrapper {
     if (!empty($campaign['download_permissions'])) {
       // maybe.
       $customPerms = $campaign['download_permissions'];
-      $override = array_search('override', $customPerms);
+      $override = array_search('override', $customPerms) !== FALSE;
+      // \Civi::log()->info("getDownloadPermissions Campaign: " . json_encode([ 'customPerms' => $customPerms, 'override' => $override, ], JSON_PRETTY_PRINT));
       if ($override !== FALSE) {
         // Using overriden permissions
-        unset($customPerms[$override]);
+        $customPerms = array_values(array_diff($customPerms, ['override']));
         return $customPerms;
       }
     }

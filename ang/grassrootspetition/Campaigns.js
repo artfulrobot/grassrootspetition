@@ -65,6 +65,7 @@
           thanks_msg_template_id: null,
           confirm_msg_template_id: null,
           allow_mailings: 'default',
+          downloadPermissions: {override: false, email: false, name: false },
         };
     $scope.editCampaign = function(campaign) {
       if (campaign) {
