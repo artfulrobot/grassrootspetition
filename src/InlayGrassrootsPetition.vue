@@ -232,6 +232,7 @@
         <div class="image" v-if="update.imageUrl"><img :src="update.imageUrl" :alt="update.imageAlt" /></div>
       </div>
     </div>
+    <div class="grpet-start-date">Petition started: {{publicData.startDate}}</div>
 
     <div class="grpet-social" v-if="showTheForm">
       <h2>Share this petition</h2>

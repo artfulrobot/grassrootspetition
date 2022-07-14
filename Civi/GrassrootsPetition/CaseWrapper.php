@@ -440,6 +440,7 @@ class CaseWrapper {
     $mainImage = $this->getMainImage();
 
     $public = [
+      'startDate'        => $this->getStartDate(),
       'status'           => $this->getCaseStatus(),
       'location'         => $this->getCustomData('grpet_location'),
       'slug'             => $this->getCustomData('grpet_slug'),
@@ -846,6 +847,12 @@ class CaseWrapper {
       Civi::log()->error("Could not find valid case status for case {$this->case['id']}, status id is {$this->case['status_id']} and map is " . json_encode(static::$caseStatusesByName));
     }
     return $_;
+  }
+  public function getStartDate() :string {
+    $this->mustBeLoaded();
+    $createdActivity = $this->getPetitionCreatedActivity();
+    \Civi::log()->info("grpet createdActivity: " . json_encode($createdActivity));
+    return date('j M Y', strtotime($createdActivity['activity_date_time']));
   }
   /**
    * Get Case ID.
@@ -1296,7 +1303,7 @@ class CaseWrapper {
         'sequential'   => 1,
         'case_id' => $this->case['id'],
         'activity_type_id' => static::$activityTypesByName['Grassroots Petition created']['value'],
-        'return' => ['id', 'status_id', 'activity_type_id']
+        'return' => ['id', 'status_id', 'activity_type_id', 'activity_date_time']
       ]);
       if (empty($openCase['id'])) {
         // This is an error!
