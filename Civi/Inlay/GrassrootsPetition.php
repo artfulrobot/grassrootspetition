@@ -1064,6 +1064,9 @@ class GrassrootsPetition extends InlayType {
         $field = $col[1];
         $needsQuoting = $col[2];
         $val = $signer[$field];
+        if ($field === 'email.email') {
+          $val = preg_replace('/^(.)[^@]*(@.*)$/', '$1******$2', $val);
+        }
         if ($needsQuoting) {
           $val = str_replace('"', '""', $val);
         }
