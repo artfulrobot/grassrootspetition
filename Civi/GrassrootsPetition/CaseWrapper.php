@@ -763,19 +763,35 @@ class CaseWrapper {
       if ($x < 60) {
         $ago = "$x seconds ago";
       }
-      else if ($x < 60*60) {
+      elseif ($x < 60*60) {
         // up to 59 mins.
         $x = (int) ($x/60);
         $ago = "$x minutes ago";
       }
-      else if ($x < 24*60*60) {
+      elseif ($x < 24*60*60) {
         // up to 23 horus
         $x = (int) ($x/60/60);
         $ago = "$x hours ago";
       }
-      else {
+      elseif ($x < 24*60*60*14) {
+        // up to 2 weeks, show as 'x days ago'
         $x = (int) ($x/60/60/24);
         $ago = "$x days ago";
+      }
+      elseif ($x < 24*60*60*31*2) {
+        // up to 2 months, show as 'x weeks ago'
+        $x = (int) ($x/60/60/24/7);
+        $ago = "$x weeks ago";
+      }
+      elseif ($x < 24*60*60*31*25) {
+        // up to 25 months, show as 'x months ago' (roughly)
+        $x = (int) ($x/60/60/24/30);
+        $ago = "$x months ago";
+      }
+      else {
+        // Over 25 months, show as years.
+        $x = (int) ($x/60/60/24/365);
+        $ago = "$x years ago";
       }
       return ['name' => $dao->first_name, 'ago' => $ago];
     }
