@@ -137,20 +137,6 @@ class GrassrootsPetition extends InlayType {
     }
     return $assets;
   }
-  /**
-   * Sets the config ensuring it's valid.
-   *
-   * This implementation simply ensures all the defaults exist, and that no
-   * other keys exist, but you could do other things, especially if you need to
-   * coerce some old config into a new style.
-   *
-   * @param array $config
-   *
-   * @return \Civi\Inlay\Type (this)
-   */
-  public function setConfig(array $config) {
-    $this->config = array_intersect_key($config + static::$defaultConfig, static::$defaultConfig);
-  }
 
   /**
    * Generates data to be served with the Javascript application code bundle.
@@ -159,7 +145,7 @@ class GrassrootsPetition extends InlayType {
    *
    * @return array
    */
-  public function getInitData() {
+  public function getInitData(): array {
     $data = [
       // Name of global Javascript function used to boot this app.
       'init'             => 'inlayGrpetInit',
@@ -195,7 +181,7 @@ class GrassrootsPetition extends InlayType {
    *
    * @throws \Civi\Inlay\ApiException;
    */
-  public function processRequest(ApiRequest $request) {
+  public function processRequest(ApiRequest $request): array {
 
     $method = static::$routes[$request->getMethod()][$request->getBody()['need'] ?? ''] ?? NULL;
     if (empty($method)) {
@@ -217,6 +203,11 @@ class GrassrootsPetition extends InlayType {
 
     /** @var CaseWrapper $petition */
     foreach ($petitions as $petition) {
+      $listOrder = $petition->getListOrder();
+      if ($listOrder === 'unlisted') {
+        // Skip this one.
+        continue;
+      }
       $mainImage = $petition->getMainImage();
       $public = [
         'id'             => $petition->getID(),
@@ -227,6 +218,7 @@ class GrassrootsPetition extends InlayType {
         'campaignID'     => (int) $petition->getCustomData('grpet_campaign'),
         'imageUrl'       => $mainImage['imageUrl'],
         'imageAlt'       => $mainImage['imageAlt'],
+        'listOrder'      => $listOrder,
       ];
       if (!isset($output['campaigns'][$public['campaignID']])) {
         $output['campaigns'][$public['campaignID']] = $petition->getCampaign();
@@ -235,8 +227,26 @@ class GrassrootsPetition extends InlayType {
       $output['petitions'][] = $public;
     }
 
-    // Sort by signatures.
-    usort($output['petitions'], function($a, $b) {
+    // Sort by: then campaign-is-active, then listOrder, then signatures.
+    usort($output['petitions'], function($a, $b) use ($output) {
+
+      $campaignIsActiveA = $output['campaigns'][$a['campaignID']]['is_active'] ?? false;
+      $campaignIsActiveB = $output['campaigns'][$b['campaignID']]['is_active'] ?? false;
+      if ($campaignIsActiveA && !$campaignIsActiveB) {
+        return -1;
+      }
+      if (!$campaignIsActiveA && $campaignIsActiveB) {
+        return 1;
+      }
+
+      if ($a['listOrder'] === 'priority' && $b['listOrder'] !== 'priority') {
+        return -1;
+      }
+      if ($a['listOrder'] !== 'priority' && $b['listOrder'] === 'priority') {
+        return 1;
+      }
+
+      // Finally, most signatures at the top.
       return (($b['signatureCount'] ?? 0) <=> ($a['signatureCount'] ?? 0));
     });
 
@@ -359,7 +369,7 @@ class GrassrootsPetition extends InlayType {
    *
    * @return string Content of a Javascript file.
    */
-  public function getExternalScript() {
+  public function getExternalScript(): string {
 
     $x= file_get_contents(E::path('dist/inlaygrpet.js'));
     if (!$x) {
@@ -383,6 +393,7 @@ class GrassrootsPetition extends InlayType {
    * - grpet_why
    * - grpet_sig_public
    * - grpet_sig_shared
+   * - grpet_list_order
    * - grpet_sig_optin
    *
    * @param NULL|string
@@ -864,7 +875,7 @@ class GrassrootsPetition extends InlayType {
       'from'           => $from,
       'to_email'       => $toEmail,
       'contact_id'     => $contactID,
-      'disable_smarty' => 1,
+      // 'disable_smarty' => 1,
       'template_params' => $tplVars,
       /*
       'template_params' =>

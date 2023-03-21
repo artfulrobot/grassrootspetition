@@ -45,6 +45,10 @@ cv en grassrootspetition
 
 ## Versions
 
+### 1.2
+
+Public petition list changes: petitions now have a "list order" field which can be set from the manage case screen to one of: Normal|Priority|Unlisted. Public petitions are now listed: active campaigns, Priority petitions, number of signatures. Previously it was just number of signatures.
+
 ### 1.1
 
 Brings ability for petition owners to (draft) mailings to their supporters

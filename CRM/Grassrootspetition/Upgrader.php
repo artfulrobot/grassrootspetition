@@ -170,7 +170,7 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
           "grpet_Won",
           "grpet_Dead"
         ],
-        "activitySets" => [ 
+        "activitySets" => [
           [
             'name' => 'standard_timeline',
             'label' => 'Standard Timeline',
@@ -396,6 +396,54 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
       'text_length'     => 255,
       'column_name'     => 'download_permissions',
       'option_group_id' => $downloadOptionGroupID,
+    ];
+    $this->createOrUpdate('CustomField', $baseParams, $allParams);
+    // }}}
+
+    // List order {{{
+    // Create the optiongroup
+    $baseParams = [
+      'name' => "grpet_list_order",
+    ];
+    $allParams = [
+      'title'     => "Grassroots Petition List Order",
+      'data_type' => "String",
+      'is_active' => 1,
+      'is_reserved' => 1,
+      'is_locked' => 1, // We do not want people adding to this.
+    ];
+    $listOrderOptionGroupID = $this->createOrUpdate('OptionGroup', $baseParams, $allParams);
+
+    // Create the options.
+    foreach ([
+      'normal' => 'Normal',
+      'priority' => 'Priority',
+      'unlisted' => 'Unlisted',
+    ] as $name => $label) {
+
+      $baseParams = [
+        'option_group_id' => $listOrderOptionGroupID,
+        'name'            => $name,
+      ];
+      $allParams = [
+        'label'           => $label,
+        'value'           => $name,
+      ];
+      $this->createOrUpdate('OptionValue', $baseParams, $allParams);
+    }
+
+    // Create the field that references the option group
+    $baseParams = [
+      'custom_group_id' => $customGroupIDPetition,
+      'name'            => 'grpet_list_order'
+    ];
+    $allParams = [
+      'label'           => "List order",
+      'data_type'       => 'String',
+      'html_type'       => 'Select',
+      'text_length'     => 20,
+      'column_name'     => 'list_order',
+      'option_group_id' => $listOrderOptionGroupID,
     ];
     $this->createOrUpdate('CustomField', $baseParams, $allParams);
     // }}}
@@ -681,6 +729,18 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Grassrootspetition_Upgrader_Ba
    */
   public function upgrade_0006() {
     $this->ctx->log->info('Applying update 0006');
+    $this->ensureDataStructuresExist();
+    return TRUE;
+  }
+
+  /**
+   * Add download permissions and mailing
+   *
+   * @return TRUE on success
+   * @throws Exception
+   */
+  public function upgrade_0007() {
+    $this->ctx->log->info('Applying ' . __METHOD__);
     $this->ensureDataStructuresExist();
     return TRUE;
   }

@@ -307,6 +307,7 @@ class CaseWrapper {
 
     return $cases;
   }
+
   /**
    * Return an array of CaseWrapper objects for publicly-available petitions.
    *
@@ -317,6 +318,7 @@ class CaseWrapper {
     $customSlug = GrassrootsPetition::getCustomFields('grpet_slug');
     $customCampaign = GrassrootsPetition::getCustomFields('grpet_campaign');
     $customLocation = GrassrootsPetition::getCustomFields('grpet_location');
+    $customListOrder = GrassrootsPetition::getCustomFields('grpet_list_order');
 
     $params = [
       'case_type_id' => 'grassrootspetition',
@@ -326,7 +328,7 @@ class CaseWrapper {
       ]],
       'is_deleted' => 0,
       'options' => ['limit' => 0],
-      'return' => ['id', 'status_id', 'case_type_id', 'subject', $customSlug, $customCampaign, $customLocation ],
+      'return' => ['id', 'status_id', 'case_type_id', 'subject', $customSlug, $customCampaign, $customLocation, $customListOrder ],
     ];
     $result = civicrm_api3('Case', 'get', $params)['values'] ?? [];
 
@@ -577,6 +579,17 @@ class CaseWrapper {
     // No, fall back to inlay defaults.
     return NULL;
   }
+
+  /**
+   * Get the list order string.
+   *
+   * @return string normal|priority|unlisted
+   */
+  public function getListOrder(): string {
+    $this->mustBeLoaded();
+    return $this->getCustomData('grpet_list_order') ?? 'normal';
+  }
+
   /**
    *
    * @return null|Array NULL is returned if no overrides.
@@ -1372,7 +1385,7 @@ class CaseWrapper {
         "having" => []
       ];
       $groupTitle = E::ts("Grassroots Petition %1 email updates", [1 => $this->case['id']]);
-      // ->addValue('public', 
+      // ->addValue('public',
 
       // Create a saved search for this.
       // First delete any saved search we already had with this name - there
