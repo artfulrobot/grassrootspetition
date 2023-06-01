@@ -20,7 +20,7 @@ import InlayGrassrootsPetitionAdmin from './InlayGrassrootsPetitionAdmin.vue';
       // Default ux is the public petition.
       var ux = InlayGrassrootsPetition;
       // Check for public petition page.
-      if (path === '/petitions-admin') {
+      if (path.match(/^\/petitions-admin\/?$/)) {
         ux = InlayGrassrootsPetitionAdmin;
       }
 
