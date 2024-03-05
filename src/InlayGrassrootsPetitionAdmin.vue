@@ -1,5 +1,6 @@
 <template>
   <div class="grpet-admin">
+    <h1>Your Petitions</h1>
     <div v-show="stage === 'loading'" >{{loadingMessage}}</div>
 
     <div v-show="stage === 'unauthorised'" class="unauthorised" >
@@ -561,7 +562,7 @@
   }
   .unauthorised {
     padding: 1rem;
-    background: #f8f8f8;
+    background: var(--grpet-form-bg, #f8f8f8);
   }
   ul.grpet-updates {
     margin:0;

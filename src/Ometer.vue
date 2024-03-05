@@ -1,5 +1,5 @@
 <template>
-  <div class="ipetometer primary-light-background" ref="ometer">
+  <div class="ipetometer primary-light-background bg-cream box-shape-placard-4" ref="ometer">
     <div class="ipetometer__domain" >
       <div class="ipetometer__bar" :style="barStyle"></div>
     </div>
@@ -19,6 +19,7 @@ export default {
     return {
       animStart: false,
       step: 0,
+      animDoneOnce: false,
 
       containerSize:false,
       debounce: false,
@@ -59,8 +60,9 @@ export default {
   methods:{
     handleIntersectionChange(entries, observer) {
       entries.forEach(e => {
-        if (e.isIntersecting) {
+        if (e.isIntersecting && !this.animDoneOnce) {
           this.startAnimation();
+          this.animDoneOnce = true;
         }
       });
     },

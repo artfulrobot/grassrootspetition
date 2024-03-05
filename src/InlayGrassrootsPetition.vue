@@ -9,7 +9,7 @@
     </div>
 
     <div v-if="stage === 'petitionsList'" >
-      <h2>Petitions</h2>
+      <h1>Petitions</h1>
 
       <form class="filters">
         <div class="text-filter">
@@ -272,10 +272,13 @@
     vertical-align: baseline;
   }
 
+
   form.filters {
     display: flex;
-    align-items: center;
     margin-bottom: 2rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 2rem;
 
     label {
       display: block;
@@ -283,12 +286,11 @@
     }
 
     .text-filter {
-      flex: 1 0 15rem;
-      padding-right: 2rem;
+      flex: 2 0 15rem;
     }
 
     .campaign-filter {
-      flex: 0 0 auto;
+      flex: 1 0 auto;
     }
 
   }
@@ -300,7 +302,7 @@
     &>li {
       list-style: none;
       padding:0;
-      margin: 1rem 0;
+      margin: 1rem 0 2rem;
       padding: 1rem;
       background: #f8f8f8;
     }
@@ -309,6 +311,7 @@
       padding:0;
       display:flex;
       flex-wrap: wrap;
+      gap: 1rem;
     }
     .image {
       flex: 1 0 16rem;
@@ -320,7 +323,6 @@
     }
     .texts {
       flex: 4 0 16rem;
-      padding-left: 2rem;
     }
     h1 {
       margin: 0 0 0.5rem;
@@ -333,7 +335,7 @@
     }
     .sigs-sign {
       display: flex;
-      align-items: baseline;
+      align-items: flex-end;
     }
     .signatures {
       flex:1 0 8rem;
@@ -555,28 +557,37 @@ export default {
     // First, identify which petition.
 
     if (!this.petitionSlug) {
-      // We'll be presenting the list of petitions.
-      progress.startTimer(5, 100, {reset: 1});
-      this.inlay.request({method: 'get', body: { need: 'publicPetitionList' }})
-      .then(r => {
-        console.log(r);
-        if (r.petitions) {
-          this.stage = 'petitionsList';
-          this.petitions = r.petitions;
-          this.campaigns = r.campaigns;
-        }
-        else {
-          throw r;
-        }
-      })
-      .catch(e => {
-        this.loadingError = e.publicError ?? 'There was an error loading this petition.';
-        this.stage = 'loadingError';
-      })
-      .finally( () => {
-        progress.cancelTimer();
-      });
 
+      // We'll be presenting the list of petitions.
+      if (window.grpetPreload && window.grpetPreload.petitions && window.grpetPreload.campaigns) {
+        console.log("petitionsList preloaded");
+        this.petitions = window.grpetPreload.petitions;
+        this.campaigns = window.grpetPreload.campaigns;
+        this.stage = 'petitionsList';
+      }
+      else {
+        console.log("petitionsList not preloaded");
+        // No preloaded data.
+        progress.startTimer(5, 100, {reset: 1});
+        this.inlay.request({ method: 'get', body: {need: 'publicPetitionList'}})
+          .then(r => {
+            if (r.petitions) {
+              this.petitions = r.petitions;
+              this.campaigns = r.campaigns;
+              this.stage = 'petitionsList';
+            }
+            else {
+              throw r;
+            }
+          })
+          .catch(e => {
+            this.loadingError = e.publicError ?? 'There was an error loading this petition.';
+            this.stage = 'loadingError';
+          })
+          .finally(() => {
+            progress.cancelTimer();
+          });
+      }
       return;
     }
 

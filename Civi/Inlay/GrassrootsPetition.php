@@ -17,22 +17,22 @@ class GrassrootsPetition extends InlayType {
   public static $typeName = 'Grassroots Petition';
   public static $customFieldsMap;
   public static $routes = [
-      'GET' => [
-        'publicData' => 'processGetPublicDataRequest',
-        'publicPetitionList' => 'processGetPublicPetitionList',
-      ],
-      'POST' => [
-        'submitSignature'    => 'processSubmitSignatureRequest',
-        'adminAuthEmail'     => 'processAdminAuthEmail',
-        'adminPetitionsList' => 'processAdminPetitionsList',
-        'adminSavePetition'  => 'processAdminSavePetition',
-        'adminLoadPetition'  => 'processAdminLoadPetition',
-        'adminLoadUpdates'   => 'processAdminLoadUpdates',
-        'adminAddUpdate'     => 'processAdminAddUpdate',
-        'adminGetSignatures' => 'processAdminGetSignatures',
-        'adminCreateMailing' => 'processAdminCreateMailing',
-      ]
-    ];
+    'GET' => [
+      'publicData' => 'processGetPublicDataRequest',
+      'publicPetitionList' => 'processGetPublicPetitionList',
+    ],
+    'POST' => [
+      'submitSignature'    => 'processSubmitSignatureRequest',
+      'adminAuthEmail'     => 'processAdminAuthEmail',
+      'adminPetitionsList' => 'processAdminPetitionsList',
+      'adminSavePetition'  => 'processAdminSavePetition',
+      'adminLoadPetition'  => 'processAdminLoadPetition',
+      'adminLoadUpdates'   => 'processAdminLoadUpdates',
+      'adminAddUpdate'     => 'processAdminAddUpdate',
+      'adminGetSignatures' => 'processAdminGetSignatures',
+      'adminCreateMailing' => 'processAdminCreateMailing',
+    ]
+  ];
 
   /**
    * Cache so that when processing a set of queued signups we don't have to
@@ -128,12 +128,12 @@ class GrassrootsPetition extends InlayType {
    *
    * We do not need to include our bundle file; Inlay itself looks after that.
    */
-  public function getAssets() :array {
+  public function getAssets(): array {
     $campaignIDs = GrassrootsPetitionCampaign::get(FALSE)
       ->addSelect('id')->execute()->column('id');
     $assets = [];
     foreach ($campaignIDs as $campaignID) {
-      $assets []= "grassrootspetition_campaign_{$campaignID}_default_image";
+      $assets[] = "grassrootspetition_campaign_{$campaignID}_default_image";
     }
     return $assets;
   }
@@ -158,8 +158,7 @@ class GrassrootsPetition extends InlayType {
       $_ = ['name' => $social];
       if ($social === 'twitter') {
         $_['tweet'] = $this->config['tweet'];
-      }
-      elseif ($social === 'whatsapp') {
+      } elseif ($social === 'whatsapp') {
         $_['whatsappText'] = $this->config['whatsappText'];
       }
       $data['socials'][] = $_;
@@ -176,7 +175,7 @@ class GrassrootsPetition extends InlayType {
    * have 'token' field then a token is generated and returned. Otherwise the
    * token is checked and processing continues.
    *
-   * @param \Civi\Inlay\Request $request
+   * @param \Civi\Inlay\ApiRequest $request
    * @return array
    *
    * @throws \Civi\Inlay\ApiException;
@@ -185,8 +184,11 @@ class GrassrootsPetition extends InlayType {
 
     $method = static::$routes[$request->getMethod()][$request->getBody()['need'] ?? ''] ?? NULL;
     if (empty($method)) {
-      throw new ApiException(400, ['publicError' => 'Invalid request. (Routing error)'],
-        "GrassrootsPetition API called with invalid 'need'");
+      throw new ApiException(
+        400,
+        ['publicError' => 'Invalid request. (Routing error)'],
+        "GrassrootsPetition API called with invalid 'need'"
+      );
     }
 
     return $this->$method($request);
@@ -228,7 +230,7 @@ class GrassrootsPetition extends InlayType {
     }
 
     // Sort by: then campaign-is-active, then listOrder, then signatures.
-    usort($output['petitions'], function($a, $b) use ($output) {
+    usort($output['petitions'], function ($a, $b) use ($output) {
 
       $campaignIsActiveA = $output['campaigns'][$a['campaignID']]['is_active'] ?? false;
       $campaignIsActiveB = $output['campaigns'][$b['campaignID']]['is_active'] ?? false;
@@ -340,8 +342,7 @@ class GrassrootsPetition extends InlayType {
     // Optin.
     if (preg_match('/^(yes|no)$/', $data['optin'] ?? '')) {
       $valid['optin'] = $data['optin'];
-    }
-    else {
+    } else {
       $errors[] = "Please confirm consent for future communications.";
     }
 
@@ -358,7 +359,6 @@ class GrassrootsPetition extends InlayType {
    * @return string URL
    */
   public function getAdminURL() {
-
   }
 
   /**
@@ -371,7 +371,7 @@ class GrassrootsPetition extends InlayType {
    */
   public function getExternalScript(): string {
 
-    $x= file_get_contents(E::path('dist/inlaygrpet.js'));
+    $x = file_get_contents(E::path('dist/inlaygrpet.js'));
     if (!$x) {
       throw new \Exception(E::path('dist/inlaygrpet.js')  . " not found");
     }
@@ -433,8 +433,11 @@ class GrassrootsPetition extends InlayType {
 
     $case = CaseWrapper::fromID($data['case_id']);
     if (!$case) {
-      throw new \Civi\Inlay\ApiException(400, ['error' => 'Petition not found'],
-        "Failed to load case with ID " . json_encode($data['case_id']));
+      throw new \Civi\Inlay\ApiException(
+        400,
+        ['error' => 'Petition not found'],
+        "Failed to load case with ID " . json_encode($data['case_id'])
+      );
     }
     $campaign = $case->getCampaign();
 
@@ -479,9 +482,7 @@ class GrassrootsPetition extends InlayType {
         Civi::log()->info("Did not find thanks_msg_template_id for campaign " . json_encode($campaign));
         $msgTplID = $this->config['thanksMsgTplID'] ?? NULL;
       }
-
-    }
-    else {
+    } else {
       // No consent/opt-in, but do we still want to send a non-marketing confirmation
       $msgTplID = $case->getCustomData('grpet_confirm_msg_template_id');
       if (!$msgTplID) {
@@ -521,14 +522,13 @@ class GrassrootsPetition extends InlayType {
       // Look up email, and whether they have any petitions.
       new CaseWrapper();
       $ids = CaseWrapper::getPetitionsOwnedByEmail($body['email'], (int) $body['petitionID']);
-      \Civi::log()->info("Got " . json_encode(['email' => $body['email'], 'case' =>$ids]));
+      \Civi::log()->info("Got " . json_encode(['email' => $body['email'], 'case' => $ids]));
       if (!empty($ids)) {
         $petition = $ids['caseID'];
         $contactID = $ids['contactID'];
         $letEmIn = TRUE;
       }
-    }
-    else {
+    } else {
       // Sign up.
       $valid = $this->cleanupSignupRequest($body);
       if (empty($valid['token'])) {
@@ -558,7 +558,7 @@ class GrassrootsPetition extends InlayType {
     // Create contact hash, send auth email.
     if ($letEmIn) {
       // Valid for 1 hour.
-      $hash = Auth::createAuthRecord($contactID, 60*60, 'T');
+      $hash = Auth::createAuthRecord($contactID, 60 * 60, 'T');
       if ($petition) {
         $hash = "P{$petition}-$hash";
       }
@@ -566,13 +566,13 @@ class GrassrootsPetition extends InlayType {
       // Send email
       $msgTplID = civicrm_api3('MessageTemplate', 'getsingle', ['return' => 'id', 'msg_title' => 'Grassroots Petition Admin Link'])['id'];
       $this->sendMsgTpl($contactID, $body['email'], $msgTplID, [
-        'petitionLink' => $link , /*Nb. use of template params requires Smarty (without my PR?).*/
+        'petitionLink' => $link, /*Nb. use of template params requires Smarty (without my PR?).*/
       ]);
       Civi::log()->info("Grassroots Petition Auth Email $msgTplID sent to $contactID $body[email] with link $link");
     }
 
     // We always return successful so as not to give anything away about what data we hold.
-    return ['success' => 1 ];
+    return ['success' => 1];
   }
 
   /**
@@ -599,14 +599,13 @@ class GrassrootsPetition extends InlayType {
    *
    * @return array
    */
-  public function cleanupInputNameEmailPhone(array $data, array &$valid, array &$errors):void {
+  public function cleanupInputNameEmailPhone(array $data, array &$valid, array &$errors): void {
 
     // Names
     foreach (['first_name', 'last_name'] as $field) {
       try {
         $valid[$field] = static::requireSimpleText($data[$field], 50, $field);
-      }
-      catch (ApiException $e) {
+      } catch (ApiException $e) {
         $errors[] = $e->responseObject['publicError'] ?? "Error on $field";
       }
     }
@@ -615,8 +614,7 @@ class GrassrootsPetition extends InlayType {
     $email = trim($data['email']) ?? '';
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
       $errors[] = "invalid email address";
-    }
-    else {
+    } else {
       $valid['email'] = $email;
     }
 
@@ -634,13 +632,11 @@ class GrassrootsPetition extends InlayType {
       // Require at least 11 numbers.
       if (!preg_match('/[0-9]{11,}/', preg_replace('/[^0-9]+/', '', $data['phone']))) {
         $errors[] = "Your phone number does not look valid. (Nb. providing a phone is optional.)";
-      }
-      else {
+      } else {
         // Strip out everything that looks phoney. I mean non-phoney. I mean...
         $valid['phone'] = preg_replace('/[^0-9]+/', '', $data['phone']);
       }
     }
-
   }
 
   /**
@@ -648,7 +644,7 @@ class GrassrootsPetition extends InlayType {
    *
    * @param array $data
    */
-  public function cleanupInputToken(array $data, array &$valid, array &$errors):void {
+  public function cleanupInputToken(array $data, array &$valid, array &$errors): void {
 
     if ($errors) {
       throw new \Civi\Inlay\ApiException(400, ['publicError' => implode(', ', $errors)]);
@@ -660,13 +656,14 @@ class GrassrootsPetition extends InlayType {
       try {
         $this->checkCSRFToken($data['token'], $valid);
         $valid['token'] = TRUE;
-      }
-      catch (\InvalidArgumentException $e) {
+      } catch (\InvalidArgumentException $e) {
         // Token failed. Issue a public friendly message, though this should
         // never be seen by anyone legit.
         Civi::log()->notice("Token error: " . $e->getMessage . "\n" . $e->getTraceAsString());
-        throw new \Civi\Inlay\ApiException(400,
-          ['error' => "Mysterious problem, sorry! Code " . substr($e->getMessage(), 0, 3)]);
+        throw new \Civi\Inlay\ApiException(
+          400,
+          ['error' => "Mysterious problem, sorry! Code " . substr($e->getMessage(), 0, 3)]
+        );
       }
     }
   }
@@ -702,7 +699,7 @@ class GrassrootsPetition extends InlayType {
   /**
    * List petitions for the contact.
    */
-  protected function getListOfPetitionsForContact(int $contactID) :array {
+  protected function getListOfPetitionsForContact(int $contactID): array {
     $cases = CaseWrapper::getPetitionsOwnedByContact($contactID);
 
     // Summarise the cases
@@ -753,8 +750,7 @@ class GrassrootsPetition extends InlayType {
 
       // Fix campaign, this is not allowed to change.
       $campaign = $case->getCampaign();
-    }
-    else {
+    } else {
       // We require the campaignLabel for new petitions.
       if (!is_string($body['campaignLabel'] ?? NULL)) {
         throw new ApiException(400, ['publicError' => 'Invalid request. (IVP2)'], "Contact $contactID tried to save case with missing/nonstring campaignLabel.");
@@ -775,7 +771,7 @@ class GrassrootsPetition extends InlayType {
     $valid['title'] = $this->requireSimpleText($body['title'] ?? '', 255, "title");
     $valid['who'] = $this->requireSimpleText($body['who'] ?? '', 255, "who");
     $valid['targetCount'] = (int)($body['targetCount'] ?? 0);
-    if (!($valid['targetCount']>0)) {
+    if (!($valid['targetCount'] > 0)) {
       throw new ApiException(400, ['publicError' => 'Target count must be a number.']);
     }
 
@@ -797,15 +793,16 @@ class GrassrootsPetition extends InlayType {
         'grpet_why'          => $valid['why'],
         'grpet_target_count' => $valid['targetCount'],
       ];
-    }
-    else {
+    } else {
       // New case, create it now.
-      $case = CaseWrapper::createNew($contactID,
+      $case = CaseWrapper::createNew(
+        $contactID,
         $valid['title'],
         $campaign['label'],
         $valid['location'],
         $valid['targetName'],
-        $valid['who']);
+        $valid['who']
+      );
       // These are the things you're NOT allowed to change later.
       $updates += [
         'grpet_what'         => $valid['what'],
@@ -824,7 +821,7 @@ class GrassrootsPetition extends InlayType {
       $imageData = base64_decode($m[2]);
       $imageFileType = $m[1];
       unset($m);
-      Civi::log()->debug("Got image ". strlen($imageData));
+      Civi::log()->debug("Got image " . strlen($imageData));
       if ($imageData) {
         // We need to add our image to the case.
         $case->setMainImageFromImageData($imageData, $imageFileType);
@@ -850,9 +847,9 @@ class GrassrootsPetition extends InlayType {
   /**
    * Send email.
    */
-  public function sendMsgTpl(int $contactID, ?string $toEmail, int $msgTplID, array $tplVars=[]) {
+  public function sendMsgTpl(int $contactID, ?string $toEmail, int $msgTplID, array $tplVars = []) {
 
-    $from = civicrm_api3('OptionValue', 'getvalue', [ 'return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
+    $from = civicrm_api3('OptionValue', 'getvalue', ['return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
     if ($toEmail === NULL) {
       // Look up primary email.
       $toEmail = civicrm_api3('Email', 'get', [
@@ -863,7 +860,9 @@ class GrassrootsPetition extends InlayType {
         'options' => ['sort' => "is_primary DESC"],
       ])['values'][0]['email'] ?? NULL;
       if (!$toEmail) {
-        throw new ApiException(500, ['publicError' => 'Sorry, we don’t have a valid email for you. Please contact us. (EM1)'],
+        throw new ApiException(
+          500,
+          ['publicError' => 'Sorry, we don’t have a valid email for you. Please contact us. (EM1)'],
           "GrassrootsPetition: No valid email for contact $contactID, cannot send msgtpl $msgTplID"
         );
       }
@@ -883,12 +882,11 @@ class GrassrootsPetition extends InlayType {
       // {$foo} in templates 'bar' => '123',
       // {$bar} in templates ],
       */
-      ];
+    ];
 
     try {
       civicrm_api3('MessageTemplate', 'send', $params);
-    }
-    catch (\Exception $e) {
+    } catch (\Exception $e) {
       // Log silently.
       Civi::log()->error("Failed to send MessageTemplate with params: " . json_encode($params, JSON_PRETTY_PRINT) . " Caught " . get_class($e) . ": " . $e->getMessage());
     }
@@ -997,8 +995,11 @@ class GrassrootsPetition extends InlayType {
     if (trim($body['text'])) {
       // Convert to HTML
       $text = '<p>'
-        . preg_replace('/[\r\n]+/', '</p><p>',
-        htmlspecialchars($this->requireSimpleText($body['text'] ?? '', 50000, "text")))
+        . preg_replace(
+          '/[\r\n]+/',
+          '</p><p>',
+          htmlspecialchars($this->requireSimpleText($body['text'] ?? '', 50000, "text"))
+        )
         . '</p>';
       $subject = '';
       $activityID = $case->addUpdateActivity(
@@ -1092,7 +1093,7 @@ class GrassrootsPetition extends InlayType {
   /**
    * Create a mailing
    */
-  protected function processAdminCreateMailing(ApiRequest $request) :array {
+  protected function processAdminCreateMailing(ApiRequest $request): array {
     $response = [];
     $contactID = $this->checkAuthenticated($request, $response);
 
@@ -1163,7 +1164,7 @@ class GrassrootsPetition extends InlayType {
 
       $toEmail = $campaign['notify_email'] ?? NULL;
 
-      $from = civicrm_api3('OptionValue', 'getvalue', [ 'return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
+      $from = civicrm_api3('OptionValue', 'getvalue', ['return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
       if ($toEmail === NULL) {
         // Look up primary email.
         $toEmail = civicrm_api3('Email', 'get', [
@@ -1174,9 +1175,11 @@ class GrassrootsPetition extends InlayType {
           'options' => ['sort' => "is_primary DESC"],
         ])['values'][0]['email'] ?? NULL;
         if (!$toEmail) {
-          throw new ApiException(500, ['publicError' => 'Sorry, this petition is misconfigured. Please contact us. (MLG1)'],
+          throw new ApiException(
+            500,
+            ['publicError' => 'Sorry, this petition is misconfigured. Please contact us. (MLG1)'],
             "GrassrootsPetition: Notify contact ({$campaign['notify_contact_id']}) has no valid email, "
-            ."cannot notify about new petition mailing (CaseID " . $case->getID() . "), though one has been created."
+              . "cannot notify about new petition mailing (CaseID " . $case->getID() . "), though one has been created."
           );
         }
       }
@@ -1196,39 +1199,40 @@ class GrassrootsPetition extends InlayType {
 
       try {
         civicrm_api3('MessageTemplate', 'send', $params);
-      }
-      catch (\Exception $e) {
-        throw new ApiException(500,
+      } catch (\Exception $e) {
+        throw new ApiException(
+          500,
           ['publicError' => 'Sorry, there was a problem notifying staff about the new petition. Please contact us. (EM3)'],
           "GrassrootsPetition: Failed to send notification of new petitoin email: " . json_encode($params) . " on case "
-          . $case->getID() . " Exception message: " . $e->getMessage()
+            . $case->getID() . " Exception message: " . $e->getMessage()
         );
       }
-
     }
     return ['success' => 1];
   }
   /**
    *
    */
-  protected function getMailingHeaderFooterIDs() :array {
+  protected function getMailingHeaderFooterIDs(): array {
     return [
-      civicrm_api3('MailingComponent', 'get', ['return' => 'id',
-      'name' => "Header for Grassroots Petition updates",
-      'component_type' => 'Header',
-      'is_active' => 1,
+      civicrm_api3('MailingComponent', 'get', [
+        'return' => 'id',
+        'name' => "Header for Grassroots Petition updates",
+        'component_type' => 'Header',
+        'is_active' => 1,
       ])['id'] ?? NULL,
-      civicrm_api3('MailingComponent', 'get', ['return' => 'id',
-      'name' => "Footer for Grassroots Petition updates",
-      'component_type' => 'Footer',
-      'is_active' => 1,
+      civicrm_api3('MailingComponent', 'get', [
+        'return' => 'id',
+        'name' => "Footer for Grassroots Petition updates",
+        'component_type' => 'Footer',
+        'is_active' => 1,
       ])['id'] ?? NULL,
     ];
   }
   /**
    * Returns the authenticated contactID, or throws a 401 ApiException
    */
-  protected function checkAuthenticated(ApiRequest $request, array &$response) :int {
+  protected function checkAuthenticated(ApiRequest $request, array &$response): int {
     $result = Auth::checkAuthRecord($request->getBody()['authToken'] ?? '');
     if (!$result['contactID']) {
       throw new \Civi\Inlay\ApiException(401, ['error' => 'Unauthorised']);
@@ -1261,10 +1265,10 @@ class GrassrootsPetition extends InlayType {
         WHERE a.activity_type_id = %2 AND a.subject = %3
         LIMIT 1
       ", [
-        1 => [$contactID, 'Integer'],
-        2 => [$activityTypeID, 'Integer'],
-        3 => [$subject, 'String'],
-      ]);
+      1 => [$contactID, 'Integer'],
+      2 => [$activityTypeID, 'Integer'],
+      3 => [$subject, 'String'],
+    ]);
 
     return $found;
   }
@@ -1288,7 +1292,7 @@ class GrassrootsPetition extends InlayType {
   /**
    * DRY method.
    */
-  protected function getCaseWrapperFromRequest(ApiRequest $request) :CaseWrapper {
+  protected function getCaseWrapperFromRequest(ApiRequest $request): CaseWrapper {
     $rawInput = $request->getBody();
     $slug = $rawInput['petitionSlug'] ?? '';
 
@@ -1301,9 +1305,8 @@ class GrassrootsPetition extends InlayType {
     }
 
     switch ($case->getCaseStatus()) {
-    case 'grpet_Pending':
-      throw new ApiException(400, ['publicError' => 'Petition not published yet.']);
-
+      case 'grpet_Pending':
+        throw new ApiException(400, ['publicError' => 'Petition not published yet.']);
     }
     // Allowing: gpet_Dead|gpet_Won|Open
 
@@ -1318,26 +1321,38 @@ class GrassrootsPetition extends InlayType {
    *
    * @throws ApiException
    */
-  public static function requireSimpleText($text, ?int $maxLength=NULL, string $publicFieldName='', bool $allowLinks=FALSE, bool $allowEmoji=FALSE) :string {
+  public static function requireSimpleText($text, ?int $maxLength = NULL, string $publicFieldName = '', bool $allowLinks = FALSE, bool $allowEmoji = FALSE): string {
     if (empty($text) || !is_string($text) || trim($text) === '') {
-      throw new ApiException(400, ['publicError' => "Invalid $publicFieldName. (ST1)"],
-        "$publicFieldName failed validation");
+      throw new ApiException(
+        400,
+        ['publicError' => "Invalid $publicFieldName. (ST1)"],
+        "$publicFieldName failed validation"
+      );
     }
     // Is a string.
     $text = trim($text);
     $disallowed = $allowLinks ? '@[<>]@' : '@([<>]|http|//)@';
     if (preg_match($disallowed, $text)) {
-      throw new ApiException(400, ['publicError' => "Invalid $publicFieldName. (ST2)"],
-        "$publicFieldName contains special chars or http");
+      throw new ApiException(
+        400,
+        ['publicError' => "Invalid $publicFieldName. (ST2)"],
+        "$publicFieldName contains special chars or http"
+      );
     }
     // Emojis? No thanks.
     if (!$allowEmoji && preg_match("/[\u{1f300}-\u{1f5ff}\u{e000}-\u{f8ff}]/u", $text)) {
-      throw new ApiException(400, ['publicError' => "Invalid $publicFieldName, 😥 emojis are not allowed (ST3)"],
-        "$publicFieldName contains emojis");
+      throw new ApiException(
+        400,
+        ['publicError' => "Invalid $publicFieldName, 😥 emojis are not allowed (ST3)"],
+        "$publicFieldName contains emojis"
+      );
     }
     if ($maxLength && mb_strlen($text) > $maxLength) {
-      throw new ApiException(400, ['publicError' => "Invalid $publicFieldName, too long (ST4)"],
-        "$publicFieldName contains emojis");
+      throw new ApiException(
+        400,
+        ['publicError' => "Invalid $publicFieldName, too long (ST4)"],
+        "$publicFieldName contains emojis"
+      );
     }
 
     return $text;
