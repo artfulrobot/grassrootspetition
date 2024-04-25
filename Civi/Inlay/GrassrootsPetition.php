@@ -1333,9 +1333,17 @@ class GrassrootsPetition extends InlayType {
     $text = trim($text);
     $disallowed = $allowLinks ? '@[<>]@' : '@([<>]|http|//)@';
     if (preg_match($disallowed, $text)) {
+      $hints = ['Certain special characters are not allowed.'];
+      if (!$allowLinks) {
+        $hints[] = 'Links are not allowed.';
+      }
+      if (!$allowEmoji) {
+        $hints[] = '😢 Emoji are not allowed.';
+      }
+      $hints = implode(' ', $hints);
       throw new ApiException(
         400,
-        ['publicError' => "Invalid $publicFieldName. (ST2)"],
+        ['publicError' => "Invalid $publicFieldName: $hints (ST2)"],
         "$publicFieldName contains special chars or http"
       );
     }
