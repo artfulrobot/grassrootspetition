@@ -17,18 +17,23 @@ require_once __DIR__ . '/../../vendor/autoload.php';
  */
 class CaseWrapper {
 
-  /** @var array holds the api3 case.get output */
+  /**
+   * @var arrayholdstheapi3casegetoutput*/
   public $case;
 
-  /** @var array Cache of the civicrm_grpet_campaign row data */
+  /**
+   * @var arrayCacheofthecivicrm_grpet_campaignrowdata*/
   public $campaign;
 
-  /** @var array Cache of the petition created activity */
+  /**
+   * @var arrayCacheofthepetitioncreatedactivity*/
   public $createdActivity;
 
-  /** @var CommonMarkConverter */
+  /**
+   * @var \League\CommonMark\CommonMarkConverter*/
   public $markdownConverter;
-  /** @var Array of activity types (arrays) keyed by name:
+  /**
+   * @var Arrayofactivitytypesarrayskeyedbyname
    *
    * - Grassroots Petition created
    * - Grassroots Petition progress
@@ -39,20 +44,25 @@ class CaseWrapper {
    */
   public static $activityTypesByName;
 
-  /** @var array Status name to option value */
+  /**
+   * @var arrayStatusnametooptionvalue*/
   public static $activityStatuses;
-  /** @var array Status name to array of option details */
+  /**
+   * @var arrayStatusnametoarrayofoptiondetails*/
   public static $caseStatusesByValue;
-  /** @var array Status value to array of option details */
+  /**
+   * @var arrayStatusvaluetoarrayofoptiondetails*/
   public static $caseStatusesByName;
-  /** @var int */
+  /**
+   * @var int*/
   public static $caseTypeID;
   /**
-   * @var array of CaseWrapper objects keyed by Case ID. This will speed up
+   * @var arrayofCaseWrapperobjectskeyedbyCaseIDThiswillspeedup
    * processing the same case over and over, e.g. when batch processing
    * submissions from a queue.
    */
   public static $instanceCache = [];
+
   /**
    * Instantiate an object from the slug
    *
@@ -80,7 +90,7 @@ class CaseWrapper {
    *
    * @return NULL|CaseWrapper
    */
-  public static function fromID(int $id, bool $reset=FALSE) :?CaseWrapper {
+  public static function fromID(int $id, bool $reset = FALSE) :?CaseWrapper {
     if (!$reset && isset(static::$instanceCache[$id])) {
       return static::$instanceCache[$id];
     }
@@ -111,7 +121,7 @@ class CaseWrapper {
     string $location,
     string $targetName,
     string $who,
-    ?string $slug=NULL /* for import only */
+    ?string $slug = NULL /* for import only */
   ) :?CaseWrapper {
 
     $campaign = GrassrootsPetitionCampaign::get(FALSE)
@@ -201,7 +211,7 @@ class CaseWrapper {
 
       $toEmail = $campaign['notify_email'] ?? NULL;
 
-      $from = civicrm_api3('OptionValue', 'getvalue', [ 'return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
+      $from = civicrm_api3('OptionValue', 'getvalue', ['return' => "label", 'option_group_id' => "from_email_address", 'is_default' => 1]);
       if ($toEmail === NULL) {
         // Look up primary email.
         $toEmail = civicrm_api3('Email', 'get', [
@@ -214,7 +224,7 @@ class CaseWrapper {
         if (!$toEmail) {
           throw new ApiException(500, ['publicError' => 'Sorry, this petition is misconfigured. Please contact us. (EM2)'],
             "GrassrootsPetition: Notify contact ({$campaign['notify_contact_id']}) has no valid email, "
-            ."cannot notify about new petition (CaseID " . $case->getID() . ")"
+            . "cannot notify about new petition (CaseID " . $case->getID() . ")"
           );
         }
       }
@@ -225,7 +235,7 @@ class CaseWrapper {
         'to_email'       => $toEmail,
         'contact_id'     => $campaign['notify_contact_id'],
         // 'disable_smarty' => 1,
-        'template_params' => [ 'campaignName' => $campaign['label'] ]
+        'template_params' => ['campaignName' => $campaign['label']],
       ];
 
       try {
@@ -251,6 +261,7 @@ class CaseWrapper {
     static::init();
     return (int) static::$activityTypesByName[$name]['value'];
   }
+
   /**
    * Get case type ID
    */
@@ -284,10 +295,11 @@ class CaseWrapper {
     }
     return $return;
   }
+
   /**
    * Return an array of CaseWrapper objects for the given contact (and optionally case)
    */
-  public static function getPetitionsOwnedByContact(int $contactID, ?int $caseID=NULL) :array {
+  public static function getPetitionsOwnedByContact(int $contactID, ?int $caseID = NULL) :array {
     $params = [
       'contact_id'   => $contactID,
       'case_type_id' => 'grassrootspetition',
@@ -322,13 +334,15 @@ class CaseWrapper {
 
     $params = [
       'case_type_id' => 'grassrootspetition',
-      'status_id' => ['IN' => [
+      'status_id' => [
+        'IN' => [
         // static::$caseStatusesByName['grpet_Pending']['value'],
-        static::$caseStatusesByName['Open']['value'],
-      ]],
+          static::$caseStatusesByName['Open']['value'],
+        ],
+      ],
       'is_deleted' => 0,
       'options' => ['limit' => 0],
-      'return' => ['id', 'status_id', 'case_type_id', 'subject', $customSlug, $customCampaign, $customLocation, $customListOrder ],
+      'return' => ['id', 'status_id', 'case_type_id', 'subject', $customSlug, $customCampaign, $customLocation, $customListOrder],
     ];
     $result = civicrm_api3('Case', 'get', $params)['values'] ?? [];
 
@@ -341,13 +355,15 @@ class CaseWrapper {
 
     return $cases;
   }
+
   public function __construct() {
     static::init();
     $this->markdownConverter = new CommonMarkConverter([
       'html_input'         => 'strip',
-      'allow_unsafe_links' => false,
+      'allow_unsafe_links' => FALSE,
     ]);
   }
+
   /**
    */
   public static function init() {
@@ -357,16 +373,16 @@ class CaseWrapper {
     if (!isset(static::$activityTypesByName)) {
       // Look these up once now.
       static::$activityTypesByName = OptionValue::get(FALSE)
-          ->setCheckPermissions(FALSE)
-          ->addWhere('option_group_id:name', '=', 'activity_type')
-          ->addWhere('name', 'IN', [
-              'Grassroots Petition created',
-              'Grassroots Petition progress',
-              'Grassroots Petition mailing',
-              'Grassroots Petition signed',
-            ])
-          ->execute()
-          ->indexBy('name')->getArrayCopy();
+        ->setCheckPermissions(FALSE)
+        ->addWhere('option_group_id:name', '=', 'activity_type')
+        ->addWhere('name', 'IN', [
+          'Grassroots Petition created',
+          'Grassroots Petition progress',
+          'Grassroots Petition mailing',
+          'Grassroots Petition signed',
+        ])
+        ->execute()
+        ->indexBy('name')->getArrayCopy();
     }
 
     if (!isset(static::$activityStatuses)) {
@@ -381,10 +397,10 @@ class CaseWrapper {
       //
       static::$activityStatuses = [];
       $r = OptionValue::get(FALSE)
-          ->setCheckPermissions(FALSE)
-          ->addWhere('option_group_id:name', '=', 'activity_status')
-          ->addWhere('is_active', '=', 1)
-          ->execute()->indexBy('name');
+        ->setCheckPermissions(FALSE)
+        ->addWhere('option_group_id:name', '=', 'activity_status')
+        ->addWhere('is_active', '=', 1)
+        ->execute()->indexBy('name');
       // Check ones we require.
       foreach (['Completed', 'grpet_pending_moderation', 'Cancelled', 'Scheduled'] as $requiredStatus) {
         $_ = $r[$requiredStatus] ?? NULL;
@@ -399,10 +415,10 @@ class CaseWrapper {
       // Create map activity status name => option value (status_id)
       static::$caseStatusesByName = [];
       $r = OptionValue::get(FALSE)
-          ->setCheckPermissions(FALSE)
-          ->addWhere('option_group_id:name', '=', 'case_status')
-          ->addWhere('is_active', '=', 1)
-          ->execute()->indexBy('name');
+        ->setCheckPermissions(FALSE)
+        ->addWhere('option_group_id:name', '=', 'case_status')
+        ->addWhere('is_active', '=', 1)
+        ->execute()->indexBy('name');
       // Check ones we require.
       foreach (['grpet_Pending', 'Open', 'grpet_Dead', 'grpet_Won'] as $requiredStatus) {
         $_ = $r[$requiredStatus] ?? NULL;
@@ -415,6 +431,7 @@ class CaseWrapper {
       }
     }
   }
+
   /**
    * Import an array of Case data (as from api3 case.get)
    *
@@ -450,7 +467,8 @@ class CaseWrapper {
       'targetName'       => $this->getCustomData('grpet_target_name'),
       'petitionTitle'    => $this->getPetitionTitle(),
       'organiser'        => $this->getCustomData('grpet_who'),
-      'petitionWhatHTML' => $this->getWhat(), // html?
+    // html?
+      'petitionWhatHTML' => $this->getWhat(),
       'petitionWhyHTML'  => $this->getWhy(),
       'campaign'         => $this->getCampaignPublicName(),
       'imageUrl'         => $mainImage['imageUrl'],
@@ -495,12 +513,14 @@ class CaseWrapper {
   public function getCampaignAdminName() {
     $this->getCampaign()['name'];
   }
+
   /**
    * Get the public Campaign Name
    */
   public function getCampaignPublicName() {
     return $this->getCampaign()['label'];
   }
+
   /**
    * Get the Campaign data (getter for $this->campaign)
    */
@@ -523,6 +543,7 @@ class CaseWrapper {
     }
     return $this->campaign;
   }
+
   /**
    * Fetch the case 'client'. This would be the person who started the petition.
    *
@@ -531,6 +552,7 @@ class CaseWrapper {
   public function getClientContactID() :int {
     return (int) reset($this->case['client_id']);
   }
+
   /**
    * Fetch the case 'manager'. This would (also) be the person who started the petition.
    *
@@ -539,12 +561,14 @@ class CaseWrapper {
   public function getManagerContactID() :int {
     return (int) reset($this->case['contact_id']);
   }
+
   /**
    * Fetch the petition owner; this is the case manager.
    */
   public function getOwnerContactID() :int {
     return $this->getManagerContactID();
   }
+
   /**
    * Get a list of machine-name download permissions
    * that have been overridden at campaign or petition level.
@@ -610,10 +634,11 @@ class CaseWrapper {
     // No, fall back to inlay defaults.
     return NULL;
   }
+
   /**
    * Returns the text details of *what* the people who sign have signed up for.
    */
-  public function getWhat(bool $html=TRUE) :string {
+  public function getWhat(bool $html = TRUE) :string {
     $this->mustBeLoaded();
     $text = $this->getCustomData('grpet_what') ?? '';
     if ($html) {
@@ -621,10 +646,11 @@ class CaseWrapper {
     }
     return $text;
   }
+
   /**
    * Returns the details of *why* people should sign, this is the intro text.
    */
-  public function getWhy(bool $html=TRUE) :string {
+  public function getWhy(bool $html = TRUE) :string {
     $this->mustBeLoaded();
     $text = $this->getCustomData('grpet_why') ?? '';
     if ($html) {
@@ -632,6 +658,7 @@ class CaseWrapper {
     }
     return $text;
   }
+
   /**
    * Updates are activities of the 'Grassroots Petition progress' type
    */
@@ -676,6 +703,7 @@ class CaseWrapper {
 
     return $updates;
   }
+
   /**
    * Updates are activities of the 'Grassroots Petition progress' type
    *
@@ -713,12 +741,13 @@ class CaseWrapper {
 
     return $updates;
   }
+
   /**
    * Returns a count of the signatures on a particular case.
    *
    * Optionally, check for a particular contact.
    */
-  public function getPetitionSigsCount(?int $contactID=NULL) :int {
+  public function getPetitionSigsCount(?int $contactID = NULL) :int {
     $this->mustBeLoaded();
     // Count the 'Grassroots Petition signed' petitions.
     $signedActivityTypeID = (int) static::$activityTypesByName['Grassroots Petition signed']['value'];
@@ -744,6 +773,7 @@ class CaseWrapper {
 
     return $count;
   }
+
   /**
    * Returns the name and 'ago' statement.
    *
@@ -776,40 +806,41 @@ class CaseWrapper {
       if ($x < 60) {
         $ago = "$x seconds ago";
       }
-      elseif ($x < 60*60) {
+      elseif ($x < 60 * 60) {
         // up to 59 mins.
-        $x = (int) ($x/60);
+        $x = (int) ($x / 60);
         $ago = "$x minutes ago";
       }
-      elseif ($x < 24*60*60) {
+      elseif ($x < 24 * 60 * 60) {
         // up to 23 horus
-        $x = (int) ($x/60/60);
+        $x = (int) ($x / 60 / 60);
         $ago = "$x hours ago";
       }
-      elseif ($x < 24*60*60*14) {
+      elseif ($x < 24 * 60 * 60 * 14) {
         // up to 2 weeks, show as 'x days ago'
-        $x = (int) ($x/60/60/24);
+        $x = (int) ($x / 60 / 60 / 24);
         $ago = "$x days ago";
       }
-      elseif ($x < 24*60*60*31*2) {
+      elseif ($x < 24 * 60 * 60 * 31 * 2) {
         // up to 2 months, show as 'x weeks ago'
-        $x = (int) ($x/60/60/24/7);
+        $x = (int) ($x / 60 / 60 / 24 / 7);
         $ago = "$x weeks ago";
       }
-      elseif ($x < 24*60*60*31*25) {
+      elseif ($x < 24 * 60 * 60 * 31 * 25) {
         // up to 25 months, show as 'x months ago' (roughly)
-        $x = (int) ($x/60/60/24/30);
+        $x = (int) ($x / 60 / 60 / 24 / 30);
         $ago = "$x months ago";
       }
       else {
         // Over 25 months, show as years.
-        $x = (int) ($x/60/60/24/365);
+        $x = (int) ($x / 60 / 60 / 24 / 365);
         $ago = "$x years ago";
       }
       return ['name' => $dao->first_name, 'ago' => $ago];
     }
     return ['name' => '', 'ago' => ''];
   }
+
   /**
    * Returns all the data for the signatures
    */
@@ -831,7 +862,7 @@ class CaseWrapper {
       WHERE a.activity_type_id = $signedActivityTypeID
         AND a.is_deleted = 0
     ";
-    /** @var CRM_Core_DAO */
+    /** @var \CRM_Core_DAO */
     $dao = CRM_Core_DAO::executeQuery($sql);
     $activityIDs = $dao->fetchMap('activity_id', 'activity_id');
 
@@ -855,11 +886,11 @@ class CaseWrapper {
         ['Contact AS contact', TRUE, NULL, ['activity_contact.contact_id', '=', 'contact.id'], ['contact.is_deleted', '=', 0], ['contact.is_deceased', '=', 0]],
         ['Email AS email', FALSE, NULL, ['email.contact_id', '=', 'contact.id'], ['email.is_primary', '=', 1]],
       ])
-      ->execute()->getArrayCopy()
-      ;
+      ->execute()->getArrayCopy();
 
     return $activities;
   }
+
   /**
    * Return the name (or other value) of the case status from its value.
    *
@@ -869,7 +900,7 @@ class CaseWrapper {
    * - 'grpet_Dead'
    * - 'grpet_Won'
    */
-  public function getCaseStatus(string $field='name') :string {
+  public function getCaseStatus(string $field = 'name') :string {
     $this->mustBeLoaded();
     $_ = static::$caseStatusesByValue[$this->case['status_id']][$field] ?? NULL;
     if (!$_) {
@@ -877,12 +908,14 @@ class CaseWrapper {
     }
     return $_;
   }
+
   public function getStartDate() :string {
     $this->mustBeLoaded();
     $createdActivity = $this->getPetitionCreatedActivity();
     \Civi::log()->info("grpet createdActivity: " . json_encode($createdActivity));
     return date('j M Y', strtotime($createdActivity['activity_date_time']));
   }
+
   /**
    * Get Case ID.
    */
@@ -890,6 +923,7 @@ class CaseWrapper {
     $this->mustBeLoaded();
     return (int) $this->case['id'];
   }
+
   /**
    * Get Case Subject (petition title)
    */
@@ -897,6 +931,7 @@ class CaseWrapper {
     $this->mustBeLoaded();
     return (string) $this->case['subject'] ?? '';
   }
+
   /**
    * Change the case status.
    */
@@ -919,21 +954,25 @@ class CaseWrapper {
 
     return $this;
   }
+
   /**
    */
   public function setWhy(string $value) :CaseWrapper {
     return $this->setCustomData(['grpet_why' => $value]);
   }
+
   /**
    */
   public function setWhat(string $value) :CaseWrapper {
     return $this->setCustomData(['grpet_what' => $value]);
   }
+
   /**
    */
   public function setWho(string $value) :CaseWrapper {
     return $this->setCustomData(['grpet_who' => $value]);
   }
+
   /**
    * Set value of custom fields
    */
@@ -957,6 +996,7 @@ class CaseWrapper {
     }
     return $this;
   }
+
   /**
    * Change the case status.
    */
@@ -975,6 +1015,7 @@ class CaseWrapper {
     }
     return $this;
   }
+
   /**
    * Add a signed petition activity to the case for the given contact.
    *
@@ -1014,6 +1055,7 @@ class CaseWrapper {
 
     return (int) $result['id'];
   }
+
   /**
    * Add an update activity.
    *
@@ -1021,7 +1063,7 @@ class CaseWrapper {
    *
    * @return int Activity ID created.
    */
-  public function addUpdateActivity(int $contactID, string $subject, string $text, ?string $timestamp=NULL) :int {
+  public function addUpdateActivity(int $contactID, string $subject, string $text, ?string $timestamp = NULL) :int {
 
     $activityCreateParams = [
       'activity_type_id'     => static::$activityTypesByName['Grassroots Petition progress']['value'],
@@ -1041,6 +1083,7 @@ class CaseWrapper {
 
     return (int) $result['id'];
   }
+
   /**
    */
   public function addImageToUpdateActivityFromData(int $activityID, string $imageData, string $imageFileType) {
@@ -1065,7 +1108,7 @@ class CaseWrapper {
     ]);
     if (!empty($original['id'])) {
       civicrm_api3('Attachment', 'delete', [
-        'id' => $original['id']
+        'id' => $original['id'],
       ]);
     }
 
@@ -1078,6 +1121,7 @@ class CaseWrapper {
     ]);
 
   }
+
   /**
    * Handle consent.
    *
@@ -1089,14 +1133,14 @@ class CaseWrapper {
 
     if (class_exists('CRM_Gdpr_CommunicationsPreferences_Utils')) {
       \CRM_Gdpr_CommunicationsPreferences_Utils::createCommsPrefActivity($contactID,
-        ['activity_source' => "<p>Opted-in via Grassroots Petition "
-        . htmlspecialchars($this->getPetitionTitle())
-        . ' on page '
-        . htmlspecialchars($data['location'])
-        . '</p>'
+        [
+          'activity_source' => "<p>Opted-in via Grassroots Petition "
+          . htmlspecialchars($this->getPetitionTitle())
+          . ' on page '
+          . htmlspecialchars($data['location'])
+          . '</p>',
         ]);
     }
-
 
     // todo extract this from the petition side of things; use a hook.
     // Add them to the newsletter
@@ -1107,10 +1151,10 @@ class CaseWrapper {
 
     // Add them to the email consent group
     $emailConsentGroup = \Civi\Api4\Group::get(FALSE)
-        ->addSelect('id')
-        ->addWhere('name', '=', 'consent_all_email')
-        ->execute()
-        ->first()['id'] ?? NULL;
+      ->addSelect('id')
+      ->addWhere('name', '=', 'consent_all_email')
+      ->execute()
+      ->first()['id'] ?? NULL;
     if (!$emailConsentGroup) {
       Civi::log()->warning("Failed to find consent_all_email Group; was going to add contact $contactID into it as they signed up.");
     }
@@ -1121,10 +1165,10 @@ class CaseWrapper {
     if (!empty($data['phone'])) {
       // Add them to the phone consent group, if phone number given
       $phoneConsentGroup = \Civi\Api4\Group::get(FALSE)
-          ->addSelect('id')
-          ->addWhere('name', '=', 'consent_all_phone')
-          ->execute()
-          ->first()['id'] ?? NULL;
+        ->addSelect('id')
+        ->addWhere('name', '=', 'consent_all_phone')
+        ->execute()
+        ->first()['id'] ?? NULL;
       if (!$phoneConsentGroup) {
         Civi::log()->warning("Failed to find consent_all_phone Group; was going to add contact $contactID into it as they signed up.");
       }
@@ -1137,6 +1181,7 @@ class CaseWrapper {
     // todo
 
   }
+
   /**
    * Returns absolute file path or url to an image.
    *
@@ -1149,18 +1194,18 @@ class CaseWrapper {
    * - <petitionHash>-main.jpg
    * - <petitionHash>-update-<activityID>.jpg
    */
-  public function getFile(string $pathOrUrl, ?int $activityID=NULL) :?string {
+  public function getFile(string $pathOrUrl, ?int $activityID = NULL) :?string {
     $petitionHash = substr(sha1(CIVICRM_SITE_KEY . $this->case['id']), 0, 8);
 
     if ($activityID === 0) {
       if ($pathOrUrl !== 'path') {
         throw new \RuntimeException("requires 'path' if temp file requested");
       }
-      $unique = substr(sha1(CIVICRM_SITE_KEY . 'grpe tempfile' ), 0, 8);
+      $unique = substr(sha1(CIVICRM_SITE_KEY . 'grpe tempfile'), 0, 8);
       $fileName = "$petitionHash-temp-$unique.jpg";
     }
     elseif ($activityID !== NULL) {
-       $fileName = "$petitionHash-update-$activityID.jpg";
+      $fileName = "$petitionHash-update-$activityID.jpg";
     }
     else {
       $fileName = "$petitionHash-main.jpg";
@@ -1183,6 +1228,7 @@ class CaseWrapper {
       throw new \Exception(__FUNCTION__ . " requires pathOrUrl to be path|url. '$pathOrUrl' given.");
     }
   }
+
   /**
    * Creates a temporary rescaled image file and returns its path, if successful.
    */
@@ -1226,7 +1272,7 @@ class CaseWrapper {
 
     $tempFile = $this->getFile('path', 0);
     $imgProperties = getimagesize($src);
-    if($imgProperties[2] !== $expectedImageType) {
+    if ($imgProperties[2] !== $expectedImageType) {
       throw new \RuntimeException("Attachment $attachmentID file $src is not a $attachment[mime_type] file according to GD");
     }
     $srcImage = $imageLoadFunction($src);
@@ -1235,17 +1281,19 @@ class CaseWrapper {
     $newW = 1200;
     // This ratio is for twitter and facebook (Feb 2021) but Twitter
     // (summary_large_image) will chop the top and bottom 15px.
-    $ratio = 1200/628;
+    $ratio = 1200 / 628;
 
     $maxH = (int) ($newW / $ratio);
     $newH = (int) ($imgProperties[1] * $newW / $imgProperties[0]);
     $offsetY = 0;
-    $copyW = $imgProperties[0]; // copy full width
-    $copyH = $imgProperties[1]; // copy full height
+    // copy full width
+    $copyW = $imgProperties[0];
+    // copy full height
+    $copyH = $imgProperties[1];
     if ($newH > $maxH) {
       // Image is taller than ratio.
       // We will take a crop from the middle.
-      $offsetY = (int) (($imgProperties[1] - $imgProperties[0]/$ratio)/2);
+      $offsetY = (int) (($imgProperties[1] - $imgProperties[0] / $ratio) / 2);
       $copyH = (int) ($copyW / $ratio);
       // Restrict new height.
       $newH = $maxH;
@@ -1295,22 +1343,20 @@ class CaseWrapper {
       'return' => 'id',
       'entity_table' => 'civicrm_activity',
       'entity_id' => $activity['id'],
-      'options' => ['limit' => 1, 'sort' => 'id'],
+      'options' => ['limit' => 1, 'sort' => 'id'], /* this doesnot work */
     ]);
-    if (!empty($original['id'])) {
-      Civi::log("Found original attachment $original[id], deleting it now.");
-      civicrm_api3('Attachment', 'delete', [
-        'id' => $original['id']
-      ]);
+    foreach ($original['values'] ?? [] as $item) {
+      Civi::log()->debug("Found previous attachment $item[id], on activity $activity[id]. Deleting attachment now.");
+      civicrm_api3('Attachment', 'delete', ['id' => $item['id']]);
 
       $filePath = $this->getFile('path', NULL);
       if (file_exists($filePath)) {
-        Civi::log("Deleting original public file $filePath so new one shines through.");
+        Civi::log()->debug("Deleting original public file $filePath so new one shines through.");
         unlink($filePath);
       }
     }
 
-    Civi::log("Creating new attachment on activity $activity[id] image type $imageFileType file $filename");
+    Civi::log()->debug("Creating new attachment on activity $activity[id] image type $imageFileType file $filename");
     civicrm_api3('Attachment', 'create', [
       'entity_table' => 'civicrm_activity',
       'entity_id' => $activity['id'],
@@ -1320,6 +1366,7 @@ class CaseWrapper {
     ]);
 
   }
+
   /**
    * Look up the Grassroots Petition created activity.
    *
@@ -1332,7 +1379,7 @@ class CaseWrapper {
         'sequential'   => 1,
         'case_id' => $this->case['id'],
         'activity_type_id' => static::$activityTypesByName['Grassroots Petition created']['value'],
-        'return' => ['id', 'status_id', 'activity_type_id', 'activity_date_time']
+        'return' => ['id', 'status_id', 'activity_type_id', 'activity_date_time'],
       ]);
       if (empty($openCase['id'])) {
         // This is an error!
@@ -1355,10 +1402,10 @@ class CaseWrapper {
   public function getSignerMailingList() :int {
     $groupName = "grassrootspetition_" . $this->case['id'] . "_mailing_group";
     $groupID = \Civi\Api4\Group::get(FALSE)
-        ->addSelect('id')
-        ->addWhere('name', '=',$groupName)
-        ->execute()
-        ->first()['id'] ?? 0;
+      ->addSelect('id')
+      ->addWhere('name', '=', $groupName)
+      ->execute()
+      ->first()['id'] ?? 0;
     if (!$groupID) {
 
       // Group not found. Create it now.
@@ -1366,23 +1413,23 @@ class CaseWrapper {
 
       $api = [
         "version" => 4,
-        "select" => [ "id", "display_name", "Contact_ActivityContact_Activity_01.activity_date_time", "Contact_ActivityContact_Activity_01.subject" ],
+        "select" => ["id", "display_name", "Contact_ActivityContact_Activity_01.activity_date_time", "Contact_ActivityContact_Activity_01.subject"],
         "orderBy" => [],
-        "where" => [ [ "Contact_ActivityContact_Activity_01.grpet_signature.grpet_sig_optin:name", "=", true ] ],
+        "where" => [["Contact_ActivityContact_Activity_01.grpet_signature.grpet_sig_optin:name", "=", TRUE]],
         "groupBy" => [],
         "join" => [
           [
-            "Activity AS Contact_ActivityContact_Activity_01", "INNER", "ActivityContact", [ "id", "=", "Contact_ActivityContact_Activity_01.contact_id" ],
-            [ "Contact_ActivityContact_Activity_01.record_type_id:name", "=", "\"Activity Targets\"" ],
-            [ "Contact_ActivityContact_Activity_01.activity_type_id:name", "=", "\"Grassroots Petition signed\"" ]
+            "Activity AS Contact_ActivityContact_Activity_01", "INNER", "ActivityContact", ["id", "=", "Contact_ActivityContact_Activity_01.contact_id"],
+            ["Contact_ActivityContact_Activity_01.record_type_id:name", "=", "\"Activity Targets\""],
+            ["Contact_ActivityContact_Activity_01.activity_type_id:name", "=", "\"Grassroots Petition signed\""],
           ],
           [
-              "Case AS Contact_ActivityContact_Activity_01_Activity_CaseActivity_Case_01", "INNER", "CaseActivity",
-              [ "Contact_ActivityContact_Activity_01.id", "=", "Contact_ActivityContact_Activity_01_Activity_CaseActivity_Case_01.activity_id" ],
-              [ "Contact_ActivityContact_Activity_01_Activity_CaseActivity_Case_01.id", "=", $this->case['id'] ]
-          ]
+            "Case AS Contact_ActivityContact_Activity_01_Activity_CaseActivity_Case_01", "INNER", "CaseActivity",
+              ["Contact_ActivityContact_Activity_01.id", "=", "Contact_ActivityContact_Activity_01_Activity_CaseActivity_Case_01.activity_id"],
+              ["Contact_ActivityContact_Activity_01_Activity_CaseActivity_Case_01.id", "=", $this->case['id']],
+          ],
         ],
-        "having" => []
+        "having" => [],
       ];
       $groupTitle = E::ts("Grassroots Petition %1 email updates", [1 => $this->case['id']]);
       // ->addValue('public',
@@ -1395,7 +1442,7 @@ class CaseWrapper {
         ->addValue('name', $groupName)
         ->addValue('label', $groupTitle)
         ->addValue('api_entity', 'Contact')
-        ->addValue('api_params',$api)
+        ->addValue('api_params', $api)
         ->execute()->first()['id'];
 
       // Now create a smart group.
@@ -1405,9 +1452,10 @@ class CaseWrapper {
         ->addValue('description', E::ts('People who signed this petition and opted in to updates.'))
         ->addValue('saved_search_id', $savedSearchID)
         ->addValue('is_active', TRUE)
-        ->addValue('api_params',$api)
+        ->addValue('api_params', $api)
         ->addValue('visibility', 'User and User Admin Only')
-        ->addValue('group_type', [2]) // Mailing group.
+      // Mailing group.
+        ->addValue('group_type', [2])
         ->addValue('frontend_title', E::ts("Updates from: %1", [1 => $this->getPetitionTitle()]))
         // Internal description is ok. ->addValue('frontend_description', E::ts(""))
         ->execute()->first()['id'];
@@ -1415,6 +1463,7 @@ class CaseWrapper {
 
     return (int) $groupID;
   }
+
   /**
    * Assert that the case is loaded; used by public getters.
    */
@@ -1423,6 +1472,7 @@ class CaseWrapper {
       throw new \RuntimeException("CaseWrapper: no case loaded.");
     }
   }
+
   /**
    * Adds imageUrl and imageAlt to the activity array. NULL if no image.
    *
@@ -1478,7 +1528,8 @@ class CaseWrapper {
       try {
         $tempFile = $this->createPublicImage($attachment);
       }
-      catch (\Exception $e) {}
+      catch (\Exception $e) {
+      }
       if ($tempFile) {
         rename($tempFile, $filePath);
         Civi::log()->info("GrassrootsPetition: Created file '$filePath' for Case {$this->case['id']} on activity $activity[id]");
@@ -1488,4 +1539,5 @@ class CaseWrapper {
     $activity['imageUrl'] = $this->getFile('url', $updateActivityID);
     $activity['imageAlt'] = $attachment['description'] ?? '';
   }
+
 }
