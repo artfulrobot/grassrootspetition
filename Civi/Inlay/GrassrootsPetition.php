@@ -821,7 +821,7 @@ class GrassrootsPetition extends InlayType {
       $imageData = base64_decode($m[2]);
       $imageFileType = $m[1];
       unset($m);
-      Civi::log()->debug("Got image " . strlen($imageData));
+      Civi::log()->debug("processAdminSavePetition Got image bytes: " . strlen($imageData));
       if ($imageData) {
         // We need to add our image to the case.
         $case->setMainImageFromImageData($imageData, $imageFileType);
