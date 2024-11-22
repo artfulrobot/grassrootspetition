@@ -304,6 +304,7 @@ class CaseWrapper {
       'contact_id'   => $contactID,
       'case_type_id' => 'grassrootspetition',
       'is_deleted'   => 0,
+      'options' => ['limit' => 0],
     ];
     if ($caseID) {
       $params['id'] = $caseID;
