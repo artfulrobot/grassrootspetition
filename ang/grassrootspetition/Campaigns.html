@@ -17,8 +17,8 @@
           <td>{{campaign.name}}</td>
           <td>{{campaign.stats.total.toLocaleString()}}</td>
           <td>
-            <span class="mod-petitions" ng-show="campaign.stats.petitionsToMod > 0" title="Unpublished petitions awaiting moderation"><i class="fa-exclamation-triangle crm-icon crm-i"></i>&nbsp;{{campaign.stats.petitionsToMod}}</span>
-            <span class="mod-updates" ng-show="campaign.stats.updatesToMod > 0" title="Published admin-supplied updates need moderation checks"><i class="fa-quote-left crm-icon crm-i"></i>&nbsp;{{campaign.stats.updatesToMod}}</span>
+            <span class="mod-petitions" ng-show="campaign.stats.petitionsToMod > 0" title="Unpublished petitions awaiting moderation"><i class="fa-exclamation-triangle crm-icon crm-i" role="img" aria-hidden="true"></i>&nbsp;{{campaign.stats.petitionsToMod}}</span>
+            <span class="mod-updates" ng-show="campaign.stats.updatesToMod > 0" title="Published admin-supplied updates need moderation checks"><i class="fa-quote-left crm-icon crm-i" role="img" aria-hidden="true"></i>&nbsp;{{campaign.stats.updatesToMod}}</span>
           </td>
           <td>{{campaign.is_active ? ts('Yes') : ts('No')}}</td>
           <td>
@@ -252,7 +252,7 @@
           <td>{{petition.petitionTitle}} </td>
           <td>
             <span class="mod-petitions" ng-show="petition.petitionNeedsMod == 1" >
-              <i class="fa-exclamation-triangle crm-icon crm-i"></i> 
+              <i class="fa-exclamation-triangle crm-icon crm-i" role="img" aria-hidden="true"></i> 
              {{petition.caseStatus}}</span>
             <span ng-show="petition.petitionNeedsMod == 0" >
              {{petition.caseStatus}}</span>
@@ -260,7 +260,7 @@
           <td style="text-align:right;">{{ petition.signatures }}</td>
           <td>
             <span class="mod-updates" ng-show="petition.updatesToMod >0" >
-              <i class="fa-quote-left crm-icon crm-i"></i> 
+              <i class="fa-quote-left crm-icon crm-i" role="img" aria-hidden="true"></i> 
             {{petition.updatesToMod}}</span></td>
           <td><a href="{{ CRM.url('civicrm/contact/view/case', {
             reset:1,
