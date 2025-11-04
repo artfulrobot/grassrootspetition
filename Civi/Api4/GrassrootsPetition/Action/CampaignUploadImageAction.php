@@ -3,7 +3,7 @@ namespace Civi\Api4\GrassrootsPetition\Action;
 
 use Civi\Api4\Generic\DAOGetAction;
 use Civi\Api4\Generic\Result;
-use \API_Exception;
+use \CRM_Core_Exception;
 use Civi\GrassrootsPetition\CaseWrapper;
 use CRM_Core_DAO;
 use Civi;
@@ -41,7 +41,7 @@ class CampaignUploadImageAction extends DAOGetAction {
 
     // Check the image is what we want.
     if (!preg_match('/\.(jpe?g|png)$/', $this->fileName, $matches)) {
-      throw new API_Exception('Image must be jpeg/png');
+      throw new CRM_Core_Exception('Image must be jpeg/png');
     }
 
     $asset = \Civi\Inlay\Asset::singleton();
@@ -60,7 +60,7 @@ class CampaignUploadImageAction extends DAOGetAction {
       }
     }
     else {
-      throw new API_Exception('Image must be jpeg/png');
+      throw new CRM_Core_Exception('Image must be jpeg/png');
     }
 
     // @todo resize images that are too small.
