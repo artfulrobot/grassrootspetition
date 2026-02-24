@@ -1301,7 +1301,7 @@ class GrassrootsPetition extends InlayType {
     // The slug is stored as custom data on the case.
     $case = CaseWrapper::fromSlug($slug);
     if (!$case) {
-      throw new ApiException(400, ['publicError' => 'Petition not ' . $slug . ' found. If you have just created a petition, it will be available as soon as it has been moderated by staff.']);
+      throw new ApiException(400, ['publicError' => 'Petition not found: ' . $slug . ' If you have just created a petition, it will be available as soon as it has been moderated by staff.']);
     }
 
     switch ($case->getCaseStatus()) {
