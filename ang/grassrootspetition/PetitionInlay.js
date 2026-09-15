@@ -1,4 +1,4 @@
-(function(angular, $, _) {
+(function(angular, $) {
 
   angular.module('grassrootspetition').config(function($routeProvider) {
       $routeProvider.when('/inlays/grassrootspetition/:id', {
@@ -120,4 +120,4 @@
     };
   });
 
-})(angular, CRM.$, CRM._);
+})(angular, CRM.$);
