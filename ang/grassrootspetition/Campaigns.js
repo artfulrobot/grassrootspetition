@@ -1,4 +1,4 @@
-(function(angular, $, _) {
+(function(angular, $) {
 
   angular.module('grassrootspetition').config(function($routeProvider) {
       $routeProvider.when('/grassrootspetition/campaigns', {
@@ -195,4 +195,4 @@
 
   });
 
-})(angular, CRM.$, CRM._);
+})(angular, CRM.$);
