@@ -201,13 +201,13 @@ class Importer {
     $activity = $petitionCase->getPetitionCreatedActivity();
 
     // Create an attachment for a core field
-    $result = civicrm_api3('Attachment', 'create', array(
+    $result = civicrm_api3('Attachment', 'create', [
       'entity_table' => 'civicrm_activity',
       'entity_id'    => $activity['id'],
       'name'         => $petition->image_file_name,
       'mime_type'    => $mimeType,
       'content'      => $imageContent,
-    ));
+    ]);
     $attachment = $result['values'][$result['id']];
     $this->log("Imported image $petition->image_file_name as '$attachment[name]': " . $attachment['url']  . "\n");
   }
