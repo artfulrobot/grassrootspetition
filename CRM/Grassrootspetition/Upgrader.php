@@ -297,7 +297,7 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Extension_Upgrader_Base {
     $allParams = [
       'column_name'     => "campaign_id",
       'label'           => "Campaign",
-      'data_type'       => "Integer",
+      'data_type'       => "Int",
       'html_type'       => 'Text',
       'is_searchable'   => 1,
       'is_required'     => 1,
@@ -470,7 +470,7 @@ class CRM_Grassrootspetition_Upgrader extends CRM_Extension_Upgrader_Base {
     $allParams = [
       'column_name'     => "confirm_msg_template_id",
       'label'           => "Thank you email override (not opted-in)",
-      'data_type'       => "Integer",
+      'data_type'       => "Int",
       'html_type'       => 'Text',
       'is_searchable'   => 0,
       'is_required'     => 0,
