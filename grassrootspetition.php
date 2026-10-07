@@ -87,15 +87,13 @@ function grassrootspetition_civicrm_navigationMenu(&$menu) {
 function grassrootspetition_civicrm_buildForm($formName, &$form) {
   \Civi::log()->info($formName);
   if ($formName === 'CRM_Case_Form_CustomData') {
-
-    require_once 'CRM/Core/BAO/CustomField.php';
-    $confirmMsgTplFieldID = CRM_Core_BAO_CustomField::getCustomFieldID('grpet_confirm_msg_template_id');
-    $thanksMsgTplFieldID = CRM_Core_BAO_CustomField::getCustomFieldID('grpet_thanks_msg_template_id');
+    $confirmMsgTplField = CRM_Core_BAO_CustomField::getShortNameFromLongName('grpet_petition.grpet_confirm_msg_template_id');
+    $thanksMsgTplField = CRM_Core_BAO_CustomField::getShortNameFromLongName('grpet_petition.grpet_thanks_msg_template_id');
 
     CRM_Core_Region::instance('form-bottom')->add([
       'jquery' => <<<JAVASCRIPT
           // confirm email
-          $('[name^="custom_{$confirmMsgTplFieldID}_"]').crmEntityRef({
+          $('[name^="{$confirmMsgTplField}_"]').crmEntityRef({
             entity: 'MessageTemplate',
             api: {
               search_field: 'msg_title',
@@ -106,7 +104,7 @@ function grassrootspetition_civicrm_buildForm($formName, &$form) {
             create: false
           });
           // thanks email
-          $('[name^="custom_{$thanksMsgTplFieldID}_"]').crmEntityRef({
+          $('[name^="{$thanksMsgTplField}_"]').crmEntityRef({
             entity: 'MessageTemplate',
             api: {
               search_field: 'msg_title',
