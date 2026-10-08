@@ -1,47 +1,12 @@
 # grassrootspetition
 
-![Screenshot](/images/screenshot.png)
+This CiviCRM extension uses Inlay to provide websites with a way to provide a platform for the public to create petitions on issues they care about. Petitions are moderated by staff before they become public. Petition owners can send mailings (moderated), download petition signatures, provide updates on their campaigns for the website etc. It can replace very expensive subscription products.
 
-(*FIXME: In one or two paragraphs, describe what the extension does and why one would download it. *)
+You can see examples at https://peopleandplanet.org/petitions
 
-The extension is licensed under [AGPL-3.0](LICENSE.txt).
+Use of this extension requires a bit more work on the website end than most inlays in order to do things like providing page SEO/SM-satisfying titles + meta tags like og:image.
 
-## Requirements
-
-* PHP v7.2+
-* CiviCRM (*FIXME: Version number*)
-
-## Installation (Web UI)
-
-Learn more about installing CiviCRM extensions in the [CiviCRM Sysadmin Guide](https://docs.civicrm.org/sysadmin/en/latest/customize/extensions/).
-
-## Installation (CLI, Zip)
-
-Sysadmins and developers may download the `.zip` file for this extension and
-install it with the command-line tool [cv](https://github.com/civicrm/cv).
-
-```bash
-cd <extension-dir>
-cv dl grassrootspetition@https://github.com/FIXME/grassrootspetition/archive/master.zip
-```
-
-## Installation (CLI, Git)
-
-Sysadmins and developers may clone the [Git](https://en.wikipedia.org/wiki/Git) repo for this extension and
-install it with the command-line tool [cv](https://github.com/civicrm/cv).
-
-```bash
-git clone https://github.com/FIXME/grassrootspetition.git
-cv en grassrootspetition
-```
-
-## Getting Started
-
-(* FIXME: Where would a new user navigate to get started? What changes would they see? *)
-
-## Known Issues
-
-(* FIXME *)
+Due to this and the fact that not that many orgs will need this functionality, I have not put a lot of work into making it easy to install. **Therefore if you want to implement this for your campaigns, you'd be advised to contact me at [Artful Robot](https://artfulrobot.uk/).**
 
 ## Versions
 
